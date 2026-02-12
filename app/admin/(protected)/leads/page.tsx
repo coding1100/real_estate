@@ -1,0 +1,60 @@
+import { prisma } from "@/lib/prisma";
+
+export default async function LeadsPage() {
+  const leads = await prisma.lead.findMany({
+    include: { domain: true, page: true },
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  });
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-lg font-semibold tracking-tight text-zinc-900">
+        Leads
+      </h1>
+      <table className="min-w-full overflow-hidden rounded-2xl bg-white text-xs shadow-sm">
+        <thead className="bg-zinc-50 text-[11px] uppercase tracking-[0.15em] text-zinc-500">
+          <tr>
+            <th className="px-3 py-2 text-left">Created</th>
+            <th className="px-3 py-2 text-left">Domain</th>
+            <th className="px-3 py-2 text-left">Page</th>
+            <th className="px-3 py-2 text-left">Type</th>
+            <th className="px-3 py-2 text-left">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {leads.map((lead) => (
+            <tr key={lead.id} className="border-t border-zinc-100">
+              <td className="px-3 py-2 text-zinc-700">
+                {lead.createdAt.toLocaleString()}
+              </td>
+              <td className="px-3 py-2 text-zinc-700">
+                {lead.domain.hostname}
+              </td>
+              <td className="px-3 py-2 text-zinc-700">
+                {lead.page.slug}
+              </td>
+              <td className="px-3 py-2 text-zinc-700">
+                {lead.type}
+              </td>
+              <td className="px-3 py-2 text-zinc-700">
+                {lead.status}
+              </td>
+            </tr>
+          ))}
+          {leads.length === 0 && (
+            <tr>
+              <td
+                colSpan={5}
+                className="px-3 py-4 text-center text-zinc-500"
+              >
+                No leads yet.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+

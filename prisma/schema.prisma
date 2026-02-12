@@ -1,0 +1,130 @@
+// Prisma schema for real estate landing page system
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model AdminUser {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Domain {
+  id                      String   @id @default(uuid())
+  hostname                String   @unique
+  displayName             String
+  logoUrl                 String?
+  faviconUrl              String?
+  primaryColor            String   @default("#1a365d")
+  accentColor             String   @default("#c6952b")
+  agentName               String?
+  agentPhoto              String?
+  agentPhone              String?
+  complianceText          String?
+  ga4Id                   String?
+  metaPixelId             String?
+  notifyEmail             String
+  notifySms               String?
+  defaultBuyerFormSchema  Json?
+  defaultSellerFormSchema Json?
+  isActive                Boolean  @default(true)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  pages                   LandingPage[]
+  leads                   Lead[]
+}
+
+model MasterTemplate {
+  id          String   @id @default(uuid())
+  type        String   @unique
+  name        String
+  sections    Json
+  formSchema  Json
+  isLocked    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  pages       LandingPage[]
+}
+
+model LandingPage {
+  id               String   @id @default(uuid())
+  slug             String
+  domainId         String
+  domain           Domain        @relation(fields: [domainId], references: [id])
+  masterTemplateId String
+  masterTemplate   MasterTemplate @relation(fields: [masterTemplateId], references: [id])
+  type             String
+  status           String   @default("draft")
+
+  // Content
+  headline       String
+  subheadline    String?
+  heroImageUrl   String?
+  sections       Json
+  ctaText        String   @default("Get Access")
+  successMessage String   @default("Thank you!")
+  deliverableUrl String?
+
+  // Form
+  useCustomForm Boolean @default(false)
+  formSchema    Json?
+
+  // Branding overrides
+  primaryColor String?
+  accentColor  String?
+
+  // SEO — editable from admin
+  seoTitle       String?
+  seoDescription String?
+  seoKeywords    Json?
+  ogImageUrl     String?
+  ogType         String?  @default("website")
+  twitterCard    String?  @default("summary_large_image")
+  canonicalUrl   String?
+  noIndex        Boolean  @default(false)
+  schemaMarkup   Json?
+  customHeadTags Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  leads     Lead[]
+
+  @@unique([domainId, slug])
+}
+
+model Lead {
+  id          String   @id @default(uuid())
+  domainId    String
+  domain      Domain      @relation(fields: [domainId], references: [id])
+  pageId      String
+  page        LandingPage @relation(fields: [pageId], references: [id])
+  type        String
+  formData    Json
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  status      String   @default("new")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model WebhookConfig {
+  id        String   @id @default(uuid())
+  name      String
+  url       String
+  method    String   @default("POST")
+  headers   Json?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
