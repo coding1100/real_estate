@@ -25,7 +25,6 @@ export function HeroSection({ page, formSchema }: HeroSectionProps) {
             </p>
           )}
         </div>
-
         <div className="flex-1">
           <div className="rounded-2xl bg-white p-5 text-zinc-900 shadow-xl z-10 relative">
             <h2 className="mb-2 text-base font-semibold">
