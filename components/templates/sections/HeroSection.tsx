@@ -7,7 +7,6 @@ interface HeroSectionProps {
   page: LandingPageContent;
   formSchema?: FormSchema | null;
 }
-
 export function HeroSection({ page, formSchema }: HeroSectionProps) {
   return (
     <section className="relative overflow-hidden bg-zinc-950 text-white min-h-[800px]">
