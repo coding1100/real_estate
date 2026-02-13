@@ -12,9 +12,12 @@
     "prisma:seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
+    "@ckeditor/ckeditor5-build-classic": "^41.4.2",
+    "@ckeditor/ckeditor5-react": "^11.0.1",
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "@tanstack/react-table": "^8.21.3",
+    "@tinymce/tinymce-react": "^6.3.0",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.9.0",
     "embla-carousel-react": "^8.6.0",

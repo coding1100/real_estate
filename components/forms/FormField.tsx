@@ -96,7 +96,11 @@ export function FormField({ field, register, errors }: FormFieldProps) {
       )}
 
       {helperText && !error && (
-        <p className="text-xs text-zinc-500">{helperText}</p>
+        <p
+          className="text-xs text-zinc-500"
+          // helperText is authored by admin via rich text editor
+          dangerouslySetInnerHTML={{ __html: helperText }}
+        />
       )}
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>

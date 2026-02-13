@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-sm">
+      <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-sm">
         <h1 className="mb-4 text-lg font-semibold tracking-tight text-zinc-900">
           Admin Login
         </h1>

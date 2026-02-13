@@ -6,6 +6,7 @@ import type { FormSchema } from "@/lib/types/form";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { FormEditor } from "@/components/admin/FormEditor";
 import { SeoEditor } from "@/components/admin/SeoEditor";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 
 interface PageEditorProps {
   initialPage: LandingPageContent & {
@@ -25,11 +26,37 @@ export function PageEditor({ initialPage }: PageEditorProps) {
   const [saving, startSaving] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
+  const heroSections = Array.isArray(page.sections) ? page.sections : [];
+  const heroSection =
+    heroSections.find((s) => s.kind === "hero") || null;
+  const heroLayout = (heroSection?.props as any) || {};
+
   function update<K extends keyof LandingPageContent>(
     key: K,
     value: LandingPageContent[K],
   ) {
     setPage((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function updateHeroLayout(patch: Record<string, unknown>) {
+    setPage((prev) => {
+      const sections = Array.isArray(prev.sections) ? [...prev.sections] : [];
+      const idx = sections.findIndex((s) => s.kind === "hero");
+      if (idx === -1) {
+        sections.push({
+          id: "hero",
+          kind: "hero",
+          props: { ...patch },
+        } as any);
+      } else {
+        const existing = sections[idx];
+        sections[idx] = {
+          ...existing,
+          props: { ...(existing.props || {}), ...patch },
+        } as any;
+      }
+      return { ...prev, sections };
+    });
   }
 
   async function save(status?: "draft" | "published") {
@@ -138,56 +165,112 @@ export function PageEditor({ initialPage }: PageEditorProps) {
         <div className="space-y-4 ">
           {tab === "content" && (
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-3">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-700">
-                    Headline
-                  </label>
-                  <input
-                    className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                    value={page.headline}
-                    onChange={(e) =>
-                      update("headline", e.target.value)
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <RichTextEditor
+                    label="Hero left: main card (rich text, overrides default text)"
+                    value={heroLayout.leftMainHtml ?? ""}
+                    onChange={(html) =>
+                      updateHeroLayout({ leftMainHtml: html as any })
                     }
+                    placeholder="Main hero copy block (domain label, headline, supporting text). Leave empty to use the defaults."
+                  />
+                  <RichTextEditor
+                    label="Form intro text (right column, rich text)"
+                    value={heroLayout.formIntro ?? ""}
+                    onChange={(html) =>
+                      updateHeroLayout({ formIntro: html as any })
+                    }
+                    placeholder="Explain what the visitor receives after submitting the form."
                   />
                 </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-700">
-                    Subheadline
-                  </label>
-                  <textarea
-                    className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                    rows={3}
-                    value={page.subheadline ?? ""}
-                    onChange={(e) =>
-                      update("subheadline", e.target.value)
-                    }
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-zinc-700">
-                      CTA text
-                    </label>
-                    <input
-                      className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                      value={page.ctaText}
-                      onChange={(e) =>
-                        update("ctaText", e.target.value)
-                      }
-                    />
+                <div className="space-y-2 rounded-md border border-zinc-200 bg-zinc-50 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                    Form style
+                  </p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-3">
+                      <RichTextEditor
+                        label="Form heading (rich text)"
+                        value={heroLayout.formHeading ?? ""}
+                        onChange={(html) =>
+                          updateHeroLayout({ formHeading: html as any })
+                        }
+                        placeholder="Request the Market Brief"
+                      />
+                    </div>
+                    <div >
+                      <label className="mb-1 block text-xs font-medium text-zinc-700">
+                        Form background color
+                      </label>
+                      <div className="inline-flex items-center gap-2">
+                        <input
+                          type="color"
+                          className="h-9 w-9 rounded-md border border-zinc-300 bg-white"
+                          value={heroLayout.formBgColor ?? "#ffffff"}
+                          onChange={(e) =>
+                            updateHeroLayout({
+                              formBgColor: e.target.value,
+                            })
+                          }
+                        />
+                        <input
+                          type="text"
+                          className="h-9 flex-1 rounded-md border border-zinc-300 px-2 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                          value={heroLayout.formBgColor ?? "#ffffff"}
+                          onChange={(e) =>
+                            updateHeroLayout({
+                              formBgColor: e.target.value,
+                            })
+                          }
+                          placeholder="#ffffff"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-zinc-700">
-                      Success message
-                    </label>
-                    <input
-                      className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                      value={page.successMessage}
-                      onChange={(e) =>
-                        update("successMessage", e.target.value)
-                      }
+                  <div className="space-y-3 col-span-3">
+                    <RichTextEditor
+                      label="CTA text (button label, rich text)"
+                      value={page.ctaText ?? ""}
+                      onChange={(html) => update("ctaText", html as any)}
+                      placeholder="Button label, e.g. Request the Market Brief"
                     />
+                    <RichTextEditor
+                      label="Success message (rich text)"
+                      value={page.successMessage ?? ""}
+                      onChange={(html) =>
+                        update("successMessage", html as any)
+                      }
+                      placeholder="Message shown after successful submit."
+                    />
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-zinc-700">
+                        CTA background color
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          className="h-9 w-9 rounded-md border border-zinc-300 bg-white"
+                          value={heroLayout.ctaBgColor ?? "#18181b"}
+                          onChange={(e) =>
+                            updateHeroLayout({
+                              ctaBgColor: e.target.value,
+                            })
+                          }
+                        />
+                        <input
+                          type="text"
+                          className="h-9 flex-1 rounded-md border border-zinc-300 px-2 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                          value={heroLayout.ctaBgColor ?? "#18181b"}
+                          onChange={(e) =>
+                            updateHeroLayout({
+                              ctaBgColor: e.target.value,
+                            })
+                          }
+                          placeholder="#18181b"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -238,7 +321,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
           <iframe
             id="page-preview"
             title="Live preview"
-            src={`/${page.domain.hostname}/${page.slug}`}
+            src={`/${page.slug}`}
             className="h-full w-full border-0"
           />
         </div>

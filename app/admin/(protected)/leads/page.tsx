@@ -12,7 +12,7 @@ export default async function LeadsPage() {
       <h1 className="text-lg font-semibold tracking-tight text-zinc-900">
         Leads
       </h1>
-      <table className="min-w-full overflow-hidden rounded-2xl bg-white text-xs shadow-sm">
+      <table className="min-w-full overflow-hidden rounded-lg bg-white text-xs shadow-sm">
         <thead className="bg-zinc-50 text-[11px] uppercase tracking-[0.15em] text-zinc-500">
           <tr>
             <th className="px-3 py-2 text-left">Created</th>

@@ -24,7 +24,7 @@ export function ImageSliderSection({ title, items }: ImageSliderSectionProps) {
             {title}
           </h2>
         )}
-        <div className="relative h-72 overflow-hidden rounded-2xl bg-zinc-200">
+        <div className="relative h-72 overflow-hidden rounded-lg bg-zinc-200">
           <Image
             src={first.src}
             alt={first.alt ?? "Featured property"}

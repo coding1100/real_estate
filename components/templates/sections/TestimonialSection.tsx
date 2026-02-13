@@ -14,7 +14,7 @@ export function TestimonialSection({
   return (
     <section className="bg-zinc-50 py-10">
       <div className="mx-auto max-w-3xl px-4">
-        <div className="rounded-2xl bg-white p-6 shadow-sm">
+        <div className="rounded-lg bg-white p-6 shadow-sm">
           <p className="text-sm text-zinc-700">“{quote}”</p>
           <div className="mt-4 text-xs font-medium text-zinc-900">
             {name && <span>{name}</span>}

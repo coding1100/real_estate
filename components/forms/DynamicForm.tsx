@@ -12,6 +12,8 @@ interface DynamicFormProps {
   extraHiddenFields?: Record<string, string | undefined>;
   ctaText: string;
   successMessage: string;
+  textSize?: string;
+  ctaBgColor?: string;
 }
 
 export function DynamicForm({
@@ -20,6 +22,8 @@ export function DynamicForm({
   extraHiddenFields,
   ctaText,
   successMessage,
+  textSize,
+  ctaBgColor,
 }: DynamicFormProps) {
   const {
     register,
@@ -80,10 +84,17 @@ export function DynamicForm({
     (a, b) => (a.order ?? 0) - (b.order ?? 0),
   );
 
+  const formStyle = textSize ? { fontSize: textSize } : undefined;
+  const buttonStyle = ctaBgColor ? { backgroundColor: ctaBgColor } : undefined;
+
   return (
     <>
       <RecaptchaScript />
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form
+        onSubmit={onSubmit}
+        className="space-y-4 text-sm"
+        style={formStyle}
+      >
         {/* Honeypot field for bots */}
         <input
           type="text"
@@ -103,16 +114,24 @@ export function DynamicForm({
         ))}
 
         {error && <p className="text-sm text-red-500">{error}</p>}
-        {submitted && !error && (
-          <p className="text-sm text-emerald-600">{successMessage}</p>
+        {submitted && !error && successMessage && (
+          <p
+            className="text-sm text-emerald-600"
+            dangerouslySetInnerHTML={{ __html: successMessage }}
+          />
         )}
 
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex w-full items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          style={buttonStyle}
         >
-          {isPending ? "Submitting..." : ctaText}
+          {isPending ? (
+            "Submitting..."
+          ) : (
+            <span dangerouslySetInnerHTML={{ __html: ctaText }} />
+          )}
         </button>
       </form>
     </>

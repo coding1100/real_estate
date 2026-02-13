@@ -42,6 +42,7 @@ export async function getLandingPage(
       hostname: page.domain.hostname,
       displayName: page.domain.displayName,
       logoUrl: page.domain.logoUrl,
+      rightLogoUrl: page.domain.agentPhoto,
       primaryColor: page.domain.primaryColor,
       accentColor: page.domain.accentColor,
       ga4Id: page.domain.ga4Id,

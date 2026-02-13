@@ -23,6 +23,7 @@ export interface LandingPageContent {
     hostname: string;
     displayName: string;
     logoUrl?: string | null;
+    rightLogoUrl?: string | null;
     primaryColor: string;
     accentColor: string;
     ga4Id?: string | null;

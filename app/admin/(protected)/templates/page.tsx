@@ -18,7 +18,7 @@ export default async function TemplatesPage() {
         {templates.map((tpl) => (
           <div
             key={tpl.id}
-            className="rounded-2xl bg-white p-4 shadow-sm"
+            className="rounded-lg bg-white p-4 shadow-sm"
           >
             <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">
               {tpl.type}

@@ -15,6 +15,8 @@ export default async function DomainsPage() {
     isActive: d.isActive,
     ga4Id: d.ga4Id,
     metaPixelId: d.metaPixelId,
+    logoUrl: d.logoUrl,
+    rightLogoUrl: d.agentPhoto ?? null,
   }));
 
   return <DomainsManager initialDomains={initialDomains} />;

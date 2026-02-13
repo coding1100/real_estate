@@ -117,7 +117,7 @@ export function WebhooksManager({
           {error}
         </p>
       )}
-      <table className="min-w-full overflow-hidden rounded-2xl bg-white text-xs shadow-sm">
+      <table className="min-w-full overflow-hidden rounded-lg bg-white text-xs shadow-sm">
         <thead className="bg-zinc-50 text-[11px] uppercase tracking-[0.15em] text-zinc-500">
           <tr>
             <th className="px-3 py-2 text-left">Name</th>

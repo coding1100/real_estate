@@ -17,6 +17,8 @@ export async function POST(req: NextRequest) {
     isActive = true,
     ga4Id,
     metaPixelId,
+    logoUrl,
+    rightLogoUrl,
   } = body ?? {};
 
   if (!hostname || !displayName || !notifyEmail) {
@@ -35,6 +37,8 @@ export async function POST(req: NextRequest) {
       isActive,
       ga4Id,
       metaPixelId,
+      logoUrl,
+      agentPhoto: rightLogoUrl,
     },
   });
 

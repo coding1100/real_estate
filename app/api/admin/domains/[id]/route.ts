@@ -27,6 +27,8 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
       isActive: body.isActive,
       ga4Id: body.ga4Id,
       metaPixelId: body.metaPixelId,
+      logoUrl: body.logoUrl,
+      agentPhoto: body.rightLogoUrl,
     },
   });
 

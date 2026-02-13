@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { ImageUploader } from "@/components/admin/ImageUploader";
 
 interface DomainRow {
   id: string;
@@ -11,6 +12,8 @@ interface DomainRow {
   isActive: boolean;
   ga4Id: string | null;
   metaPixelId: string | null;
+  logoUrl: string | null;
+  rightLogoUrl: string | null;
 }
 
 interface DomainsManagerProps {
@@ -99,6 +102,8 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         isActive: true,
         ga4Id: null,
         metaPixelId: null,
+        logoUrl: null,
+        rightLogoUrl: null,
       },
     ]);
   }
@@ -122,7 +127,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
           {error}
         </p>
       )}
-      <table className="min-w-full overflow-hidden rounded-2xl bg-white text-xs shadow-sm">
+      <table className="min-w-full overflow-hidden rounded-lg bg-white text-xs shadow-sm">
         <thead className="bg-zinc-50 text-[11px] uppercase tracking-[0.15em] text-zinc-500">
           <tr>
             <th className="px-3 py-2 text-left">Hostname</th>
@@ -131,6 +136,8 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
             <th className="px-3 py-2 text-left">Notify SMS</th>
             <th className="px-3 py-2 text-left">GA4 ID</th>
             <th className="px-3 py-2 text-left">Meta Pixel ID</th>
+            <th className="px-3 py-2 text-left">Logo (left)</th>
+            <th className="px-3 py-2 text-left">Logo (right)</th>
             <th className="px-3 py-2 text-left">Active</th>
             <th className="px-3 py-2 text-right">Actions</th>
           </tr>
@@ -198,6 +205,24 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                     })
                   }
                   placeholder="123456789012345"
+                />
+              </td>
+              <td className="px-3 py-2">
+                <ImageUploader
+                  label="Logo"
+                  value={d.logoUrl}
+                  onChange={(url) =>
+                    updateDomain(d.id, { logoUrl: url ?? null })
+                  }
+                />
+              </td>
+              <td className="px-3 py-2">
+                <ImageUploader
+                  label="Right logo"
+                  value={d.rightLogoUrl}
+                  onChange={(url) =>
+                    updateDomain(d.id, { rightLogoUrl: url ?? null })
+                  }
                 />
               </td>
               <td className="px-3 py-2 text-center">

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { FormSchema, FormFieldConfig } from "@/lib/types/form";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 
 interface FormEditorProps {
   value: FormSchema | null;
@@ -82,7 +83,7 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
             key={field.id}
             className="flex items-start justify-between gap-2 rounded-md border border-zinc-200 bg-white p-2"
           >
-            <div className="flex-1 space-y-1 text-xs">
+            <div className="flex-1 space-y-2 text-xs">
               <input
                 className="w-full rounded border border-zinc-300 px-2 py-1"
                 value={field.label}
@@ -129,6 +130,14 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
                   <span>Required</span>
                 </label>
               </div>
+              <RichTextEditor
+                label="Field helper text (rich text)"
+                value={field.helperText ?? ""}
+                onChange={(html) =>
+                  updateField(index, { helperText: html as any })
+                }
+                placeholder="Optional description under this field."
+              />
             </div>
             <button
               type="button"

@@ -13,19 +13,19 @@ export default async function AdminDashboardPage() {
         Dashboard
       </h1>
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
+        <div className="rounded-lg bg-white p-4 shadow-sm">
           <p className="text-xs text-zinc-500">Domains</p>
           <p className="mt-2 text-2xl font-semibold text-zinc-900">
             {domains}
           </p>
         </div>
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
+        <div className="rounded-lg bg-white p-4 shadow-sm">
           <p className="text-xs text-zinc-500">Landing Pages</p>
           <p className="mt-2 text-2xl font-semibold text-zinc-900">
             {pages}
           </p>
         </div>
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
+        <div className="rounded-lg bg-white p-4 shadow-sm">
           <p className="text-xs text-zinc-500">Leads</p>
           <p className="mt-2 text-2xl font-semibold text-zinc-900">
             {leads}

@@ -7,9 +7,9 @@ import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { MetaPixel } from "@/components/analytics/MetaPixel";
 
 type RouteParams = {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 };
 
 async function getHostnameFromHeaders() {
@@ -28,8 +28,9 @@ async function getHostnameFromHeaders() {
 export async function generateMetadata({
   params,
 }: RouteParams): Promise<Metadata> {
+  const { slug } = await params;
   const hostname = await getHostnameFromHeaders();
-  const page = await getLandingPage(hostname, params.slug);
+  const page = await getLandingPage(hostname, slug);
 
   const title = page.seo.title || page.headline;
   const description = page.seo.description || page.subheadline || undefined;
@@ -82,8 +83,9 @@ export async function generateMetadata({
 }
 
 export default async function LandingPage({ params }: RouteParams) {
+  const { slug } = await params;
   const hostname = await getHostnameFromHeaders();
-  const page = await getLandingPage(hostname, params.slug);
+  const page = await getLandingPage(hostname, slug);
 
   const content =
     page.type === "seller" ? (
