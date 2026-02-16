@@ -25,6 +25,7 @@ export default async function EditPage({ params }: EditPageProps) {
     domainId: page.domainId,
     id: page.id,
     slug: page.slug,
+    status: page.status,
     type: page.type as "buyer" | "seller",
     headline: page.headline,
     subheadline: page.subheadline,

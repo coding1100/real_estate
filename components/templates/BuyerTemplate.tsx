@@ -80,7 +80,7 @@ export function BuyerTemplate({ page }: BuyerTemplateProps) {
   )?.props as any;
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-zinc-50 custom">
       <BrandHeader page={page} />
       <HeroSection
         page={page}

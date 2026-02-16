@@ -1,7 +1,17 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Editor } from "@tinymce/tinymce-react";
+import dynamic from "next/dynamic";
+
+// TinyMCE editor generates dynamic IDs and uses browser APIs.
+// Load it only on the client to avoid SSR hydration mismatches.
+const Editor = dynamic(
+  async () => {
+    const mod = await import("@tinymce/tinymce-react");
+    return mod.Editor;
+  },
+  { ssr: false },
+);
 
 interface RichTextEditorProps {
   label?: ReactNode;
@@ -61,12 +71,10 @@ export function RichTextEditor({
             content_style:
               "body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size:14px; }",
           }}
-          onEditorChange={(content) => onChange(content)}
+          onEditorChange={(content: string) => onChange(content)}
         />
       </div>
     </div>
   );
 }
-
-
 

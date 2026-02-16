@@ -7,8 +7,6 @@ import {
   LayoutDashboard,
   Globe2,
   FileText,
-  Users,
-  Webhook,
   Layers,
   Menu,
 } from "lucide-react";
@@ -22,8 +20,6 @@ const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/domains", label: "Domains", icon: Globe2 },
   { href: "/admin/pages", label: "Pages", icon: FileText },
-  { href: "/admin/leads", label: "Leads", icon: Users },
-  { href: "/admin/webhooks", label: "Webhooks", icon: Webhook },
   { href: "/admin/templates", label: "Templates", icon: Layers },
 ];
 
@@ -32,7 +28,7 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
   const [collapsed, setCollapsed] = React.useState(false);
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="h-screen bg-zinc-50 flex flex-col">
       <header className="border-b bg-white">
         <div className="mx-auto flex w-full items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
@@ -52,9 +48,9 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
         </div>
       </header>
 
-      <div className="mx-auto flex w-full gap-6 px-4 py-6">
+      <div className="mx-auto flex w-full flex-1 gap-6 px-4 py-6 overflow-auto">
         <aside
-          className={`hidden rounded-md bg-white/80 p-2 shadow-sm ring-1 ring-zinc-100 backdrop-blur md:block transition-all duration-200 ${
+          className={`hidden h-full overflow-y-auto rounded-md bg-white/80 p-2 shadow-sm ring-1 ring-zinc-100 backdrop-blur md:block transition-all duration-200 ${
             collapsed ? "w-12" : "w-56"
           }`}
         >

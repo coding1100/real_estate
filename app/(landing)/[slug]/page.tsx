@@ -30,7 +30,9 @@ export async function generateMetadata({
 }: RouteParams): Promise<Metadata> {
   const { slug } = await params;
   const hostname = await getHostnameFromHeaders();
-  const page = await getLandingPage(hostname, slug);
+  const page = await getLandingPage(hostname, slug, {
+    allowFallbackToAnyDomain: hostname === "bendhomes.us",
+  });
 
   const title = page.seo.title || page.headline;
   const description = page.seo.description || page.subheadline || undefined;
@@ -85,7 +87,9 @@ export async function generateMetadata({
 export default async function LandingPage({ params }: RouteParams) {
   const { slug } = await params;
   const hostname = await getHostnameFromHeaders();
-  const page = await getLandingPage(hostname, slug);
+  const page = await getLandingPage(hostname, slug, {
+    allowFallbackToAnyDomain: hostname === "bendhomes.us",
+  });
 
   const content =
     page.type === "seller" ? (

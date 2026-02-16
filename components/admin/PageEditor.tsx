@@ -7,11 +7,13 @@ import { ImageUploader } from "@/components/admin/ImageUploader";
 import { FormEditor } from "@/components/admin/FormEditor";
 import { SeoEditor } from "@/components/admin/SeoEditor";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { Eye } from "lucide-react";
 
 interface PageEditorProps {
   initialPage: LandingPageContent & {
     dbId: string;
     domainId: string;
+    status?: string;
   };
 }
 
@@ -20,6 +22,7 @@ type Tab = "content" | "form" | "seo";
 export function PageEditor({ initialPage }: PageEditorProps) {
   const [tab, setTab] = useState<Tab>("content");
   const [page, setPage] = useState(initialPage);
+  const [status, setStatus] = useState<string>(initialPage.status ?? "draft");
   const [formSchema, setFormSchema] = useState<FormSchema | null>(
     (initialPage.formSchema as any) ?? { fields: [] },
   );
@@ -77,6 +80,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
       };
       if (status) {
         body.status = status;
+        setStatus(status);
       }
       const res = await fetch(`/api/admin/pages/${initialPage.dbId}`, {
         method: "PATCH",
@@ -121,7 +125,18 @@ export function PageEditor({ initialPage }: PageEditorProps) {
             {page.domain.hostname} · {page.type}
           </p>
         </div>
-        <div className="flex gap-2 text-xs">
+        <div className="flex items-center gap-2 text-xs">
+          {status === "published" && (
+            <a
+              href={`/${page.slug}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-sm border border-zinc-300 px-3 py-1 font-medium text-zinc-800 hover:bg-zinc-100"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              View page
+            </a>
+          )}
           <button
             type="button"
             onClick={() => save()}

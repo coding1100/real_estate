@@ -1,11 +1,26 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { SlugEditor } from "@/components/admin/SlugEditor";
+import { DeletePageButton } from "@/components/admin/DeletePageButton";
+import { TypeEditor } from "@/components/admin/TypeEditor";
+import { AddPageDialog } from "@/components/admin/AddPageDialog";
 
 export default async function AdminPagesListPage() {
-  const pages = await prisma.landingPage.findMany({
-    include: { domain: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const [pages, domains, templates] = await Promise.all([
+    prisma.landingPage.findMany({
+      include: { domain: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.domain.findMany({
+      where: { isActive: true },
+      orderBy: { hostname: "asc" },
+      select: { id: true, hostname: true },
+    }),
+    prisma.masterTemplate.findMany({
+      orderBy: { type: "asc" },
+      select: { id: true, type: true, name: true },
+    }),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -13,12 +28,11 @@ export default async function AdminPagesListPage() {
         <h1 className="text-lg font-semibold tracking-tight text-zinc-900">
           Landing pages
         </h1>
-        <Link
-          href="/admin/pages/new"
-          className="rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
-        >
-          New page
-        </Link>
+        <AddPageDialog
+          domains={domains}
+          templates={templates}
+          defaultTemplate="buyer"
+        />
       </div>
       <table className="min-w-full overflow-hidden rounded-lg bg-white text-xs shadow-sm">
         <thead className="bg-zinc-50 text-[11px] uppercase tracking-[0.15em] text-zinc-500">
@@ -37,36 +51,43 @@ export default async function AdminPagesListPage() {
               <td className="px-3 py-2 text-zinc-700">
                 {page.domain.hostname}
               </td>
-              <td className="px-3 py-2 text-zinc-700">{page.slug}</td>
-              <td className="px-3 py-2 text-zinc-700">{page.type}</td>
+              <td className="px-3 py-2 text-zinc-700">
+                <SlugEditor pageId={page.id} initialSlug={page.slug} />
+              </td>
+              <td className="px-3 py-2 text-zinc-700">
+                <TypeEditor pageId={page.id} initialType={page.type as "buyer" | "seller"} />
+              </td>
               <td className="px-3 py-2 text-zinc-700">{page.status}</td>
               <td className="px-3 py-2 text-zinc-500">
                 {page.updatedAt.toLocaleString()}
               </td>
               <td className="px-3 py-2 text-right">
-                <div className="inline-flex gap-1">
-                  <Link
-                    href={`/admin/pages/${page.id}/edit`}
-                    className="rounded-md border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100"
-                  >
-                    Edit
-                  </Link>
-                  <form
-                    action={`/api/admin/pages/duplicate`}
-                    method="post"
-                  >
-                    <input
-                      type="hidden"
-                      name="pageId"
-                      value={page.id}
-                    />
-                    <button
-                      type="submit"
-                      className="rounded-md border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100"
+                <div className="inline-flex items-end gap-1">
+                  <div className="inline-flex gap-1">
+                    <Link
+                      href={`/admin/pages/${page.id}/edit`}
+                      className="rounded-sm border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100"
                     >
-                      Duplicate
-                    </button>
-                  </form>
+                      Edit
+                    </Link>
+                    <form
+                      action={`/api/admin/pages/duplicate`}
+                      method="post"
+                    >
+                      <input
+                        type="hidden"
+                        name="pageId"
+                        value={page.id}
+                      />
+                      <button
+                        type="submit"
+                        className="rounded-sm border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100"
+                      >
+                        Duplicate
+                      </button>
+                    </form>
+                  </div>
+                  <DeletePageButton pageId={page.id} slug={page.slug} />
                 </div>
               </td>
             </tr>

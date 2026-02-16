@@ -1,9 +1,18 @@
 import { prisma } from "@/lib/prisma";
+import { TemplatesGridWithDialog } from "@/components/admin/TemplatesGridWithDialog";
 
 export default async function TemplatesPage() {
-  const templates = await prisma.masterTemplate.findMany({
-    orderBy: { type: "asc" },
-  });
+  const [templates, domains] = await Promise.all([
+    prisma.masterTemplate.findMany({
+      orderBy: { type: "asc" },
+      select: { id: true, type: true, name: true },
+    }),
+    prisma.domain.findMany({
+      where: { isActive: true },
+      orderBy: { hostname: "asc" },
+      select: { id: true, hostname: true },
+    }),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -14,34 +23,7 @@ export default async function TemplatesPage() {
         These are locked buyer/seller master templates. Create new landing
         pages by copying from them.
       </p>
-      <div className="grid gap-4 md:grid-cols-2">
-        {templates.map((tpl) => (
-          <div
-            key={tpl.id}
-            className="rounded-lg bg-white p-4 shadow-sm"
-          >
-            <p className="text-xs uppercase tracking-[0.2em] text-zinc-400">
-              {tpl.type}
-            </p>
-            <p className="mt-1 text-sm font-semibold text-zinc-900">
-              {tpl.name}
-            </p>
-            <form
-              action="/admin/pages/new"
-              method="get"
-              className="mt-4"
-            >
-              <input type="hidden" name="template" value={tpl.type} />
-              <button
-                type="submit"
-                className="inline-flex items-center rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
-              >
-                Create page from template
-              </button>
-            </form>
-          </div>
-        ))}
-      </div>
+      <TemplatesGridWithDialog domains={domains} templates={templates} />
     </div>
   );
 }

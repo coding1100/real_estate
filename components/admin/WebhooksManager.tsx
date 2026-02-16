@@ -180,7 +180,7 @@ export function WebhooksManager({
                     type="button"
                     onClick={() => saveHook(h)}
                     disabled={isPending}
-                    className="rounded-md border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100 disabled:opacity-60"
+                    className="rounded-sm border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100 disabled:opacity-60"
                   >
                     {savingId === h.id ? "Saving..." : "Save"}
                   </button>

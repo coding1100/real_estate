@@ -17,14 +17,41 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
   const body = await req.json();
   const { id } = await ctx.params;
 
-  const page = await prisma.landingPage.update({
-    where: { id },
-    data: {
-      ...body,
-    },
-  });
+  // Basic validation for slug updates
+  if (Object.prototype.hasOwnProperty.call(body, "slug")) {
+    if (typeof body.slug !== "string" || body.slug.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Slug cannot be empty." },
+        { status: 400 },
+      );
+    }
+    body.slug = body.slug.trim();
+  }
 
-  return NextResponse.json({ page }, { status: 200 });
+  try {
+    const page = await prisma.landingPage.update({
+      where: { id },
+      data: {
+        ...body,
+      },
+    });
+
+    return NextResponse.json({ page }, { status: 200 });
+  } catch (err: any) {
+    // Handle unique constraint violation on (domainId, slug)
+    if (err?.code === "P2002") {
+      return NextResponse.json(
+        { error: "Slug already exists for this domain." },
+        { status: 400 },
+      );
+    }
+
+    console.error(err);
+    return NextResponse.json(
+      { error: "Failed to update page." },
+      { status: 500 },
+    );
+  }
 }
 
 export async function DELETE(_req: NextRequest, ctx: RouteContext) {

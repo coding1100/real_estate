@@ -22,7 +22,7 @@ export default async function NewPagePage({ searchParams }: NewPageProps) {
         New page
       </h1>
       <form
-        className="space-y-3 rounded-lg bg-white p-4 shadow-sm text-xs"
+        className="space-y-3 rounded-sm bg-white p-4 shadow-sm text-xs"
         action="/api/admin/pages"
         method="post"
       >

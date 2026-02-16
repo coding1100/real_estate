@@ -8,7 +8,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { pageId } = await req.json();
+  const contentType = req.headers.get("content-type") ?? "";
+  let pageId: string | null = null;
+
+  if (contentType.includes("application/json")) {
+    const body = await req.json();
+    pageId = body?.pageId ? String(body.pageId) : null;
+  } else {
+    const formData = await req.formData();
+    const raw = formData.get("pageId");
+    pageId = raw != null ? String(raw) : null;
+  }
+
   if (!pageId) {
     return NextResponse.json(
       { error: "Missing pageId" },

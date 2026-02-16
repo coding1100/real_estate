@@ -2,11 +2,14 @@ import { notFound } from "next/navigation";
 import { prisma } from "./prisma";
 import type { LandingPageContent } from "./types/page";
 
+const DEFAULT_DEV_HOSTNAME = "bendhomes.us";
+
 export async function getLandingPage(
   hostname: string,
   slug: string,
+  options?: { allowFallbackToAnyDomain?: boolean },
 ): Promise<LandingPageContent> {
-  const page = await prisma.landingPage.findFirst({
+  let page = await prisma.landingPage.findFirst({
     where: {
       slug,
       status: "published",
@@ -19,6 +22,21 @@ export async function getLandingPage(
       domain: true,
     },
   });
+
+  if (
+    !page &&
+    options?.allowFallbackToAnyDomain &&
+    hostname === DEFAULT_DEV_HOSTNAME
+  ) {
+    page = await prisma.landingPage.findFirst({
+      where: {
+        slug,
+        status: "published",
+        domain: { isActive: true },
+      },
+      include: { domain: true },
+    });
+  }
 
   if (!page) {
     notFound();
