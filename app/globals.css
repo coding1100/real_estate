@@ -26,15 +26,23 @@ body {
 }
 blockquote{
 background: #3737377a;
--webkit-backdrop-filter: blur(5px);
-  backdrop-filter: blur(5px);
-padding: 15px 20px;
+-webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+padding: 20px 25px;
 border-radius: 0px;
+border-radius: 2px;
+}
+button{
+  cursor: pointer;
+  border-radius: 2px;
+}
+input,textarea{
+  border-radius: 2px;
 }
 
-h1{font-size: 26px;}
-h2{font-size: 22px;}
-h3{font-size: 18px;}
+h1{font-size: 42px;}
+h2{font-size: 28px;}
+h3{font-size: 22px;}
 h4{font-size: 16px;}
 h5{font-size: 14px;}
 p{font-size: 16px;}
@@ -43,4 +51,33 @@ input{border-radius: 0px;}
 ul,ol{
   margin-left:20px;
   list-style: initial;
+  }
+  pre span:after {
+    content: "";
+    background-color: #ededed;
+    border-radius: 0;
+    width: 23px;
+    height: 1px;
+    position: absolute;
+    left: auto;
+    top: 50%;
+    transform: translateY(-50%);
+    right: -30px;
+}
+pre span:before{
+  content: "";
+  background-color: #ededed;
+  border-radius: 0;
+  width: 23px;
+  height: 1px;
+  position: absolute;
+  left: auto;
+  top: 50%;
+  transform: translateY(-50%);
+  left: -30px;
+}
+
+pre span{
+    position: relative;
+    font-size: 20px;
   }

@@ -26,7 +26,7 @@ export function HeroSection({ page, formSchema, layout }: HeroSectionProps) {
   const ctaBgColor = layout?.ctaBgColor;
 
   return (
-    <section className="relative overflow-hidden text-white">
+    <section className="relative text-white h-[calc(100vh_-_85px)]">
       {/* Background image */}
       {page.heroImageUrl && (
         <div className="pointer-events-none inset-0 absolute">
@@ -43,11 +43,11 @@ export function HeroSection({ page, formSchema, layout }: HeroSectionProps) {
         </div>
       )}
 
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 md:gap-10 md:px-6 md:py-16 lg:py-20">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 md:gap-10 h-full justify-center pt-[40px] px-0 pb-[20px]">
         {/* Main hero content: text + form */}
-        <div className="grid gap-8 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:items-start">
+        <div className="grid gap-8 md:grid-cols-12 items-center">
           {/* Text overlay container */}
-          <div className="relative space-y-4 md:space-y-6">
+          <div className="relative space-y-4 md:space-y-6 flex col-span-8 -mt-4 md:-mt-8 lg:-mt-[50px]">
             <div className="">
               {layout?.leftMainHtml ? (
                 <div
@@ -74,9 +74,9 @@ export function HeroSection({ page, formSchema, layout }: HeroSectionProps) {
           </div>
 
           {/* Form container */}
-          <div className="md:row-span-1">
+          <div className="col-span-4">
             <div
-              className="relative bg-white/95 p-5 text-zinc-900 shadow-2xl md:p-6 opacity-90"
+              className="relative bg-white/95 p-5 text-zinc-900 shadow-2xl md:p-6 opacity-90 rounded-[2px]"
               style={formBgColor ? { backgroundColor: formBgColor } : undefined}
             >
               <h2
