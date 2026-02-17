@@ -37,7 +37,7 @@ function BrandHeader({ page }: { page: LandingPageContent }) {
               alt="Right logo"
               width={150}
               height={24}
-              className="h-8 w-auto object-contain"
+              className="max-h-[55px] w-auto object-contain"
             />
           ) : (
             <Image

@@ -23,7 +23,7 @@ export function FormField({ field, register, errors }: FormFieldProps) {
   return (
     <div className="space-y-1">
       {label && (
-        <label htmlFor={id} className="block text-sm font-medium text-zinc-800">
+        <label htmlFor={id} className="block text-sm font-medium text-zinc-800 font-serif">
           {label}
           {required ? <span className="text-red-500"> *</span> : null}
         </label>

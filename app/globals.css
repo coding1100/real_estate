@@ -28,12 +28,15 @@ a{
   border-radius: 2px;
 }
 blockquote{
-background: #3737377a;
+  margin-top: 70px;
 -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
 padding: 20px 25px;
-border-radius: 0px;
 border-radius: 2px;
+background: #6b5c5638;
+border-radius: 2px;
+padding: 20px 25px;
+border: 1px solid #62534dab;
 }
 button{
   cursor: pointer;
@@ -53,33 +56,73 @@ input{border-radius: 0px;}
 
 ul,ol{
   margin-left:20px;
+  font-size: 14px;
   list-style: initial;
   }
-  pre span:after {
-    content: "";
-    background-color: #ededed;
-    border-radius: 0;
-    width: 23px;
-    height: 1px;
-    position: absolute;
-    left: auto;
-    top: 50%;
-    transform: translateY(-50%);
-    right: -30px;
-}
-pre span:before{
-  content: "";
-  background-color: #ededed;
+  pre{
+    margin-bottom: 40px;
+  }
+
+pre span > span:before {
+  content: "\2014";
+  /* background-color: #eee; */
   border-radius: 0;
   width: 23px;
-  height: 1px;
+  /* height: 1px; */
   position: absolute;
-  left: auto;
   top: 50%;
-  transform: translateY(-50%);
   left: -30px;
+  transform: translateY(-50%);
+  color: inherit;
 }
-
+pre span > span:after {
+  content: "\2014";
+  /* background-color: #eee; */
+  border-radius: 0;
+  width: 23px;
+  /* height: 1px; */
+  position: absolute;
+  top: 50%;
+  right: -30px;
+  transform: translateY(-50%);
+  color: inherit;
+}
+ blockquote pre span > span:before {
+  content: "\2014";
+  /* background-color: #eee; */
+  border-radius: 0;
+  width: 23px;
+  /* height: 1px; */
+  position: absolute;
+  top: 50%;
+  left: -30px;
+  transform: translateY(-50%);
+  color: inherit;
+}
+ blockquote pre span > span:after {
+  content: "\2014";
+  /* background-color: #eee; */
+  border-radius: 0;
+  width: 23px;
+  /* height: 1px; */
+  position: absolute;
+  top: 50%;
+  right: -30px;
+  transform: translateY(-50%);
+  color: inherit;
+}
+dot:before
+{
+  width: 10px;
+  height: 10px;
+  background: #62534dab;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: -30px;
+  transform: translateY(-50%);
+  content: "";
+}
 pre span{
     position: relative;
     font-size: 20px;

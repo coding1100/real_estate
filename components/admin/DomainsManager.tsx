@@ -76,16 +76,38 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
           body: JSON.stringify(domain),
         });
         if (!res.ok) throw new Error("Failed to save domain");
-        const data = (await res.json()) as { domain: DomainRow };
+        const data = (await res.json()) as { domain: any };
+        const mapped: DomainRow = {
+          id: String(data.domain.id),
+          hostname: String(data.domain.hostname),
+          displayName: String(data.domain.displayName),
+          notifyEmail: String(data.domain.notifyEmail),
+          notifySms:
+            data.domain.notifySms != null
+              ? String(data.domain.notifySms)
+              : null,
+          isActive: Boolean(data.domain.isActive),
+          ga4Id: data.domain.ga4Id != null ? String(data.domain.ga4Id) : null,
+          metaPixelId:
+            data.domain.metaPixelId != null
+              ? String(data.domain.metaPixelId)
+              : null,
+          logoUrl:
+            data.domain.logoUrl != null ? String(data.domain.logoUrl) : null,
+          rightLogoUrl:
+            data.domain.agentPhoto != null
+              ? String(data.domain.agentPhoto)
+              : null,
+        };
         setDomains((prev) => {
           if (isNew) {
             // replace the 'new' row with returned one
             return prev
               .filter((d) => d.id !== "new")
-              .concat(data.domain);
+              .concat(mapped);
           }
           return prev.map((d) =>
-            d.id === domain.id ? data.domain : d,
+            d.id === domain.id ? mapped : d,
           );
         });
         setEditingId(null);
@@ -755,10 +777,18 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                   <ImageUploader
                     label="Logo"
                     value={current.logoUrl}
-                    onChange={(url) =>
-                      isEditing &&
-                      updateDraft({ logoUrl: url ?? null })
-                    }
+                    onChange={(url) => {
+                      const next = url ?? null;
+                      if (isEditing) {
+                        updateDraft({ logoUrl: next });
+                      } else {
+                        const updated: DomainRow = { ...d, logoUrl: next };
+                        setDomains((prev) =>
+                          prev.map((dom) => (dom.id === d.id ? updated : dom)),
+                        );
+                        void saveDomain(updated);
+                      }
+                    }}
                   />
                 </div>
                 <div className="space-y-2">
@@ -768,10 +798,21 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                   <ImageUploader
                     label="Right logo"
                     value={current.rightLogoUrl}
-                    onChange={(url) =>
-                      isEditing &&
-                      updateDraft({ rightLogoUrl: url ?? null })
-                    }
+                    onChange={(url) => {
+                      const next = url ?? null;
+                      if (isEditing) {
+                        updateDraft({ rightLogoUrl: next });
+                      } else {
+                        const updated: DomainRow = {
+                          ...d,
+                          rightLogoUrl: next,
+                        };
+                        setDomains((prev) =>
+                          prev.map((dom) => (dom.id === d.id ? updated : dom)),
+                        );
+                        void saveDomain(updated);
+                      }
+                    }}
                   />
                 </div>
               </div>

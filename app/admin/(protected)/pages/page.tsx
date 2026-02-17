@@ -79,9 +79,17 @@ export default async function AdminPagesListPage() {
                 </td>
                 <td className="px-3 py-2 text-right">
                   {isMaster ? (
-                    <span className="text-[11px] text-zinc-400">
-                      Master template
-                    </span>
+                    <div className="inline-flex items-center gap-2 justify-end">
+                      <Link
+                        href={`/admin/pages/${page.id}/edit`}
+                        className="rounded-sm border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100"
+                      >
+                        Edit
+                      </Link>
+                      <span className="text-[11px] text-zinc-400">
+                        Master template
+                      </span>
+                    </div>
                   ) : (
                     <div className="inline-flex items-end gap-1">
                       <div className="inline-flex gap-1">

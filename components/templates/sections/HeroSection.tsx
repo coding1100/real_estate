@@ -36,7 +36,7 @@ export function HeroSection({ page, formSchema, layout }: HeroSectionProps) {
             fill
             priority
             sizes="100vw"
-            className="object-cover filter brightness-50" 
+            className="object-cover filter brightness-65" 
           />
           {/* Color overlay for readability */}
           
@@ -76,11 +76,11 @@ export function HeroSection({ page, formSchema, layout }: HeroSectionProps) {
           {/* Form container */}
           <div className="col-span-4">
             <div
-              className="relative bg-white/95 p-5 text-zinc-900 shadow-2xl md:p-6 opacity-90 rounded-[2px]"
+              className="relative bg-white/95 p-5 text-zinc-900 shadow-2xl md:p-6 opacity-90 rounded-[2px] cust1"
               style={formBgColor ? { backgroundColor: formBgColor } : undefined}
             >
               <h2
-                className="mb-4 text-base font-semibold border-b border-zinc-300"
+                className="mb-4 text-base font-semibold border-b border-zinc-300 dot"
                 // Form heading authored via rich text editor
                 dangerouslySetInnerHTML={{ __html: formHeading }}
               />
