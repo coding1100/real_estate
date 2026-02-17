@@ -32,7 +32,7 @@ export default async function LeadsPage() {
           </tr>
         </thead>
         <tbody>
-          {leads.map((lead) => (
+          {leads.map((lead: LeadRow) => (
             <tr key={lead.id} className="border-t border-zinc-100">
               <td className="px-3 py-2 text-zinc-700">
                 {lead.createdAt.toLocaleString()}
