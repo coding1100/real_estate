@@ -1,4 +1,3 @@
-import type { Domain } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { DomainsManager } from "@/components/admin/DomainsManager";
 
@@ -7,7 +6,8 @@ export default async function DomainsPage() {
     orderBy: { hostname: "asc" },
   });
 
-  const initialDomains = domains.map((d: Domain) => ({
+  type DomainRow = (typeof domains)[number];
+  const initialDomains = domains.map((d: DomainRow) => ({
     id: d.id || "",
     hostname: d.hostname,
     displayName: d.displayName,
