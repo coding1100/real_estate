@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { MasterTemplate } from "@prisma/client";
 import { Eye } from "lucide-react";
 
 export default async function AdminDashboardPage() {
@@ -90,7 +91,7 @@ export default async function AdminDashboardPage() {
           pages by copying from them.
         </p>
         <div className="grid gap-4 md:grid-cols-2">
-          {templates.map((tpl) => (
+          {templates.map((tpl: MasterTemplate) => (
             <div
               key={tpl.id}
               className="rounded-sm bg-white p-4 shadow-sm"
