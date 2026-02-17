@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import type { Domain, MasterTemplate } from "@prisma/client";
 
 type NewPageProps = {
   searchParams: Promise<{
@@ -11,11 +10,14 @@ type NewPageProps = {
 export default async function NewPagePage({ searchParams }: NewPageProps) {
   const params = await searchParams;
 
-  const domains: Domain[] = await prisma.domain.findMany({
+  const domains = await prisma.domain.findMany({
     where: { isActive: true },
     orderBy: { hostname: "asc" },
   });
-  const templates: MasterTemplate[] = await prisma.masterTemplate.findMany();
+  const templates = await prisma.masterTemplate.findMany();
+
+  type Domain = (typeof domains)[number];
+  type MasterTemplate = (typeof templates)[number];
 
   return (
     <div className="space-y-4">
