@@ -1,12 +1,20 @@
 import { prisma } from "@/lib/prisma";
 import { WebhooksManager } from "@/components/admin/WebhooksManager";
 
-export default async function WebhooksPage() {
-  const hooks = await prisma.webhookConfig.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+interface WebhookRow {
+  id: string;
+  name: string;
+  url: string;
+  method: string | null;
+  isActive: boolean;
+}
 
-  const initialWebhooks = hooks.map((h) => ({
+export default async function WebhooksPage() {
+  const hooks = (await prisma.webhookConfig.findMany({
+    orderBy: { createdAt: "desc" },
+  })) as WebhookRow[];
+
+  const initialWebhooks = hooks.map((h: WebhookRow) => ({
     id: h.id,
     name: h.name,
     url: h.url,

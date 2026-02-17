@@ -1,13 +1,20 @@
 import { prisma } from "@/lib/prisma";
 
+interface LeadRow {
+  id: string;
+  createdAt: Date;
+  type: string;
+  status: string;
+  domain: { hostname: string };
+  page: { slug: string };
+}
+
 export default async function LeadsPage() {
-  const leads = await prisma.lead.findMany({
+  const leads = (await prisma.lead.findMany({
     include: { domain: true, page: true },
     orderBy: { createdAt: "desc" },
     take: 100,
-  });
-
-  type LeadRow = (typeof leads)[number];
+  })) as LeadRow[];
 
   return (
     <div className="space-y-4">
@@ -25,7 +32,7 @@ export default async function LeadsPage() {
           </tr>
         </thead>
         <tbody>
-          {leads.map((lead: LeadRow) => (
+          {leads.map((lead) => (
             <tr key={lead.id} className="border-t border-zinc-100">
               <td className="px-3 py-2 text-zinc-700">
                 {lead.createdAt.toLocaleString()}
