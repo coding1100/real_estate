@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
 import { SlugEditor } from "@/components/admin/SlugEditor";
 import { DeletePageButton } from "@/components/admin/DeletePageButton";
 import { TypeEditor } from "@/components/admin/TypeEditor";
@@ -23,9 +22,7 @@ export default async function AdminPagesListPage() {
     }),
   ]);
 
-  type PageWithDomain = Prisma.LandingPageGetPayload<{
-    include: { domain: true };
-  }>;
+  type PageWithDomain = (typeof pages)[number];
 
   return (
     <div className="space-y-4">
