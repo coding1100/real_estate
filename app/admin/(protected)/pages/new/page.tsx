@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import type { Domain, MasterTemplate } from "@prisma/client";
 
 type NewPageProps = {
   searchParams: Promise<{
@@ -10,11 +11,11 @@ type NewPageProps = {
 export default async function NewPagePage({ searchParams }: NewPageProps) {
   const params = await searchParams;
 
-  const domains = await prisma.domain.findMany({
+  const domains: Domain[] = await prisma.domain.findMany({
     where: { isActive: true },
     orderBy: { hostname: "asc" },
   });
-  const templates = await prisma.masterTemplate.findMany();
+  const templates: MasterTemplate[] = await prisma.masterTemplate.findMany();
 
   return (
     <div className="space-y-4">
@@ -34,7 +35,7 @@ export default async function NewPagePage({ searchParams }: NewPageProps) {
             name="domainId"
             className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
           >
-            {domains.map((d) => (
+            {domains.map((d: Domain) => (
               <option key={d.id} value={d.id}>
                 {d.hostname}
               </option>
@@ -51,7 +52,7 @@ export default async function NewPagePage({ searchParams }: NewPageProps) {
               defaultValue={params.template ?? "buyer"}
               className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
             >
-              {templates.map((t) => (
+              {templates.map((t: MasterTemplate) => (
                 <option key={t.id} value={t.type}>
                   {t.name} ({t.type})
                 </option>

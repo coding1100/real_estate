@@ -130,7 +130,7 @@ export function AddPageDialog({
               required
             >
               <option value="">Select domain</option>
-              {domains.map((d) => (
+              {domains.map((d: DomainOption) => (
                 <option key={d.id} value={d.id}>
                   {d.hostname}
                 </option>
@@ -148,7 +148,7 @@ export function AddPageDialog({
                 onChange={(e) => updateForm({ template: e.target.value })}
                 className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               >
-                {templates.map((t) => (
+                {templates.map((t: TemplateOption) => (
                   <option key={t.id} value={t.type}>
                     {t.name}
                   </option>

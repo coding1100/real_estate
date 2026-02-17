@@ -371,7 +371,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
       )}
 
       <div className="space-y-3">
-        {domains.map((d) => {
+        {domains.map((d: DomainRow) => {
           const isEditing = editingId === d.id;
           const current = isEditing && draft && draft.id === d.id ? draft : d;
 

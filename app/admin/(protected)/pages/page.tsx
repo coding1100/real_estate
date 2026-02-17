@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { SlugEditor } from "@/components/admin/SlugEditor";
 import { DeletePageButton } from "@/components/admin/DeletePageButton";
 import { TypeEditor } from "@/components/admin/TypeEditor";
@@ -21,6 +22,10 @@ export default async function AdminPagesListPage() {
       select: { id: true, type: true, name: true },
     }),
   ]);
+
+  type PageWithDomain = Prisma.LandingPageGetPayload<{
+    include: { domain: true };
+  }>;
 
   return (
     <div className="space-y-4">
@@ -46,7 +51,7 @@ export default async function AdminPagesListPage() {
           </tr>
         </thead>
         <tbody>
-          {pages.map((page) => {
+          {pages.map((page: PageWithDomain) => {
             const isMaster =
               page.slug === "master-seller" || page.slug === "master-buyer";
             return (
