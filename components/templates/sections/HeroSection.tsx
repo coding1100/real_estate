@@ -26,7 +26,7 @@ export function HeroSection({ page, formSchema, layout }: HeroSectionProps) {
   const ctaBgColor = layout?.ctaBgColor;
 
   return (
-    <section className="relative text-white h-[calc(100vh_-_85px)]">
+    <section className="relative text-white min-h-[calc(100vh_-_85px)] md:h-[calc(100vh_-_85px)]">
       {/* Background image */}
       {page.heroImageUrl && (
         <div className="pointer-events-none inset-0 absolute">
@@ -36,19 +36,18 @@ export function HeroSection({ page, formSchema, layout }: HeroSectionProps) {
             fill
             priority
             sizes="100vw"
-            className="object-cover filter brightness-65" 
+            className="object-cover filter brightness-65"
           />
           {/* Color overlay for readability */}
-          
         </div>
       )}
 
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 md:gap-10 h-full justify-center pt-[40px] px-0 pb-[20px]">
+      <div className="mx-auto flex h-full max-w-6xl flex-col justify-center gap-8 px-4 pt-8 pb-6 md:gap-10 md:px-0 md:pt-10 md:pb-8">
         {/* Main hero content: text + form */}
-        <div className="grid gap-8 md:grid-cols-12 items-center">
+        <div className="grid items-start gap-8 md:grid-cols-12 md:items-center">
           {/* Text overlay container */}
-          <div className="relative space-y-4 md:space-y-6 flex col-span-8 -mt-4 md:-mt-8 lg:-mt-[50px]">
-            <div className="">
+          <div className="relative col-span-12 mt-0 space-y-4 md:col-span-8 md:-mt-4 md:space-y-6 lg:-mt-[50px]">
+            <div>
               {layout?.leftMainHtml ? (
                 <div
                   className="space-y-2"
@@ -60,7 +59,7 @@ export function HeroSection({ page, formSchema, layout }: HeroSectionProps) {
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.26em] text-zinc-300">
                     {page.domain.displayName}
                   </p>
-                  <h1 className="text-3xl font-semibold tracking-tight md:text-4xl lg:text-5xl">
+                  <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl lg:text-5xl">
                     {page.headline}
                   </h1>
                   {page.subheadline && (
@@ -74,9 +73,9 @@ export function HeroSection({ page, formSchema, layout }: HeroSectionProps) {
           </div>
 
           {/* Form container */}
-          <div className="col-span-4">
+          <div className="col-span-12 w-full md:col-span-4 md:w-auto">
             <div
-              className="relative bg-white/95 p-5 text-zinc-900 shadow-2xl md:p-6 opacity-90 rounded-[2px] cust1"
+              className="cust1 relative w-full max-w-md rounded-[2px] bg-white/95 p-5 text-zinc-900 opacity-90 shadow-2xl md:ml-auto md:p-6"
               style={formBgColor ? { backgroundColor: formBgColor } : undefined}
             >
               <h2
