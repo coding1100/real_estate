@@ -16,8 +16,20 @@ export default async function EditPage({ params }: EditPageProps) {
     include: { domain: true },
   });
 
-  if (!page) {
+  if (!page || !page.domain) {
     notFound();
+  }
+
+  const domain = page.domain;
+
+  let pageLayout = null;
+  try {
+    pageLayout = await prisma.pageLayout.findUnique({
+      where: { pageId: id },
+    });
+  } catch {
+    // PageLayout table may not exist; run: npx prisma migrate deploy
+    // or execute prisma/sql/page_layout.sql
   }
 
   const pageContent = {
@@ -34,12 +46,16 @@ export default async function EditPage({ params }: EditPageProps) {
     successMessage: page.successMessage,
     sections: (page.sections as any) ?? [],
     formSchema: (page.formSchema as any) ?? null,
+    pageLayout: pageLayout ? {
+      id: pageLayout.id,
+      layoutData: pageLayout.layoutData,
+    } : null,
     domain: {
-      hostname: page.domain.hostname,
-      displayName: page.domain.displayName,
-      logoUrl: page.domain.logoUrl,
-      primaryColor: page.domain.primaryColor,
-      accentColor: page.domain.accentColor,
+      hostname: domain.hostname,
+      displayName: domain.displayName,
+      logoUrl: domain.logoUrl,
+      primaryColor: domain.primaryColor,
+      accentColor: domain.accentColor,
     },
     seo: {
       title: page.seoTitle,

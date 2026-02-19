@@ -16,9 +16,16 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
       ? value
       : { fields: [] };
 
+  function stripHtml(html: string): string {
+    if (!html) return "";
+    return html
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
   function labelToId(label: string, fallbackIndex: number) {
-    const base = label
-      .trim()
+    const base = stripHtml(label)
       .toLowerCase()
       .replace(/[^a-z0-9\s]/g, "")
       .replace(/\s+/g, "_");
@@ -63,19 +70,97 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
     }
   }
 
+  const loadDefaultContactPreset = () => {
+    onChange({
+      fields: [
+        {
+          id: "name",
+          type: "text",
+          label: "Name",
+          placeholder: "Name",
+          required: true,
+          order: 1,
+        },
+        {
+          id: "email",
+          type: "email",
+          label: "Email",
+          placeholder: "Email",
+          required: true,
+          order: 2,
+        },
+        {
+          id: "phone",
+          type: "phone",
+          label: "Phone",
+          placeholder: "Phone",
+          required: false,
+          order: 3,
+        },
+      ],
+    });
+  };
+
+  const loadQuestionnairePreset = () => {
+    onChange({
+      fields: [
+        {
+          id: "own_property_tetherow",
+          type: "radio",
+          label: "1. Do you currently own property in Tetherow?",
+          required: true,
+          order: 1,
+          options: [{ value: "yes", label: "Yes" }, { value: "no", label: "No" }],
+        },
+        {
+          id: "selling_12_months",
+          type: "radio",
+          label: "2. Are you considering selling within the next 12 months?",
+          required: true,
+          order: 2,
+          options: [{ value: "yes", label: "Yes" }, { value: "no", label: "No" }],
+        },
+        {
+          id: "optional_report_focus",
+          type: "textarea",
+          label: "Optional:",
+          required: false,
+          order: 3,
+          optionalSection: true,
+        },
+      ],
+    });
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-medium text-zinc-700">
           Fields
         </p>
-        <button
-          type="button"
-          onClick={addField}
-          className="rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-800 hover:bg-zinc-100"
-        >
-          + Add field
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={loadDefaultContactPreset}
+            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            Load default contact form
+          </button>
+          <button
+            type="button"
+            onClick={loadQuestionnairePreset}
+            className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100"
+          >
+            Load questionnaire preset
+          </button>
+          <button
+            type="button"
+            onClick={addField}
+            className="rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-800 hover:bg-zinc-100"
+          >
+            + Add field
+          </button>
+        </div>
       </div>
       <div className="space-y-3">
         {schema.fields.map((field, index) => (
@@ -84,11 +169,11 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
             className="flex items-start justify-between gap-2 rounded-md border border-zinc-200 bg-white p-2"
           >
             <div className="flex-1 space-y-2 text-xs">
-              <input
-                className="w-full rounded border border-zinc-300 px-2 py-1"
-                value={field.label}
-                onChange={(e) => {
-                  const newLabel = e.target.value;
+              <RichTextEditor
+                label="Field label (rich text – use toolbar for color, font size, etc.)"
+                value={field.label ?? ""}
+                onChange={(html) => {
+                  const newLabel = html as string;
                   const shouldUpdateId =
                     !field.id || field.id.startsWith("field_");
                   updateField(index, {
@@ -98,8 +183,9 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
                       : {}),
                   });
                 }}
+                placeholder="Question or field label"
               />
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2 items-center">
                 <select
                   className="rounded border border-zinc-300 px-2 py-1"
                   value={field.type}
@@ -129,15 +215,72 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
                   />
                   <span>Required</span>
                 </label>
+                {(field.type === "textarea") && (
+                  <label className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={field.optionalSection ?? false}
+                      onChange={(e) =>
+                        updateField(index, { optionalSection: e.target.checked })
+                      }
+                    />
+                    <span>Optional section style</span>
+                  </label>
+                )}
               </div>
-              <RichTextEditor
-                label="Field helper text (rich text)"
-                value={field.helperText ?? ""}
-                onChange={(html) =>
-                  updateField(index, { helperText: html as any })
-                }
-                placeholder="Optional description under this field."
-              />
+              {(field.type === "select" || field.type === "radio" || field.type === "checkbox") && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] font-medium text-zinc-500">
+                      Options (value / label)
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const opts = [...(field.options ?? []), { value: "", label: "" }];
+                        updateField(index, { options: opts });
+                      }}
+                      className="text-[11px] text-zinc-600 hover:text-zinc-900"
+                    >
+                      + Add option
+                    </button>
+                  </div>
+                  {(field.options ?? []).map((opt, oi) => (
+                    <div key={oi} className="flex gap-2 items-center">
+                      <input
+                        className="w-20 rounded border border-zinc-300 px-1.5 py-0.5 font-mono text-[11px]"
+                        placeholder="value"
+                        value={opt.value}
+                        onChange={(e) => {
+                          const opts = [...(field.options ?? [])];
+                          opts[oi] = { ...opts[oi], value: e.target.value };
+                          updateField(index, { options: opts });
+                        }}
+                      />
+                      <input
+                        className="flex-1 rounded border border-zinc-300 px-1.5 py-0.5"
+                        placeholder="label"
+                        value={opt.label}
+                        onChange={(e) => {
+                          const opts = [...(field.options ?? [])];
+                          opts[oi] = { ...opts[oi], label: e.target.value };
+                          updateField(index, { options: opts });
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const opts = (field.options ?? []).filter((_, i) => i !== oi);
+                          updateField(index, { options: opts });
+                        }}
+                        className="text-zinc-400 hover:text-red-500 text-xs"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <button
               type="button"

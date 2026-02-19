@@ -60,6 +60,39 @@ async function main() {
       formSchema: {},
     },
   });
+
+  const buyerTemplate = await prisma.masterTemplate.findUnique({
+    where: { type: "buyer" },
+  });
+  if (!buyerTemplate) throw new Error("Buyer template not found");
+
+  const domain = await prisma.domain.upsert({
+    where: { hostname: "bendhomes.us" },
+    update: {},
+    create: {
+      hostname: "bendhomes.us",
+      displayName: "Bend Homes",
+      notifyEmail: "admin@example.com",
+    },
+  });
+
+  await prisma.landingPage.upsert({
+    where: {
+      domainId_slug: { domainId: domain.id, slug: "tetherow-home" },
+    },
+    update: { status: "published" },
+    create: {
+      domainId: domain.id,
+      slug: "tetherow-home",
+      masterTemplateId: buyerTemplate.id,
+      type: "buyer",
+      status: "published",
+      headline: "Tetherow Home",
+      subheadline: "Your local market update",
+      sections: [{ kind: "hero", id: "hero", props: {} }],
+      formSchema: { fields: [] },
+    },
+  });
 }
 
 main()

@@ -1,9 +1,10 @@
+import path from "node:path";
 import { defineConfig, env } from 'prisma/config';
 import dotenv from 'dotenv';
 
-// Load environment variables from .env and .env.local (Next.js style)
-dotenv.config(); // .env
-dotenv.config({ path: '.env.local', override: true });
+const root = process.cwd();
+dotenv.config({ path: path.join(root, ".env.local") });
+dotenv.config({ path: path.join(root, ".env") });
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',

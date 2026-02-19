@@ -6,6 +6,8 @@ import type { FormSchema } from "@/lib/types/form";
 import { FormField } from "./FormField";
 import { useRecaptcha, RecaptchaScript } from "./Captcha";
 
+type FormStyle = "default" | "questionnaire";
+
 interface DynamicFormProps {
   schema: FormSchema;
   submitUrl?: string;
@@ -14,6 +16,7 @@ interface DynamicFormProps {
   successMessage: string;
   textSize?: string;
   ctaBgColor?: string;
+  formStyle?: FormStyle;
 }
 
 export function DynamicForm({
@@ -24,6 +27,7 @@ export function DynamicForm({
   successMessage,
   textSize,
   ctaBgColor,
+  formStyle = "default",
 }: DynamicFormProps) {
   const {
     register,
@@ -84,16 +88,20 @@ export function DynamicForm({
     (a, b) => (a.order ?? 0) - (b.order ?? 0),
   );
 
-  const formStyle = textSize ? { fontSize: textSize } : undefined;
+  const formInlineStyle = textSize ? { fontSize: textSize } : undefined;
   const buttonStyle = ctaBgColor ? { backgroundColor: ctaBgColor } : undefined;
+  const isQuestionnaire = formStyle === "questionnaire";
+  const buttonClass = isQuestionnaire && !ctaBgColor
+    ? "inline-flex w-full items-center justify-center rounded-md bg-amber-800 px-4 py-2.5 text-sm font-medium text-amber-50 shadow-md hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60 font-serif"
+    : "inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60";
 
   return (
     <>
       <RecaptchaScript />
       <form
         onSubmit={onSubmit}
-        className="space-y-4 text-sm"
-        style={formStyle}
+        className={`space-y-6 text-sm ${isQuestionnaire ? "font-serif" : ""}`}
+        style={formInlineStyle}
       >
         {/* Honeypot field for bots */}
         <input
@@ -124,7 +132,7 @@ export function DynamicForm({
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className={buttonClass}
           style={buttonStyle}
         >
           {isPending ? (

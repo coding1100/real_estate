@@ -18,9 +18,7 @@ export async function getLandingPage(
         isActive: true,
       },
     },
-    include: {
-      domain: true,
-    },
+    include: { domain: true },
   });
 
   if (
@@ -40,6 +38,20 @@ export async function getLandingPage(
 
   if (!page) {
     notFound();
+  }
+
+  if (!page.domain) {
+    notFound();
+  }
+
+  let pageLayout: { layoutData: unknown } | null = null;
+  try {
+    const layout = await prisma.pageLayout.findUnique({
+      where: { pageId: page.id },
+    });
+    if (layout) pageLayout = { layoutData: layout.layoutData };
+  } catch {
+    // PageLayout table may not exist if migration has not been applied
   }
 
   const rawSections = page.sections as any;
@@ -78,6 +90,7 @@ export async function getLandingPage(
       schemaMarkup: (page.schemaMarkup as any) ?? null,
       customHeadTags: (page.customHeadTags as any) ?? null,
     },
+    pageLayout,
   };
 }
 
