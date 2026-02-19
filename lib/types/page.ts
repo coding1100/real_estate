@@ -4,16 +4,45 @@ export type LandingPageType = "buyer" | "seller";
 
 export interface SectionConfig {
   id: string;
-  kind:
-    | "hero"
-    | "description"
-    | "carousel"
-    | "imageSlider"
-    | "testimonial"
-    | "trustBar"
-    | "footer";
-  // Arbitrary config payload per section
+  kind: "hero";
   props: Record<string, unknown>;
+}
+
+export type BlockKind =
+  | "header"
+  | "heroLayout"
+  | "heroHeadline"
+  | "heroSubheadline"
+  | "heroLeftRichText"
+  | "heroForm"
+  | "heroTrustRow"
+  | "heroBadgeStrip";
+
+export type HeroElementKind =
+  | "heroHeadline"
+  | "heroSubheadline"
+  | "heroLeftRichText"
+  | "heroForm"
+  | "heroTrustRow"
+  | "heroBadgeStrip";
+
+export interface HeroElementConfig {
+  id: string;
+  kind: HeroElementKind;
+  column: "left" | "right";
+  hidden?: boolean;
+}
+
+export interface HeroElementsByColumn {
+  left: HeroElementConfig[];
+  right: HeroElementConfig[];
+}
+
+export interface BlockConfig {
+  id: string;
+  kind: BlockKind;
+  props: Record<string, unknown>;
+  hidden?: boolean;
 }
 
 export interface LandingPageContent {
@@ -36,7 +65,9 @@ export interface LandingPageContent {
   ctaText: string;
   successMessage: string;
   sections: SectionConfig[];
+  blocks?: BlockConfig[];
   formSchema?: FormSchema | null;
+  pageLayout?: any | null;
   seo: {
     title?: string | null;
     description?: string | null;

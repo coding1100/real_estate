@@ -97,8 +97,22 @@ model LandingPage {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   leads     Lead[]
+  pageLayout PageLayout?
 
   @@unique([domainId, slug])
+}
+
+model PageLayout {
+  id        String   @id @default(uuid())
+  pageId    String   @unique
+  page      LandingPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  
+  // Layout configuration for each container
+  // Array of layout items with x, y, w, h, i (container id), minW, minH, etc.
+  layoutData Json
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Lead {

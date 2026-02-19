@@ -1,12 +1,18 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import type { LandingPageContent } from "@/lib/types/page";
+import { useState, useTransition, useRef } from "react";
+import type {
+  LandingPageContent,
+  BlockConfig,
+  HeroElementsByColumn,
+} from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { FormEditor } from "@/components/admin/FormEditor";
 import { SeoEditor } from "@/components/admin/SeoEditor";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { PageBlockLayoutEditor } from "@/components/admin/craft/PageBlockLayoutEditor";
+import { DragDropPageLayoutEditor } from "@/components/admin/DragDropPageLayoutEditor";
 import { Eye } from "lucide-react";
 
 interface PageEditorProps {
@@ -17,7 +23,7 @@ interface PageEditorProps {
   };
 }
 
-type Tab = "content" | "form" | "seo";
+type Tab = "content" | "form" | "seo" | "layout";
 
 export function PageEditor({ initialPage }: PageEditorProps) {
   const [tab, setTab] = useState<Tab>("content");
@@ -28,11 +34,28 @@ export function PageEditor({ initialPage }: PageEditorProps) {
   );
   const [saving, startSaving] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const layoutGetBlocksRef = useRef<(() => BlockConfig[]) | null>(null);
+  const layoutGetHeroElementsRef =
+    useRef<(() => HeroElementsByColumn | null) | null>(null);
+  const layoutGetLayoutRef = useRef<(() => any[]) | null>(null);
 
   const heroSections = Array.isArray(page.sections) ? page.sections : [];
   const heroSection =
     heroSections.find((s) => s.kind === "hero") || null;
   const heroLayout = (heroSection?.props as any) || {};
+
+  const layoutData = page.pageLayout?.layoutData as any[] | undefined;
+  const savedLayout =
+    layoutData && layoutData.length > 0
+      ? {
+          header: layoutData.find((l: any) => l.i === "header-bar"),
+          text: layoutData.find((l: any) => l.i === "text-container"),
+          form: layoutData.find((l: any) => l.i === "form-container"),
+          footer: layoutData.find((l: any) => l.i === "footer-bar"),
+        }
+      : undefined;
+
+
 
   function update<K extends keyof LandingPageContent>(
     key: K,
@@ -65,19 +88,62 @@ export function PageEditor({ initialPage }: PageEditorProps) {
   async function save(status?: "draft" | "published") {
     setMessage(null);
     startSaving(async () => {
+      let sections = page.sections;
+      const blocks =
+        tab === "layout" && layoutGetBlocksRef.current
+          ? layoutGetBlocksRef.current()
+          : page.blocks;
+      if (tab === "layout" && layoutGetBlocksRef.current) {
+        setPage((prev) => ({ ...prev, blocks }));
+      }
+      if (tab === "layout" && layoutGetHeroElementsRef.current) {
+        const heroElements = layoutGetHeroElementsRef.current();
+        if (heroElements && Array.isArray(sections)) {
+          sections = sections.map((s) =>
+            s.kind === "hero"
+              ? {
+                  ...s,
+                  props: {
+                    ...(s.props || {}),
+                    heroElements,
+                  },
+                }
+              : s,
+          );
+        }
+      }
       const body: any = {
         headline: page.headline,
         subheadline: page.subheadline,
         heroImageUrl: page.heroImageUrl,
         ctaText: page.ctaText,
         successMessage: page.successMessage,
-        sections: page.sections,
+        sections,
+        blocks,
         formSchema,
         seoTitle: page.seo.title,
         seoDescription: page.seo.description,
         canonicalUrl: page.seo.canonicalUrl,
         noIndex: page.seo.noIndex,
       };
+      
+      const getLayout = layoutGetLayoutRef.current;
+      if (getLayout) {
+        const raw = getLayout();
+        if (Array.isArray(raw) && raw.length > 0) {
+          body.layoutData = raw.map((item: { i: string; x: number; y: number; w: number; h: number; minW?: number; minH?: number; static?: boolean; hidden?: boolean }) => ({
+            i: item.i,
+            x: item.x,
+            y: item.y,
+            w: item.w,
+            h: item.h,
+            ...(item.minW != null && { minW: item.minW }),
+            ...(item.minH != null && { minH: item.minH }),
+            ...(item.static != null && { static: item.static }),
+            ...(item.hidden === true && { hidden: true }),
+          }));
+        }
+      }
       if (status) {
         body.status = status;
         setStatus(status);
@@ -91,6 +157,22 @@ export function PageEditor({ initialPage }: PageEditorProps) {
         setMessage("Failed to save");
         return;
       }
+      // Keep local page state in sync with what we just saved so
+      // switching tabs does not resurrect older data.
+      setPage((prev) => ({
+        ...prev,
+        sections,
+        blocks,
+        formSchema,
+        ...(body.layoutData
+          ? {
+              pageLayout: {
+                ...(prev.pageLayout ?? {}),
+                layoutData: body.layoutData,
+              } as any,
+            }
+          : {}),
+      }));
       setMessage(status === "published" ? "Published" : "Saved");
 
       if (status === "published") {
@@ -161,7 +243,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
         </p>
       )}
       <div className="flex gap-4 text-xs">
-        {(["content", "form", "seo"] as Tab[]).map((t) => (
+        {(["content", "form", "seo", "layout"] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -204,6 +286,23 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                     Form style
                   </p>
                   <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-3">
+                      <label className="mb-1 block text-xs font-medium text-zinc-700">
+                        Form layout
+                      </label>
+                      <select
+                        className="w-full rounded border border-zinc-300 px-2 py-1.5 text-xs"
+                        value={(heroLayout.formStyle as string) ?? "default"}
+                        onChange={(e) =>
+                          updateHeroLayout({
+                            formStyle: e.target.value as "default" | "questionnaire",
+                          })
+                        }
+                      >
+                        <option value="default">Default (Market Brief – name, email, phone)</option>
+                        <option value="questionnaire">Questionnaire (numbered questions, optional section)</option>
+                      </select>
+                    </div>
                     <div className="col-span-3">
                       <RichTextEditor
                         label="Form heading (rich text)"
@@ -304,6 +403,15 @@ export function PageEditor({ initialPage }: PageEditorProps) {
             <FormEditor
               value={formSchema}
               onChange={(schema) => setFormSchema(schema)}
+            />
+          )}
+          {tab === "layout" && (
+            <DragDropPageLayoutEditor
+              page={page}
+              onReady={(getLayout) => {
+                layoutGetLayoutRef.current = getLayout;
+              }}
+              initialLayout={savedLayout}
             />
           )}
           {tab === "seo" && (

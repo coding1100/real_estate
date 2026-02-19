@@ -23,6 +23,8 @@ export interface FormFieldConfig {
   order?: number;
   options?: FormFieldOption[];
   helperText?: string;
+  /** When true, field is shown in an "Optional" section style (e.g. frosted panel) */
+  optionalSection?: boolean;
 }
 
 export interface FormSchema {

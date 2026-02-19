@@ -1,11 +1,11 @@
-import type { LandingPageContent } from "@/lib/types/page";
+import type {
+  BlockConfig,
+  HeroElementsByColumn,
+  LandingPageContent,
+} from "@/lib/types/page";
 import { HeroSection } from "./sections/HeroSection";
-import { DescriptionSection } from "./sections/DescriptionSection";
-import { ImageSliderSection } from "./sections/ImageSliderSection";
-import { TestimonialSection } from "./sections/TestimonialSection";
-import { TrustBarSection } from "./sections/TrustBarSection";
-import { FooterSection } from "./sections/FooterSection";
 import Image from "next/image";
+import { getDefaultBlocksForPage } from "@/lib/blocks/defaultBlocks";
 
 interface SellerTemplateProps {
   page: LandingPageContent;
@@ -59,55 +59,71 @@ export function SellerTemplate({ page }: SellerTemplateProps) {
     fields: [],
   };
 
-  // Hero layout config (left/right rich text, colors, etc.) comes from
-  // the "hero" section props, same as for the buyer template.
   const heroSections = Array.isArray(page.sections) ? page.sections : [];
-  const heroConfig =
-    heroSections.find((s) => s.kind === "hero")?.props || {};
+  const heroSection = heroSections.find((s) => s.kind === "hero");
+  const heroConfig = (heroSection?.props as Record<string, unknown>) || {};
+  const heroElements = heroConfig.heroElements as
+    | HeroElementsByColumn
+    | undefined;
 
-  const processConfig = page.sections.find(
-    (s) => s.kind === "description",
-  )?.props as any;
+  const blocks: BlockConfig[] =
+    page.blocks && page.blocks.length > 0
+      ? page.blocks
+      : getDefaultBlocksForPage(page);
 
-  const sliderConfig = page.sections.find(
-    (s) => s.kind === "imageSlider",
-  )?.props as any;
+  const hasBlock = (kind: BlockConfig["kind"]) =>
+    blocks.some((b) => b.kind === kind && b.hidden !== true);
 
-  const testimonialConfig = page.sections.find(
-    (s) => s.kind === "testimonial",
-  )?.props as any;
-
-  const trustBarConfig = page.sections.find(
-    (s) => s.kind === "trustBar",
-  )?.props as any;
+  const layoutData = page.pageLayout?.layoutData as
+    | { i: string; hidden?: boolean }[]
+    | undefined;
+  const hasLayoutHeader = layoutData?.some((l) => l.i === "header-bar" && l.hidden !== true);
+  const hasLayoutFooter = layoutData?.some((l) => l.i === "footer-bar" && l.hidden !== true);
 
   return (
     <div className="min-h-screen bg-zinc-50 custom">
-      <BrandHeader page={page} />
-      <HeroSection
-        page={page}
-        formSchema={heroFormSchema as any}
-        layout={heroConfig as any}
-      />
-      <DescriptionSection
-        title={processConfig?.title}
-        body={processConfig?.body}
-        bullets={processConfig?.steps}
-      />
-      <ImageSliderSection
-        title={sliderConfig?.title}
-        items={sliderConfig?.items}
-      />
-      <TestimonialSection
-        quote={testimonialConfig?.quote}
-        name={testimonialConfig?.name}
-        label={testimonialConfig?.label}
-      />
-      <TrustBarSection
-        title={trustBarConfig?.title}
-        items={trustBarConfig?.items}
-      />
-      <FooterSection complianceText={page.domain?.hostname} />
+      {hasBlock("header") &&
+        (hasLayoutHeader ? (
+          <div className="fixed top-0 left-0 right-0 z-50 max-h-[100px] border-b border-zinc-200 bg-white overflow-hidden">
+            <BrandHeader page={page} />
+          </div>
+        ) : (
+          <BrandHeader page={page} />
+        ))}
+      <main
+        className={
+          hasLayoutHeader && hasLayoutFooter
+            ? ""
+            : hasLayoutHeader
+              ? "pt-[100px]"
+              : hasLayoutFooter
+                ? "pb-[100px]"
+                : undefined
+        }
+      >
+        <HeroSection
+          page={page}
+          formSchema={heroFormSchema as any}
+          layout={heroConfig as any}
+          layoutData={layoutData as any}
+          heroElements={heroElements}
+          visibleBlocks={{
+            showHeadline: hasBlock("heroHeadline"),
+            showSubheadline: hasBlock("heroSubheadline"),
+            showLeft: hasBlock("heroLeftRichText"),
+            showForm: hasBlock("heroForm"),
+          }}
+        />
+      </main>
+      {hasLayoutFooter && (
+        <footer className="hidden fixed bottom-0 left-0 right-0 z-50 max-h-[100px] border-t border-zinc-200 bg-white overflow-hidden">
+          <div className="mx-auto flex max-w-6xl items-center justify-center px-4 py-3">
+            <span className="text-xs text-zinc-600">
+              {page.domain.displayName}
+            </span>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }

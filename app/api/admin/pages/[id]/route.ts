@@ -29,12 +29,25 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
   }
 
   try {
+    // Extract layout data if provided
+    const layoutData = body.layoutData;
+    delete body.layoutData;
+
+    // Update the page
     const page = await prisma.landingPage.update({
       where: { id },
       data: {
         ...body,
       },
     });
+
+    if (layoutData && Array.isArray(layoutData) && layoutData.length > 0) {
+      await prisma.pageLayout.upsert({
+        where: { pageId: id },
+        update: { layoutData: layoutData },
+        create: { pageId: id, layoutData: layoutData },
+      });
+    }
 
     return NextResponse.json({ page }, { status: 200 });
   } catch (err: any) {
