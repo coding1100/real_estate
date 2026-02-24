@@ -88,6 +88,14 @@ export default async function AdminPagesListPage() {
                 <td className="px-3 py-2 text-right">
                   {isMaster ? (
                     <div className="inline-flex items-center gap-2 justify-end">
+                      <a
+                        href={`/${page.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-sm border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100"
+                      >
+                        View page
+                      </a>
                       <Link
                         href={`/admin/pages/${page.id}/edit`}
                         className="rounded-sm border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100"
@@ -114,6 +122,14 @@ export default async function AdminPagesListPage() {
                   ) : (
                     <div className="inline-flex items-end gap-1">
                       <div className="inline-flex gap-1">
+                        <a
+                          href={`/${page.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-sm border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100"
+                        >
+                          View page
+                        </a>
                         <Link
                           href={`/admin/pages/${page.id}/edit`}
                           className="rounded-sm border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100"

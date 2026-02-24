@@ -103,32 +103,15 @@ export async function POST(req: NextRequest) {
   }
 
   // Fallback: if the master template doesn't yet have sections / form schema defined,
-  // inherit from a base page that uses this masterTemplate.
-  // Prefer the canonical master pages (master-buyer / master-seller) when available.
+  // inherit from the most recently updated page that uses this masterTemplate.
   if (
     (!Array.isArray(sectionsSeed) || sectionsSeed.length === 0) ||
     !formSchemaSeed
   ) {
-    let basePage = null as any;
-
-    // Prefer explicit master pages by slug when they exist
-    if (type === "buyer" || type === "seller") {
-      const masterSlug = type === "buyer" ? "master-buyer" : "master-seller";
-      basePage = await prisma.landingPage.findFirst({
-        where: {
-          masterTemplateId: String(masterTemplateId),
-          slug: masterSlug,
-        },
-      });
-    }
-
-    // Fallback to most recently updated page for this template
-    if (!basePage) {
-      basePage = await prisma.landingPage.findFirst({
-        where: { masterTemplateId: String(masterTemplateId) },
-        orderBy: { updatedAt: "desc" },
-      });
-    }
+    const basePage = await prisma.landingPage.findFirst({
+      where: { masterTemplateId: String(masterTemplateId) },
+      orderBy: { updatedAt: "desc" },
+    });
 
     if (basePage) {
       const baseSections = (basePage.sections as any) ?? [];
