@@ -132,6 +132,32 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
     });
   };
 
+  const loadDetailedPerspectivePreset = () => {
+    onChange({
+      fields: [
+        {
+          id: "service_type",
+          type: "radio",
+          label: "",
+          required: true,
+          order: 1,
+          options: [
+            { value: "market_review", label: "Schedule a 15-Minute Market Review" },
+            { value: "valuation", label: "Request a Confidential Valuation Analysis" },
+          ],
+        },
+        {
+          id: "email",
+          type: "email",
+          label: "",
+          placeholder: "Email",
+          required: true,
+          order: 2,
+        },
+      ],
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -152,6 +178,13 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
             className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100"
           >
             Load questionnaire preset
+          </button>
+          <button
+            type="button"
+            onClick={loadDetailedPerspectivePreset}
+            className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100"
+          >
+            Load detailed perspective preset
           </button>
           <button
             type="button"

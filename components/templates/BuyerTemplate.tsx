@@ -13,7 +13,7 @@ interface BuyerTemplateProps {
 
 function BrandHeader({ page }: { page: LandingPageContent }) {
   return (
-    <header className="border-b border-zinc-200 bg-white">
+    <header className="border-b border-zinc-200 bg-white fixed top-0 right-0 left-0 z-[99]">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between md:px-6">
         <div className="flex items-center gap-3">
           {page.domain.logoUrl ? (
@@ -82,14 +82,13 @@ export function BuyerTemplate({ page }: BuyerTemplateProps) {
 
   return (
     <div className="min-h-screen bg-zinc-50 custom">
-      {hasBlock("header") &&
-        (hasLayoutHeader ? (
-          <div className="fixed top-0 left-0 right-0 z-50 max-h-[100px] border-b border-zinc-200 bg-white overflow-hidden">
-            <BrandHeader page={page} />
-          </div>
-        ) : (
+      {hasLayoutHeader ? (
+        <div className="fixed top-0 left-0 right-0 z-50 max-h-[100px] border-b border-zinc-200 bg-white overflow-hidden">
           <BrandHeader page={page} />
-        ))}
+        </div>
+      ) : (
+        <BrandHeader page={page} />
+      )}
       <main
         className={
           hasLayoutHeader && hasLayoutFooter
