@@ -44,6 +44,8 @@ button{
 }
 input,textarea{
   border-radius: 2px;
+  border: 1px solid #a68e84ab;
+  background-color: #fcefec;
 }
 
 h1{font-size: 42px;}
@@ -51,12 +53,82 @@ h2{font-size: 28px;}
 h3{font-size: 22px;}
 h4{font-size: 16px;}
 h5{font-size: 14px;}
-p{font-size: 14px;}
+p{font-size: 16px;}
 input{border-radius: 0px;}
+
+.form-radio-check:checked {
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23433124' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  background-size: 12px;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 3px;;
+}
+.form-radio-check:not(:checked) {
+  background-color: transparent;
+}
+.form-radio-check-detailed:checked {
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23433124' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  background-size: 12px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.form-radio-check-detailed:not(:checked) {
+  background-color: transparent;
+}
+
+/* Detailed perspective list styling - bullet points that turn into ticks when selected */
+.detailed-perspective-radio-list {
+  list-style-type: disc;
+  list-style-position: outside;
+}
+
+.detailed-perspective-radio-list li {
+  margin-left: 0;
+  position: relative;
+}
+
+.detailed-perspective-radio-list li::marker {
+  color: #433124;
+  font-size: 1rem;
+}
+
+.detailed-perspective-radio-list li:has(input:checked) {
+  list-style-type: none;
+}
+
+.detailed-perspective-radio-list li:has(input:checked)::before {
+  content: "✓";
+  color: #433124;
+  font-weight: bold;
+  font-size: 1rem;
+  position: absolute;
+  left: 0;
+  top: 0.125rem;
+  line-height: 1.5;
+}
+
+.detailed-perspective-radio-list li label {
+  display: block;
+  width: 100%;
+  cursor: pointer;
+}
+
+.detailed-perspective-radio-list li label:hover {
+  opacity: 0.8;
+}
+label{
+  font-size: 17px;
+  
+}
+label input{
+    outline: none;
+}
 
 ul,ol{
   margin-left:20px;
-  font-size: 14px;
+  font-size: 18px;
   list-style: initial;
   }
   pre{
@@ -129,4 +201,13 @@ pre span{
 }
 .custom section{
   min-height: 800px;
+}
+.form-area blockquote {
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  background: transparent;
+  border: 1px solid #cbb1a7ab;
+  border-radius: 2px;
+  margin-top: 15px;
+  padding: 10px 20px 15px;
 }

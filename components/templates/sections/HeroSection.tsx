@@ -7,16 +7,27 @@ import type {
 import type { FormSchema } from "@/lib/types/form";
 import { DynamicForm } from "@/components/forms/DynamicForm";
 
-type FormStyle = "default" | "questionnaire";
+type FormStyle = "default" | "questionnaire" | "detailed-perspective" | "next-steps";
 
 interface HeroLayoutConfig {
   formIntro?: string;
   leftMainHtml?: string;
+  nextStepsFirstHtml?: string;
+  nextStepsSecondHtml?: string;
+  nextStepsSecondImageUrl?: string;
   formHeading?: string;
   formBgColor?: string;
   formTextSize?: string;
   ctaBgColor?: string;
   formStyle?: FormStyle;
+  profileImageUrl?: string;
+  profileName?: string;
+  profileTitle?: string;
+  profileRole?: string;
+  profilePhone?: string;
+  profileEmail?: string;
+  formPostCtaText?: string;
+  formFooterText?: string;
 }
 
 interface LayoutItem {
@@ -55,13 +66,19 @@ export function HeroSection({
   const formTextSize = layout?.formTextSize;
   const ctaBgColor = layout?.ctaBgColor;
   const isQuestionnaire = layout?.formStyle === "questionnaire";
+  const isDetailedPerspective = layout?.formStyle === "detailed-perspective";
+  const isNextSteps = layout?.formStyle === "next-steps";
 
   const useHeroElements =
     heroElements &&
     (heroElements.left.length > 0 || heroElements.right.length > 0);
 
-  const textLayout = layoutData?.find((l) => l.i === "text-container" && !l.hidden);
-  const formLayout = layoutData?.find((l) => l.i === "form-container" && !l.hidden);
+  const textLayout = layoutData?.find(
+    (l) => l.i === "text-container" && !l.hidden,
+  );
+  const formLayout = layoutData?.find(
+    (l) => l.i === "form-container" && !l.hidden,
+  );
   const useSavedLayout = textLayout && formLayout;
 
   const gridWrapperClass = useSavedLayout
@@ -83,16 +100,16 @@ export function HeroSection({
       }
     : undefined;
   const textContainerClass = useSavedLayout
-    ? "relative mt-0 space-y-4 md:-mt-4 md:space-y-6 lg:-mt-[50px]"
+    ? "relative mt-0 space-y-4 md:-mt-4 md:space-y-6 lg:-mt-[50px] content-area"
     : "relative col-span-12 mt-0 space-y-4 md:col-span-8 md:-mt-4 md:space-y-6 lg:-mt-[50px]";
   const formContainerClass = useSavedLayout
-    ? "w-full md:w-auto"
+    ? "w-full md:w-auto form-area"
     : "col-span-12 w-full md:col-span-4 md:w-auto";
 
   return (
     <section className="relative text-white min-h-[calc(100vh_-_85px)]  pt-[120px]">
       {page.heroImageUrl && (
-        <div className="pointer-events-none inset-0 absolute">
+        <div className="pointer-events-none inset-0 fixed top-0 left-0 right-0 bottom-0">
           <Image
             src={page.heroImageUrl}
             alt={page.headline}
@@ -104,7 +121,7 @@ export function HeroSection({
         </div>
       )}
 
-      <div className="mx-auto flex h-full max-w-6xl flex-col justify-center gap-8 px-4 pt-8 pb-6 md:gap-10 md:px-0 md:pt-10 md:pb-8">
+      <div className="mx-auto flex h-full max-w-6xl flex-col justify-start gap-8 px-4 pt-8 pb-6 md:gap-10 md:px-0 md:pt-10 md:pb-8">
         <div className={gridWrapperClass} style={gridWrapperStyle}>
           {(useHeroElements || visibleBlocks?.showLeft !== false) && (
             <div className={textContainerClass} style={textContainerStyle}>
@@ -183,53 +200,250 @@ export function HeroSection({
             </div>
           )}
 
-          {(useHeroElements || visibleBlocks?.showForm !== false) &&
-            formSchema &&
-            (formSchema.fields?.length ?? 0) > 0 && (
-            <div className={formContainerClass} style={formContainerStyle}>
-              <div
-                className={`cust1 relative w-full rounded-[2px] p-5 text-zinc-900 shadow-2xl md:w-full md:p-6 ${
-                  isQuestionnaire
-                    ? "bg-amber-50/95 opacity-95 border border-amber-200/60"
-                    : "bg-white/95 opacity-90"
-                }`}
-                style={formBgColor ? { backgroundColor: formBgColor } : undefined}
-              >
-                {formHeading && (
-                  <h2
-                    className={`mb-4 text-base font-semibold border-b border-zinc-300 dot font-serif ${
-                      isQuestionnaire ? "text-zinc-800 text-center" : ""
-                    }`}
-                    dangerouslySetInnerHTML={{ __html: formHeading }}
-                  />
-                )}
-
-                <DynamicForm
-                  schema={formSchema}
-                  ctaText={page.ctaText}
-                  successMessage={page.successMessage}
-                  textSize={formTextSize}
-                  ctaBgColor={ctaBgColor}
-                  formStyle={isQuestionnaire ? "questionnaire" : "default"}
-                  extraHiddenFields={{
-                    domain: page.domain.hostname,
-                    slug: page.slug,
-                    type: page.type,
-                  }}
-                />
-                {layout?.formIntro?.trim() && (
-                  <div
-                    className={`mt-4 text-xs text-zinc-500 space-y-2 font-serif ${
-                      isQuestionnaire ? "text-center text-zinc-600" : "text-center"
-                    }`}
-                    dangerouslySetInnerHTML={{
-                      __html: layout.formIntro,
-                    }}
-                  />
-                )}
+          {(useHeroElements || visibleBlocks?.showForm !== false) && (
+            isNextSteps ? (
+              <div className={formContainerClass} style={formContainerStyle}>
+                <div
+                  className="cust1 form-area relative w-full rounded-[2px] p-6 text-zinc-900 shadow-2xl bg-amber-50/95 opacity-95 border border-amber-200/60"
+                  style={formBgColor ? { backgroundColor: formBgColor } : undefined}
+                >
+                  {formHeading && (
+                    <h2
+                      className="mb-5 text-xl font-semibold text-zinc-800 font-serif leading-tight text-center md:text-left"
+                      dangerouslySetInnerHTML={{ __html: formHeading }}
+                    />
+                  )}
+                  <div className="grid gap-4 md:grid-cols-2 md:gap-4">
+                    <div className="space-y-3">
+                      <div className=" rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4">
+                        {(layout?.nextStepsFirstHtml || layout?.leftMainHtml) && (
+                          <div
+                            className="text-sm text-zinc-800 font-serif leading-relaxed space-y-2"
+                            dangerouslySetInnerHTML={{
+                              __html:
+                                layout?.nextStepsFirstHtml ||
+                                layout?.leftMainHtml ||
+                                "",
+                            }}
+                          />
+                        )}
+                      </div>
+                      <div className="relative flex items-stretch rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4">
+                      {(layout?.nextStepsSecondImageUrl ||
+                          layout?.profileImageUrl) && (
+                          <div className="relative h-[110px] w-[90px] flex-shrink-0 self-center overflow-hidden rounded-[2px] mr-[15px]">
+                            <Image
+                              src={
+                                (layout?.nextStepsSecondImageUrl ||
+                                  layout?.profileImageUrl) as string
+                              }
+                              alt={(layout?.profileName as string) || "Profile"}
+                              fill
+                              className="object-cover rounded-[4px]"
+                            />
+                          </div>
+                        )}
+                        <div className="flex flex-1 flex-col justify-center space-y-1.5 pr-4">
+                          {layout?.nextStepsSecondHtml ? (
+                            <div
+                              className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
+                              dangerouslySetInnerHTML={{
+                                __html: layout.nextStepsSecondHtml,
+                              }}
+                            />
+                          ) : (
+                            <>
+                              {layout?.profileName && (
+                                <h3 className="text-base font-semibold text-zinc-800 font-serif">
+                                  {layout.profileName as string}
+                                </h3>
+                              )}
+                              {layout?.profileRole && (
+                                <p className="text-sm text-zinc-700 font-serif">
+                                  {layout.profileRole as string}
+                                </p>
+                              )}
+                              {layout?.profileTitle && (
+                                <p className="text-sm text-zinc-600 font-serif">
+                                  {layout.profileTitle as string}
+                                </p>
+                              )}
+                            </>
+                          )}
+                        </div>
+                        
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex h-full flex-col justify-between rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4">
+                        <div className="space-y-2">
+                          {layout?.formIntro?.trim() && (
+                            <div
+                              className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
+                              dangerouslySetInnerHTML={{
+                                __html: layout.formIntro ?? "",
+                              }}
+                            />
+                          )}
+                        </div>
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            className="inline-flex w-full items-center justify-center rounded-[2px] bg-[#a5883b] px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-[#8c7533] transition-colors"
+                          >
+                            <span
+                              dangerouslySetInnerHTML={{ __html: page.ctaText }}
+                            />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            ) : formSchema && (formSchema.fields?.length ?? 0) > 0 ? (
+              isDetailedPerspective ? (
+                <div className={formContainerClass} style={formContainerStyle}>
+                  <div
+                    className="cust1 form-area relative w-full rounded-[2px] p-6 text-zinc-900 shadow-2xl bg-amber-50/95 opacity-95 border border-amber-200/60"
+                    style={formBgColor ? { backgroundColor: formBgColor } : undefined}
+                  >
+                    <div className="grid md:grid-cols-[57%_40%] gap-[3%]">
+                      <div className="space-y-5">
+                        {formHeading && (
+                          <h2
+                            className="text-xl font-semibold text-zinc-800 font-serif leading-tight"
+                            dangerouslySetInnerHTML={{ __html: formHeading }}
+                          />
+                        )}
+                        {layout?.formIntro?.trim() && (
+                          <p
+                            className="text-sm text-zinc-700 font-serif leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: layout.formIntro }}
+                          />
+                        )}
+                        <DynamicForm
+                          schema={formSchema}
+                          ctaText={page.ctaText}
+                          successMessage={page.successMessage}
+                          textSize={formTextSize}
+                          ctaBgColor={ctaBgColor}
+                          formStyle="detailed-perspective"
+                          helperText={
+                            layout?.formIntro?.trim()
+                              ? undefined
+                              : "This helps us ensure the data you receive is relevant to your situation."
+                          }
+                          postCtaText={layout?.formPostCtaText?.trim() || undefined}
+                          extraHiddenFields={{
+                            domain: page.domain.hostname,
+                            slug: page.slug,
+                            type: page.type,
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-4 relative flex flex-col justify-center">
+                        <div className="w-full px-[25px] pt-[30px] pb-[70px] border border-[#cbb1a7ab] pr-[44%] flex flex-col justify-center">
+                          {layout?.profileImageUrl && (
+                            <div className="absolute h-[265px] w-[220px] -bottom-[0px] -right-[58px] text-transparent rounded-[2px]">
+                              <Image
+                                src={layout.profileImageUrl as string}
+                                alt={(layout?.profileName as string) || "Profile"}
+                                fill
+                                className="object-cover"
+                                style={{ borderRadius: "2px" }}
+                              />
+                            </div>
+                          )}
+                          {layout?.profileName && (
+                            <h3 className="text-xl font-semibold text-zinc-800 font-serif leading-tight mb-[5px]">
+                              {layout.profileName as string}
+                            </h3>
+                          )}
+                          {layout?.profileTitle && (
+                            <p className="text-sm text-zinc-700 font-serif leading-relaxed mb-[5px]">
+                              {layout.profileTitle as string}
+                            </p>
+                          )}
+                          {layout?.profileRole && (
+                            <p className="text-sm text-zinc-600 font-serif leading-relaxed mb-[5px]">
+                              {layout.profileRole as string}
+                            </p>
+                          )}
+                          <div className="space-y-1.5 pt-1">
+                            {layout?.profilePhone && (
+                              <p className="text-sm text-zinc-700 font-serif flex items-center gap-2.5 leading-relaxed">
+                                <span className="text-zinc-500 text-base">✆</span>
+                                <span>{layout.profilePhone as string}</span>
+                              </p>
+                            )}
+                            {layout?.profileEmail && (
+                              <p className="text-sm text-zinc-700 font-serif flex items-center gap-2.5 leading-relaxed">
+                                <span className="text-zinc-500 text-base">✉</span>
+                                <span className="break-all">
+                                  {layout.profileEmail as string}
+                                </span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {layout?.formFooterText?.trim() && (
+                    <div
+                      className="mt-4 text-sm text-zinc-700 font-serif leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: layout.formFooterText }}
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className={formContainerClass} style={formContainerStyle}>
+                  <div
+                    className={`cust1 relative w-full rounded-[2px] p-5 text-zinc-900 shadow-2xl md:w-full md:p-6 ${
+                      isQuestionnaire
+                        ? "bg-amber-50/95 opacity-95 border border-amber-200/60"
+                        : "bg-white/95 opacity-90"
+                    }`}
+                    style={formBgColor ? { backgroundColor: formBgColor } : undefined}
+                  >
+                    {formHeading && (
+                      <h2
+                        className={`mb-4 text-base font-semibold border-b border-zinc-300 dot font-serif ${
+                          isQuestionnaire ? "text-zinc-800 text-center" : ""
+                        }`}
+                        dangerouslySetInnerHTML={{ __html: formHeading }}
+                      />
+                    )}
+
+                    <DynamicForm
+                      schema={formSchema}
+                      ctaText={page.ctaText}
+                      successMessage={page.successMessage}
+                      textSize={formTextSize}
+                      ctaBgColor={ctaBgColor}
+                      formStyle={isQuestionnaire ? "questionnaire" : "default"}
+                      extraHiddenFields={{
+                        domain: page.domain.hostname,
+                        slug: page.slug,
+                        type: page.type,
+                      }}
+                    />
+                    {layout?.formIntro?.trim() && (
+                      <div
+                        className={`mt-4 text-xs text-zinc-500 space-y-2 font-serif ${
+                          isQuestionnaire ? "text-center text-zinc-600" : "text-center"
+                        }`}
+                        dangerouslySetInnerHTML={{
+                          __html: layout.formIntro,
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+              )
+            ) : null)}
         </div>
       </div>
     </section>

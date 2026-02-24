@@ -295,15 +295,29 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         value={(heroLayout.formStyle as string) ?? "default"}
                         onChange={(e) =>
                           updateHeroLayout({
-                            formStyle: e.target.value as "default" | "questionnaire",
+                            formStyle: e.target.value as
+                              | "default"
+                              | "questionnaire"
+                              | "detailed-perspective"
+                              | "next-steps",
                           })
                         }
                       >
-                        <option value="default">Default (Market Brief – name, email, phone)</option>
-                        <option value="questionnaire">Questionnaire (numbered questions, optional section)</option>
+                        <option value="default">
+                          Default (Market Brief – name, email, phone)
+                        </option>
+                        <option value="questionnaire">
+                          Questionnaire (numbered questions, optional section)
+                        </option>
+                        <option value="detailed-perspective">
+                          Detailed Perspective (two-column with profile)
+                        </option>
+                        <option value="next-steps">
+                          Next steps (thank-you panel)
+                        </option>
                       </select>
                     </div>
-                    <div className="col-span-3">
+                    <div className="col-span-3 space-y-3">
                       <RichTextEditor
                         label="Form heading (rich text)"
                         value={heroLayout.formHeading ?? ""}
@@ -312,6 +326,44 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         }
                         placeholder="Request the Market Brief"
                       />
+                      {(heroLayout.formStyle as string) === "next-steps" && (
+                        <div className="space-y-3">
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <RichTextEditor
+                              label="Next steps – first block (rich text)"
+                              value={heroLayout.nextStepsFirstHtml ?? ""}
+                              onChange={(html) =>
+                                updateHeroLayout({
+                                  nextStepsFirstHtml: html as string,
+                                })
+                              }
+                              placeholder="Left card content: bullets, text, etc."
+                            />
+                            <RichTextEditor
+                              label="Next steps – second block (rich text)"
+                              value={heroLayout.nextStepsSecondHtml ?? ""}
+                              onChange={(html) =>
+                                updateHeroLayout({
+                                  nextStepsSecondHtml: html as string,
+                                })
+                              }
+                              placeholder="Profile card text (name, lines, etc.)"
+                            />
+                          </div>
+                          <ImageUploader
+                            label="Next steps – second block image"
+                            value={
+                              (heroLayout.nextStepsSecondImageUrl as string) ??
+                              null
+                            }
+                            onChange={(url) =>
+                              updateHeroLayout({
+                                nextStepsSecondImageUrl: url ?? undefined,
+                              })
+                            }
+                          />
+                        </div>
+                      )}
                     </div>
                     <div >
                       <label className="mb-1 block text-xs font-medium text-zinc-700">
@@ -387,6 +439,115 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                     </div>
                   </div>
                 </div>
+                {(heroLayout.formStyle as string) === "detailed-perspective" && (
+                  <div className="space-y-2 rounded-md border border-zinc-200 bg-zinc-50 p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                      Profile Section (Right Column)
+                    </p>
+                    <div className="space-y-3">
+                      <ImageUploader
+                        label="Profile image"
+                        value={(heroLayout.profileImageUrl as string) ?? null}
+                        onChange={(url) =>
+                          updateHeroLayout({ profileImageUrl: url ?? undefined })
+                        }
+                      />
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-zinc-700">
+                          Name
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full rounded border border-zinc-300 px-2 py-1.5 text-xs"
+                          value={(heroLayout.profileName as string) ?? ""}
+                          onChange={(e) =>
+                            updateHeroLayout({ profileName: e.target.value })
+                          }
+                          placeholder="Tom Graup"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-zinc-700">
+                          Title
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full rounded border border-zinc-300 px-2 py-1.5 text-xs"
+                          value={(heroLayout.profileTitle as string) ?? ""}
+                          onChange={(e) =>
+                            updateHeroLayout({ profileTitle: e.target.value })
+                          }
+                          placeholder="Global Real Estate Advisor – Bend, Oregon"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-zinc-700">
+                          Role
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full rounded border border-zinc-300 px-2 py-1.5 text-xs"
+                          value={(heroLayout.profileRole as string) ?? ""}
+                          onChange={(e) =>
+                            updateHeroLayout({ profileRole: e.target.value })
+                          }
+                          placeholder="Tetherow Resident"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-zinc-700">
+                          Phone
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full rounded border border-zinc-300 px-2 py-1.5 text-xs"
+                          value={(heroLayout.profilePhone as string) ?? ""}
+                          onChange={(e) =>
+                            updateHeroLayout({ profilePhone: e.target.value })
+                          }
+                          placeholder="(541) 640-0229"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-zinc-700">
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          className="w-full rounded border border-zinc-300 px-2 py-1.5 text-xs"
+                          value={(heroLayout.profileEmail as string) ?? ""}
+                          onChange={(e) =>
+                            updateHeroLayout({ profileEmail: e.target.value })
+                          }
+                          placeholder="tom@bendbutteproperties.com"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {(heroLayout.formStyle as string) === "detailed-perspective" && (
+                  <div className="space-y-2 rounded-md border border-zinc-200 bg-zinc-50 p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                      Form text (Detailed Perspective)
+                    </p>
+                    <RichTextEditor
+                      label="Text after CTA button (rich text)"
+                      value={(heroLayout.formPostCtaText as string) ?? ""}
+                      onChange={(html) =>
+                        updateHeroLayout({ formPostCtaText: html as string })
+                      }
+                      placeholder="Optional text shown directly below the Complete Request button."
+                    />
+                    <RichTextEditor
+                      label="Text below form area overall (rich text)"
+                      value={(heroLayout.formFooterText as string) ?? ""}
+                      onChange={(html) =>
+                        updateHeroLayout({ formFooterText: html as string })
+                      }
+                      placeholder="Optional text shown below the entire form panel (e.g. disclaimer, attribution)."
+                    />
+                  </div>
+                )}
               </div>
               <div className="space-y-3">
                 <ImageUploader

@@ -23,6 +23,13 @@ export default async function AdminPagesListPage() {
   ]);
 
   type PageWithDomain = (typeof pages)[number];
+  const pageOptions = pages.map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    type: p.type,
+    domainHostname: p.domain.hostname,
+    domainId: p.domainId,
+  }));
 
   return (
     <div className="space-y-4">
@@ -34,6 +41,7 @@ export default async function AdminPagesListPage() {
           domains={domains}
           templates={templates}
           defaultTemplate="buyer"
+          pages={pageOptions}
         />
       </div>
       <table className="min-w-full overflow-hidden rounded-lg bg-white text-xs shadow-sm">
@@ -86,6 +94,19 @@ export default async function AdminPagesListPage() {
                       >
                         Edit
                       </Link>
+                      <form
+                        action="/api/admin/pages/duplicate"
+                        method="post"
+                        className="inline"
+                      >
+                        <input type="hidden" name="pageId" value={page.id} />
+                        <button
+                          type="submit"
+                          className="rounded-sm border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100"
+                        >
+                          Duplicate
+                        </button>
+                      </form>
                       <span className="text-[11px] text-zinc-400">
                         Master template
                       </span>

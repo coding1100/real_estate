@@ -6,7 +6,7 @@ import type { FormSchema } from "@/lib/types/form";
 import { FormField } from "./FormField";
 import { useRecaptcha, RecaptchaScript } from "./Captcha";
 
-type FormStyle = "default" | "questionnaire";
+type FormStyle = "default" | "questionnaire" | "detailed-perspective";
 
 interface DynamicFormProps {
   schema: FormSchema;
@@ -17,6 +17,8 @@ interface DynamicFormProps {
   textSize?: string;
   ctaBgColor?: string;
   formStyle?: FormStyle;
+  helperText?: string;
+  postCtaText?: string;
 }
 
 export function DynamicForm({
@@ -28,6 +30,8 @@ export function DynamicForm({
   textSize,
   ctaBgColor,
   formStyle = "default",
+  helperText,
+  postCtaText,
 }: DynamicFormProps) {
   const {
     register,
@@ -91,7 +95,10 @@ export function DynamicForm({
   const formInlineStyle = textSize ? { fontSize: textSize } : undefined;
   const buttonStyle = ctaBgColor ? { backgroundColor: ctaBgColor } : undefined;
   const isQuestionnaire = formStyle === "questionnaire";
-  const buttonClass = isQuestionnaire && !ctaBgColor
+  const isDetailedPerspective = formStyle === "detailed-perspective";
+  const buttonClass = isDetailedPerspective && !ctaBgColor
+    ? "inline-flex w-full items-center justify-center rounded-md bg-amber-800 px-4 py-2.5 text-sm font-medium text-amber-50 shadow-md hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60 font-serif"
+    : isQuestionnaire && !ctaBgColor
     ? "inline-flex w-full items-center justify-center rounded-md bg-amber-800 px-4 py-2.5 text-sm font-medium text-amber-50 shadow-md hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60 font-serif"
     : "inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60";
 
@@ -100,7 +107,7 @@ export function DynamicForm({
       <RecaptchaScript />
       <form
         onSubmit={onSubmit}
-        className={`space-y-6 text-sm ${isQuestionnaire ? "font-serif" : ""}`}
+        className={`${isDetailedPerspective ? "space-y-5" : "space-y-6"} text-sm ${isQuestionnaire || isDetailedPerspective ? "font-serif" : ""}`}
         style={formInlineStyle}
       >
         {/* Honeypot field for bots */}
@@ -118,6 +125,7 @@ export function DynamicForm({
             field={field}
             register={register}
             errors={errors}
+            formStyle={formStyle}
           />
         ))}
 
@@ -141,6 +149,18 @@ export function DynamicForm({
             <span dangerouslySetInnerHTML={{ __html: ctaText }} />
           )}
         </button>
+        {helperText && (
+          <p
+            className={`${isDetailedPerspective ? "mt-4 text-xs" : "mt-3 text-xs"} text-zinc-600 font-serif text-center leading-relaxed`}
+            dangerouslySetInnerHTML={{ __html: helperText }}
+          />
+        )}
+        {postCtaText && (
+          <div
+            className="mt-4 text-sm text-zinc-700 font-serif leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: postCtaText }}
+          />
+        )}
       </form>
     </>
   );

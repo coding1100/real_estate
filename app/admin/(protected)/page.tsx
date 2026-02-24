@@ -36,7 +36,7 @@ export default async function AdminDashboardPage() {
                   {domainsCount}
                 </p>
               </div>
-              <div className="rounded-full bg-zinc-800/70 px-2 py-1 text-[10px] font-medium text-zinc-200">
+              <div className="rounded-full bg-zinc-800 px-3 py-1 text-[16px] font-medium text-zinc-200">
                 Routing
               </div>
             </div>
@@ -57,7 +57,7 @@ export default async function AdminDashboardPage() {
                 {pagesCount}
               </p>
             </div>
-            <div className="rounded-full bg-zinc-900/90 px-2 py-1 text-[10px] font-medium text-zinc-50">
+            <div className="rounded-full bg-zinc-900 px-3 py-1 text-[16px] font-medium text-zinc-50">
               Funnels
             </div>
           </div>
@@ -77,7 +77,7 @@ export default async function AdminDashboardPage() {
                 {leadsCount}
               </p>
             </div>
-            <div className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700">
+            <div className="rounded-full bg-emerald-50 px-3 py-1 text-[16px] font-medium text-emerald-700">
               Pipeline
             </div>
           </div>
