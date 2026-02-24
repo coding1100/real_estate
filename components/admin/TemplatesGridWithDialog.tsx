@@ -38,14 +38,14 @@ export function TemplatesGridWithDialog({
               <div className="space-y-3">
                 <div className="flex justify-center">
                   <a
-                    href={`/${tpl.type === "seller" ? "master-seller" : "master-buyer"}`}
+                    href={`/templates/master/${tpl.type}`}
                     target="_blank"
                     rel="noreferrer"
                     className="group relative block h-[290px] w-[500px] overflow-hidden rounded-md border border-zinc-200 bg-zinc-50"
                   >
                     <iframe
                       title={`${tpl.name} preview`}
-                      src={`/${tpl.type === "seller" ? "master-seller" : "master-buyer"}`}
+                      src={`/templates/master/${tpl.type}`}
                       style={{
                         width: "1280px",
                         height: "720px",

@@ -75,10 +75,21 @@ export async function DELETE(_req: NextRequest, ctx: RouteContext) {
 
   const { id } = await ctx.params;
 
-  await prisma.landingPage.delete({
-    where: { id },
-  });
-
-  return NextResponse.json({ ok: true }, { status: 200 });
+  try {
+    await prisma.$transaction([
+      prisma.lead.deleteMany({ where: { pageId: id } }),
+      prisma.landingPage.delete({ where: { id } }),
+    ]);
+    return NextResponse.json({ ok: true }, { status: 200 });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      {
+        error:
+          "Failed to delete page. There may be related data blocking delete.",
+      },
+      { status: 500 },
+    );
+  }
 }
 
