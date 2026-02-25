@@ -483,7 +483,15 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           updateHeroLayout({ profileImageUrl: url ?? undefined })
                         }
                       />
-                      <div>
+                      <RichTextEditor
+                        label="Profile content (rich text)"
+                        value={(heroLayout.profileSectionHtml as string) ?? ""}
+                        onChange={(html) =>
+                          updateHeroLayout({ profileSectionHtml: html as string })
+                        }
+                        placeholder="Optional: rich text for the profile block (name, title, role, phone, email, etc.). When set, this is shown instead of the fields below."
+                      />
+                      {/* <div>
                         <label className="mb-1 block text-xs font-medium text-zinc-700">
                           Name
                         </label>
@@ -496,8 +504,8 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           }
                           placeholder="Tom Graup"
                         />
-                      </div>
-                      <div>
+                      </div> */}
+                      {/* <div>
                         <label className="mb-1 block text-xs font-medium text-zinc-700">
                           Title
                         </label>
@@ -510,8 +518,8 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           }
                           placeholder="Global Real Estate Advisor – Bend, Oregon"
                         />
-                      </div>
-                      <div>
+                      </div> */}
+                      {/* <div>
                         <label className="mb-1 block text-xs font-medium text-zinc-700">
                           Role
                         </label>
@@ -524,8 +532,8 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           }
                           placeholder="Tetherow Resident"
                         />
-                      </div>
-                      <div>
+                      </div> */}
+                      {/* <div>
                         <label className="mb-1 block text-xs font-medium text-zinc-700">
                           Phone
                         </label>
@@ -538,8 +546,8 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           }
                           placeholder="(541) 640-0229"
                         />
-                      </div>
-                      <div>
+                      </div> */}
+                      {/* <div>
                         <label className="mb-1 block text-xs font-medium text-zinc-700">
                           Email
                         </label>
@@ -552,7 +560,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           }
                           placeholder="tom@bendbutteproperties.com"
                         />
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 )}

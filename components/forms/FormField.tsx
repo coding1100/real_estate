@@ -34,7 +34,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
     type === "textarea" ? (
       <textarea
         id={id}
-        rows={4}
+        rows={1}
         placeholder={placeholder}
         className={baseClass}
         {...register(id, { required })}

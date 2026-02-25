@@ -4,6 +4,22 @@ import type { LandingPageContent } from "./types/page";
 
 const DEFAULT_DEV_HOSTNAME = "bendhomes.us";
 
+// Fixed multistep flow for market report
+const MARKET_REPORT_ENTRY_SLUG = "market-report";
+const MARKET_REPORT_STEP_SLUGS = [
+  "market-report-1",
+  "market-report-2",
+  "market-report-3",
+] as const;
+
+// Fixed multistep flow for executive relocation guide
+const EXEC_REL_ENTRY_SLUG = "executive-relocation-guide";
+const EXEC_REL_STEP_SLUGS = [
+  "executive-relocation-guide-1",
+  "executive-relocation-guide-2",
+  "executive-relocation-guide-3-(Thankyou)",
+] as const;
+
 type PageRow = Awaited<
   ReturnType<typeof prisma.landingPage.findFirst<{ include: { domain: true } }>>
 >;
@@ -56,6 +72,26 @@ export async function getLandingPage(
   slug: string,
   options?: { allowFallbackToAnyDomain?: boolean },
 ): Promise<LandingPageContent> {
+  // Explicitly redirect step slugs to the market-report entry page,
+  // independent of multistepStepSlugs configuration.
+  if (MARKET_REPORT_STEP_SLUGS.includes(slug as any)) {
+    const entryPage = await prisma.landingPage.findFirst({
+      where: {
+        slug: MARKET_REPORT_ENTRY_SLUG,
+        status: "published",
+        domain: {
+          hostname,
+          isActive: true,
+        },
+      },
+      select: { id: true },
+    });
+    if (entryPage) {
+      redirect(`/${MARKET_REPORT_ENTRY_SLUG}`);
+    }
+  }
+
+
   let page = await prisma.landingPage.findFirst({
     where: {
       slug,
@@ -91,7 +127,53 @@ export async function getLandingPage(
     notFound();
   }
 
-  const stepSlugs = page.multistepStepSlugs as string[] | null;
+  let stepSlugs = page.multistepStepSlugs as string[] | null;
+
+  // If no explicit multistep configuration, infer steps for entry pages
+  // with hard-coded multistep flows (market-report, executive relocation).
+  if (!stepSlugs || !Array.isArray(stepSlugs) || stepSlugs.length === 0) {
+    const inferForEntry = async (
+      entrySlug: string,
+      stepSlugList: readonly string[],
+    ) => {
+      const candidatePages = await prisma.landingPage.findMany({
+        where: {
+          slug: { in: stepSlugList as any },
+          domainId: page.domainId,
+          status: "published",
+        },
+        select: { slug: true },
+      });
+      const existingSlugs = new Set(candidatePages.map((p) => p.slug));
+      const inferred: string[] = [];
+      for (const s of stepSlugList) {
+        if (existingSlugs.has(s)) {
+          inferred.push(s);
+        }
+      }
+      return inferred;
+    };
+
+    if (page.slug === MARKET_REPORT_ENTRY_SLUG) {
+      const inferred = await inferForEntry(
+        MARKET_REPORT_ENTRY_SLUG,
+        MARKET_REPORT_STEP_SLUGS,
+      );
+      if (inferred.length > 0) {
+        stepSlugs = inferred;
+      }
+    } else if (page.slug === EXEC_REL_ENTRY_SLUG) {
+      const inferred = await inferForEntry(
+        EXEC_REL_ENTRY_SLUG,
+        EXEC_REL_STEP_SLUGS,
+      );
+      if (inferred.length > 0) {
+        stepSlugs = inferred;
+      }
+    }
+  }
+
+  // Generic redirect: when this page is not an entry, but is referenced in another page's multistepStepSlugs.
   if (!stepSlugs || !Array.isArray(stepSlugs) || stepSlugs.length === 0) {
     const pagesWithMultistep = await prisma.landingPage.findMany({
       where: {
