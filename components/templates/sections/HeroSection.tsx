@@ -21,6 +21,7 @@ interface HeroLayoutConfig {
   ctaBgColor?: string;
   formStyle?: FormStyle;
   profileImageUrl?: string;
+  profileSectionHtml?: string;
   profileName?: string;
   profileTitle?: string;
   profileRole?: string;
@@ -290,7 +291,12 @@ export function HeroSection({
                         <div className="mt-3">
                           <button
                             type="button"
-                            className="inline-flex w-full items-center justify-center rounded-[2px] bg-[#a5883b] px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-[#8c7533] transition-colors"
+                            className="inline-flex w-full items-center justify-center rounded-[2px] px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-90 transition-colors"
+                            style={
+                              ctaBgColor
+                                ? { backgroundColor: ctaBgColor }
+                                : { backgroundColor: "#a5883b" }
+                            }
                           >
                             <span
                               dangerouslySetInnerHTML={{ __html: page.ctaText }}
@@ -344,7 +350,7 @@ export function HeroSection({
                         />
                       </div>
                       <div className="space-y-4 relative flex flex-col justify-center">
-                        <div className="w-full px-[25px] pt-[30px] pb-[70px] border border-[#cbb1a7ab] pr-[44%] flex flex-col justify-center">
+                        <div className="w-full px-[25px] pt-[30px] pb-[70px] break-all border border-[#cbb1a7ab] pr-[44%] flex flex-col justify-center">
                           {layout?.profileImageUrl && (
                             <div className="absolute h-[265px] w-[220px] -bottom-[0px] -right-[58px] text-transparent rounded-[2px]">
                               <Image
@@ -356,37 +362,48 @@ export function HeroSection({
                               />
                             </div>
                           )}
-                          {layout?.profileName && (
-                            <h3 className="text-xl font-semibold text-zinc-800 font-serif leading-tight mb-[5px]">
-                              {layout.profileName as string}
-                            </h3>
+                          {layout?.profileSectionHtml?.trim() ? (
+                            <div
+                              className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
+                              dangerouslySetInnerHTML={{
+                                __html: layout.profileSectionHtml,
+                              }}
+                            />
+                          ) : (
+                            <>
+                              {layout?.profileName && (
+                                <h3 className="text-xl font-semibold text-zinc-800 font-serif leading-tight mb-[5px]">
+                                  {layout.profileName as string}
+                                </h3>
+                              )}
+                              {layout?.profileTitle && (
+                                <p className="text-sm text-zinc-700 font-serif leading-relaxed mb-[5px]">
+                                  {layout.profileTitle as string}
+                                </p>
+                              )}
+                              {layout?.profileRole && (
+                                <p className="text-sm text-zinc-600 font-serif leading-relaxed mb-[5px]">
+                                  {layout.profileRole as string}
+                                </p>
+                              )}
+                              <div className="space-y-1.5 pt-1">
+                                {layout?.profilePhone && (
+                                  <p className="text-sm text-zinc-700 font-serif flex items-center gap-2.5 leading-relaxed">
+                                    <span className="text-zinc-500 text-base">✆</span>
+                                    <span>{layout.profilePhone as string}</span>
+                                  </p>
+                                )}
+                                {layout?.profileEmail && (
+                                  <p className="text-sm text-zinc-700 font-serif flex items-center gap-2.5 leading-relaxed">
+                                    <span className="text-zinc-500 text-base">✉</span>
+                                    <span className="break-all">
+                                      {layout.profileEmail as string}
+                                    </span>
+                                  </p>
+                                )}
+                              </div>
+                            </>
                           )}
-                          {layout?.profileTitle && (
-                            <p className="text-sm text-zinc-700 font-serif leading-relaxed mb-[5px]">
-                              {layout.profileTitle as string}
-                            </p>
-                          )}
-                          {layout?.profileRole && (
-                            <p className="text-sm text-zinc-600 font-serif leading-relaxed mb-[5px]">
-                              {layout.profileRole as string}
-                            </p>
-                          )}
-                          <div className="space-y-1.5 pt-1">
-                            {layout?.profilePhone && (
-                              <p className="text-sm text-zinc-700 font-serif flex items-center gap-2.5 leading-relaxed">
-                                <span className="text-zinc-500 text-base">✆</span>
-                                <span>{layout.profilePhone as string}</span>
-                              </p>
-                            )}
-                            {layout?.profileEmail && (
-                              <p className="text-sm text-zinc-700 font-serif flex items-center gap-2.5 leading-relaxed">
-                                <span className="text-zinc-500 text-base">✉</span>
-                                <span className="break-all">
-                                  {layout.profileEmail as string}
-                                </span>
-                              </p>
-                            )}
-                          </div>
                         </div>
                       </div>
                     </div>

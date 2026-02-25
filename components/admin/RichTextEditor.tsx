@@ -66,26 +66,24 @@ export function RichTextEditor({
               "bullist numlist outdent indent | fontsize fontfamily | " +
               "lineheight | removeformat",
             font_family_formats:
-              "System=system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;" +
-              "Market Serif='Playfair Display','Times New Roman',serif;" +
-              "Market Sans=Lato,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;" +
-              "Elegant Serif='Cormorant Garamond','Times New Roman',serif;" +
-              "Classic Serif='Libre Baskerville','Times New Roman',serif;" +
-              "Modern Sans='Source Sans 3',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+              
+              "Playfair Display='Playfair Display',serif;" +
+              "Roboto=Roboto,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;" +
+              "Bricolage Grotesque='Bricolage Grotesque',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;",
             font_size_formats:
               "10px 12px 14px 16px 18px 20px 24px 28px 32px 36px 42px 48px",
             line_height_formats: "1 1.15 1.3 1.5 1.75 2 2.5 3",
             content_style: `
-              @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Playfair+Display:wght@500;600&family=Lato:wght@400;500&family=Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@400;600&display=swap');
+              @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Roboto:wght@400;500;700&family=Bricolage+Grotesque:wght@400;600&display=swap');
 
               body {
-                font-family: Lato, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                font-family: Roboto, system-ui, sans-serif;
                 font-size: 14px;
-                line-height: 1.5;
+                line-height: 1.2;
               }
 
               h1, h2, h3, h4, h5, h6 {
-                font-family: 'Playfair Display', 'Times New Roman', serif;
+                font-family: 'Playfair Display', serif;
               }
             `,
           }}

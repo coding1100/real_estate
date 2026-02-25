@@ -9,6 +9,7 @@ import {
   FileText,
   Layers,
   Menu,
+  RadioTower,
 } from "lucide-react";
 
 interface AdminShellProps {
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/admin/domains", label: "Domains", icon: Globe2 },
   { href: "/admin/pages", label: "Pages", icon: FileText },
   { href: "/admin/templates", label: "Templates", icon: Layers },
+  { href: "/admin/webhooks", label: "Webhooks", icon: RadioTower },
 ];
 
 export function AdminShell({ children, userEmail }: AdminShellProps) {

@@ -15,8 +15,6 @@ export async function dispatchLeadToWebhooks(leadId: string) {
     where: { isActive: true },
   });
 
-  if (!webhooks.length) return;
-
   const payload = {
     id: lead.id,
     createdAt: lead.createdAt,
@@ -37,31 +35,79 @@ export async function dispatchLeadToWebhooks(leadId: string) {
       headline: lead.page.headline,
       type: lead.page.type,
     },
+    // Helpful flag for tools like Zapier to know this might be a multistep payload
+    meta: {
+      isMultistep:
+        !!lead.formData &&
+        typeof lead.formData === "object" &&
+        Object.keys(lead.formData as Record<string, unknown>).some((key) =>
+          /^step\d+$/.test(key),
+        ),
+      stepsCount:
+        !!lead.formData && typeof lead.formData === "object"
+          ? Object.keys(lead.formData as Record<string, unknown>).filter((key) =>
+              /^step\d+$/.test(key),
+            ).length
+          : 0,
+    },
   };
 
-  await Promise.all(
-    webhooks.map(async (hook) => {
-      try {
-        const res = await fetch(hook.url, {
-          method: hook.method ?? "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(hook.headers as any),
-          },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
+  const zapierUrl = process.env.ZAPIER_LEADS_WEBHOOK_URL;
+
+  const webhookCalls: Promise<unknown>[] = [];
+
+  if (webhooks.length) {
+    webhookCalls.push(
+      ...webhooks.map(async (hook) => {
+        try {
+          const res = await fetch(hook.url, {
+            method: hook.method ?? "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(hook.headers as any),
+            },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) {
+            console.error(
+              `[webhook] Failed for ${hook.name} (${hook.url}): ${res.status}`,
+            );
+          }
+        } catch (e) {
           console.error(
-            `[webhook] Failed for ${hook.name} (${hook.url}): ${res.status}`,
+            `[webhook] Error for ${hook.name} (${hook.url})`,
+            e,
           );
         }
-      } catch (e) {
-        console.error(
-          `[webhook] Error for ${hook.name} (${hook.url})`,
-          e,
-        );
-      }
-    }),
-  );
+      }),
+    );
+  }
+
+  if (zapierUrl) {
+    webhookCalls.push(
+      (async () => {
+        try {
+          const res = await fetch(zapierUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) {
+            console.error(
+              `[zapier] Failed webhook (${zapierUrl}): ${res.status}`,
+            );
+          }
+        } catch (e) {
+          console.error(`[zapier] Error calling webhook (${zapierUrl})`, e);
+        }
+      })(),
+    );
+  }
+
+  if (webhookCalls.length) {
+    await Promise.all(webhookCalls);
+  }
 }
 
