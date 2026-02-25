@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
       await prisma.pageLayout.create({
         data: {
           pageId: copy.id,
-          layoutData: originalLayout.layoutData,
+          layoutData: originalLayout.layoutData as any,
         },
       });
     }

@@ -78,6 +78,9 @@ model LandingPage {
   useCustomForm Boolean @default(false)
   formSchema    Json?
 
+  // Multistep: entry page lists slugs for step content (e.g. ["market-report-1", "market-report-2", "market-report-3"])
+  multistepStepSlugs Json?
+
   // Branding overrides
   primaryColor String?
   accentColor  String?
