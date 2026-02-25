@@ -4,6 +4,7 @@ import type {
   LandingPageContent,
 } from "@/lib/types/page";
 import { HeroSection } from "./sections/HeroSection";
+import { MultistepHeroFlow } from "./MultistepHeroFlow";
 import Image from "next/image";
 import { getDefaultBlocksForPage } from "@/lib/blocks/defaultBlocks";
 
@@ -100,19 +101,27 @@ export function SellerTemplate({ page }: SellerTemplateProps) {
                 : undefined
         }
       >
-        <HeroSection
-          page={page}
-          formSchema={heroFormSchema as any}
-          layout={heroConfig as any}
-          layoutData={layoutData as any}
-          heroElements={heroElements}
-          visibleBlocks={{
-            showHeadline: hasBlock("heroHeadline"),
-            showSubheadline: hasBlock("heroSubheadline"),
-            showLeft: hasBlock("heroLeftRichText"),
-            showForm: hasBlock("heroForm"),
-          }}
-        />
+        {page.multistepSteps && page.multistepSteps.length > 0 ? (
+          <MultistepHeroFlow
+            mainPage={page}
+            steps={page.multistepSteps}
+            layoutData={layoutData as any}
+          />
+        ) : (
+          <HeroSection
+            page={page}
+            formSchema={heroFormSchema as any}
+            layout={heroConfig as any}
+            layoutData={layoutData as any}
+            heroElements={heroElements}
+            visibleBlocks={{
+              showHeadline: hasBlock("heroHeadline"),
+              showSubheadline: hasBlock("heroSubheadline"),
+              showLeft: hasBlock("heroLeftRichText"),
+              showForm: hasBlock("heroForm"),
+            }}
+          />
+        )}
       </main>
       {hasLayoutFooter && (
         <footer className="hidden fixed bottom-0 left-0 right-0 z-50 max-h-[100px] border-t border-zinc-200 bg-white overflow-hidden">

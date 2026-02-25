@@ -38,6 +38,7 @@ export default async function EditPage({ params }: EditPageProps) {
     id: page.id,
     slug: page.slug,
     status: page.status,
+    multistepStepSlugs: (page as any).multistepStepSlugs ?? null,
     type: page.type as "buyer" | "seller",
     headline: page.headline,
     subheadline: page.subheadline,

@@ -19,6 +19,8 @@ interface DynamicFormProps {
   formStyle?: FormStyle;
   helperText?: string;
   postCtaText?: string;
+  onNextStep?: (values: Record<string, unknown>) => void;
+  skipValidationForNextStep?: boolean;
 }
 
 export function DynamicForm({
@@ -32,10 +34,13 @@ export function DynamicForm({
   formStyle = "default",
   helperText,
   postCtaText,
+  onNextStep,
+  skipValidationForNextStep,
 }: DynamicFormProps) {
   const {
     register,
     handleSubmit,
+    getValues,
     formState: { errors },
     reset,
   } = useForm<Record<string, any>>();
@@ -45,36 +50,46 @@ export function DynamicForm({
   const [error, setError] = useState<string | null>(null);
   const { execute } = useRecaptcha();
 
+  const handleNextClick = () => {
+    if (!onNextStep) return;
+    const values = getValues();
+    const honeypot = (values as any).website as string | undefined;
+    if (honeypot) {
+      setSubmitted(true);
+      reset();
+      return;
+    }
+    onNextStep(values as Record<string, unknown>);
+  };
+
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
+    const honeypot = (values as any).website as string | undefined;
+    if (honeypot) {
+      setSubmitted(true);
+      reset();
+      return;
+    }
+    if (onNextStep) {
+      onNextStep(values as Record<string, unknown>);
+      return;
+    }
     startTransition(async () => {
       try {
-        const honeypot = (values as any).website as string | undefined;
-        if (honeypot) {
-          // Bot filled hidden field; silently abort.
-          setSubmitted(true);
-          reset();
-          return;
-        }
-
         const token = await execute("lead_submit");
-
         const payload = {
           ...values,
           ...extraHiddenFields,
           recaptchaToken: token,
         };
-
         const res = await fetch(submitUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-
         if (!res.ok) {
           throw new Error("Failed to submit form");
         }
-
         setSubmitted(true);
         reset();
       } catch (e) {
@@ -138,10 +153,13 @@ export function DynamicForm({
         )}
 
         <button
-          type="submit"
+          type={onNextStep && skipValidationForNextStep ? "button" : "submit"}
           disabled={isPending}
           className={buttonClass}
           style={buttonStyle}
+          onClick={
+            onNextStep && skipValidationForNextStep ? handleNextClick : undefined
+          }
         >
           {isPending ? (
             "Submitting..."

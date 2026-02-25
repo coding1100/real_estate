@@ -63,22 +63,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Basic UTM extraction if present in payload
-    const { utm_source, utm_medium, utm_campaign } = formData;
+    const { utm_source, utm_medium, utm_campaign, _multistepData, ...restForm } = formData as Record<string, unknown>;
+    let mergedFormData: Record<string, unknown> = restForm;
+    if (typeof _multistepData === "string") {
+      try {
+        const parsed = JSON.parse(_multistepData) as Record<string, unknown>;
+        const lastStepKey = "step" + (Object.keys(parsed).length);
+        mergedFormData = { ...parsed, [lastStepKey]: restForm };
+      } catch {
+        // ignore invalid JSON
+      }
+    }
 
-    // Insert lead
     const lead = await prisma.lead.create({
       data: {
         domainId: domainRow.id,
         pageId: page.id,
         type: String(type),
-        formData,
-        utmSource:
-          typeof utm_source === "string" ? utm_source : undefined,
-        utmMedium:
-          typeof utm_medium === "string" ? utm_medium : undefined,
-        utmCampaign:
-          typeof utm_campaign === "string" ? utm_campaign : undefined,
+        formData: mergedFormData as any,
+        utmSource: typeof utm_source === "string" ? utm_source : undefined,
+        utmMedium: typeof utm_medium === "string" ? utm_medium : undefined,
+        utmCampaign: typeof utm_campaign === "string" ? utm_campaign : undefined,
       },
     });
 

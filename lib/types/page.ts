@@ -68,6 +68,7 @@ export interface LandingPageContent {
   blocks?: BlockConfig[];
   formSchema?: FormSchema | null;
   pageLayout?: any | null;
+  multistepSteps?: LandingPageContent[];
   seo: {
     title?: string | null;
     description?: string | null;

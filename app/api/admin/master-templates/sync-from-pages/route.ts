@@ -40,8 +40,8 @@ export async function POST(_req: NextRequest) {
     const template = await prisma.masterTemplate.update({
       where: { id: page.masterTemplateId },
       data: {
-        sections: page.sections,
-        formSchema: page.formSchema ?? null,
+        sections: page.sections as any,
+        formSchema: (page.formSchema ?? null) as any,
       },
     });
 

@@ -20,6 +20,7 @@ interface PageEditorProps {
     dbId: string;
     domainId: string;
     status?: string;
+    multistepStepSlugs?: string[] | null;
   };
 }
 
@@ -29,6 +30,9 @@ export function PageEditor({ initialPage }: PageEditorProps) {
   const [tab, setTab] = useState<Tab>("content");
   const [page, setPage] = useState(initialPage);
   const [status, setStatus] = useState<string>(initialPage.status ?? "draft");
+  const [multistepStepSlugs, setMultistepStepSlugs] = useState<string[]>(
+    Array.isArray(initialPage.multistepStepSlugs) ? initialPage.multistepStepSlugs : [],
+  );
   const [formSchema, setFormSchema] = useState<FormSchema | null>(
     (initialPage.formSchema as any) ?? { fields: [] },
   );
@@ -126,6 +130,11 @@ export function PageEditor({ initialPage }: PageEditorProps) {
         canonicalUrl: page.seo.canonicalUrl,
         noIndex: page.seo.noIndex,
       };
+      if (multistepStepSlugs.length > 0) {
+        body.multistepStepSlugs = multistepStepSlugs;
+      } else {
+        body.multistepStepSlugs = null;
+      }
       
       const getLayout = layoutGetLayoutRef.current;
       if (getLayout) {
@@ -316,6 +325,28 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           Next steps (thank-you panel)
                         </option>
                       </select>
+                    </div>
+                    <div className="col-span-3">
+                      <label className="mb-1 block text-xs font-medium text-zinc-700">
+                        Multistep flow (step slugs)
+                      </label>
+                      <textarea
+                        className="w-full rounded border border-zinc-300 px-2 py-1.5 text-xs"
+                        rows={3}
+                        value={multistepStepSlugs.join("\n")}
+                        onChange={(e) =>
+                          setMultistepStepSlugs(
+                            e.target.value
+                              .split("\n")
+                              .map((s) => s.trim())
+                              .filter(Boolean),
+                          )
+                        }
+                        placeholder="market-report-1\nmarket-report-2\nmarket-report-3"
+                      />
+                      <p className="mt-1 text-[11px] text-zinc-500">
+                        One slug per line. This page becomes the entry URL; step content is loaded from these slugs. Leave empty for a single-step page.
+                      </p>
                     </div>
                     <div className="col-span-3 space-y-3">
                       <RichTextEditor
