@@ -31,6 +31,24 @@ export async function POST(req: NextRequest) {
 
     // Verify reCAPTCHA (if configured)
     const captchaResult = await verifyRecaptchaToken(recaptchaToken ?? null);
+
+    // Log reCAPTCHA outcome for debugging/monitoring
+    // Does not log the raw token, only verification result metadata.
+    try {
+      const errorCodes =
+        "raw" in captchaResult && captchaResult.raw && "error-codes" in captchaResult.raw
+          ? (captchaResult.raw["error-codes"] as string[] | undefined)
+          : undefined;
+      console.log("[recaptcha] verification", {
+        ok: captchaResult.ok,
+        score: "score" in captchaResult ? captchaResult.score : undefined,
+        skipped: captchaResult.skipped,
+        errorCodes,
+      });
+    } catch {
+      // Swallow logging errors; do not affect lead submission flow.
+    }
+
     if (!captchaResult.ok) {
       return NextResponse.json(
         { error: "Failed CAPTCHA verification" },
