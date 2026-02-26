@@ -5,6 +5,7 @@ import Image from "next/image";
 import type { LandingPageContent } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
 import { DynamicForm } from "@/components/forms/DynamicForm";
+import { useRecaptcha, RecaptchaScript } from "@/components/forms/Captcha";
 
 interface LayoutItem {
   i: string;
@@ -59,6 +60,7 @@ export function MultistepHeroFlow({
   const [isSubmittingFinal, setIsSubmittingFinal] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isFinalSubmitted, setIsFinalSubmitted] = useState(false);
+  const { execute } = useRecaptcha();
 
   if (!steps.length) return null;
 
@@ -119,6 +121,9 @@ export function MultistepHeroFlow({
     setIsSubmittingFinal(true);
     setSubmitError(null);
     try {
+      // Obtain reCAPTCHA token (if configured)
+      const token = await execute("lead_submit");
+
       const body: Record<string, unknown> = {
         domain: mainPage.domain.hostname,
         slug: mainPage.slug,
@@ -127,6 +132,9 @@ export function MultistepHeroFlow({
       };
       if (Object.keys(accumulatedData).length > 0) {
         body._multistepData = JSON.stringify(accumulatedData);
+      }
+      if (token) {
+        body.recaptchaToken = token;
       }
       const res = await fetch("/api/leads", {
         method: "POST",
@@ -157,6 +165,7 @@ export function MultistepHeroFlow({
 
   return (
     <section className="relative text-white min-h-[calc(100vh_-_85px)] pt-[120px]">
+      <RecaptchaScript />
       {(mainPage.heroImageUrl || step.heroImageUrl) && (
         <div className="pointer-events-none inset-0 fixed top-0 left-0 right-0 bottom-0">
           <Image
