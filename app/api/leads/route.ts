@@ -112,8 +112,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Fire webhooks and notifications asynchronously (do not block response)
-    void dispatchLeadToWebhooks(lead.id);
+    // Await webhooks so they complete before serverless function exits (Vercel)
+    await dispatchLeadToWebhooks(lead.id);
     void sendLeadNotifications(lead.id);
 
     return NextResponse.json({ ok: true }, { status: 200 });
