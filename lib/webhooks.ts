@@ -98,6 +98,8 @@ export async function dispatchLeadToWebhooks(leadId: string) {
             console.error(
               `[zapier] Failed webhook (${zapierUrl}): ${res.status}`,
             );
+          } else {
+            console.log("[zapier] Lead sent successfully");
           }
         } catch (e) {
           console.error(`[zapier] Error calling webhook (${zapierUrl})`, e);
