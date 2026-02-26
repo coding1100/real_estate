@@ -175,7 +175,7 @@ export function DynamicForm({
         )}
         {postCtaText && (
           <div
-            className="mt-4 text-sm text-zinc-700 font-serif leading-relaxed"
+            className="text-sm text-zinc-700 font-serif leading-relaxed"
             dangerouslySetInnerHTML={{ __html: postCtaText }}
           />
         )}

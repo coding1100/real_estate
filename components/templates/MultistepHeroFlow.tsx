@@ -351,7 +351,7 @@ export function MultistepHeroFlow({
                     )}
                   </div>
                   <div className="space-y-4 relative flex flex-col justify-center">
-                    <div className="w-full px-[25px] pt-[30px] pb-[70px] border border-[#cbb1a7ab] pr-[44%] flex flex-col justify-center">
+                    <div className="w-full px-[25px] pt-[30px] pb-[70px] break-all border border-[#cbb1a7ab] pr-[44%] flex flex-col justify-center">
                       {layout?.profileImageUrl && (
                         <div className="absolute h-[265px] w-[220px] -bottom-[0px] -right-[58px] text-transparent rounded-[2px]">
                           <Image
@@ -457,7 +457,7 @@ export function MultistepHeroFlow({
 
                 {layout?.formIntro?.trim() && (
                   <div
-                    className={`mt-4 text-xs text-zinc-500 space-y-2 font-serif text-center`}
+                    className={` text-xs text-zinc-500 space-y-2 font-serif text-center`}
                     dangerouslySetInnerHTML={{ __html: layout.formIntro }}
                   />
                 )}
