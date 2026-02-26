@@ -100,6 +100,14 @@ export async function getLandingPage(
   }
 
   if (!page) {
+    // Special-case master buyer/seller: if the dedicated landing page
+    // does not exist, fall back to the master template preview routes.
+    if (slug === "master-buyer") {
+      redirect("/templates/master/buyer");
+    }
+    if (slug === "master-seller") {
+      redirect("/templates/master/seller");
+    }
     notFound();
   }
 
