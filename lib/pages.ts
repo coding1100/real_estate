@@ -72,26 +72,6 @@ export async function getLandingPage(
   slug: string,
   options?: { allowFallbackToAnyDomain?: boolean },
 ): Promise<LandingPageContent> {
-  // Explicitly redirect step slugs to the market-report entry page,
-  // independent of multistepStepSlugs configuration.
-  if (MARKET_REPORT_STEP_SLUGS.includes(slug as any)) {
-    const entryPage = await prisma.landingPage.findFirst({
-      where: {
-        slug: MARKET_REPORT_ENTRY_SLUG,
-        status: "published",
-        domain: {
-          hostname,
-          isActive: true,
-        },
-      },
-      select: { id: true },
-    });
-    if (entryPage) {
-      redirect(`/${MARKET_REPORT_ENTRY_SLUG}`);
-    }
-  }
-
-
   let page = await prisma.landingPage.findFirst({
     where: {
       slug,
@@ -185,7 +165,16 @@ export async function getLandingPage(
     });
     for (const p of pagesWithMultistep) {
       const arr = p.multistepStepSlugs as string[] | null;
-      if (Array.isArray(arr) && arr.includes(slug) && p.slug !== slug) {
+      if (
+        Array.isArray(arr) &&
+        arr.includes(slug) &&
+        p.slug !== slug &&
+        // Do not auto-redirect executive relocation guide steps
+        // or market-report step slugs; those URLs should remain
+        // directly accessible.
+        !EXEC_REL_STEP_SLUGS.includes(slug as any) &&
+        !MARKET_REPORT_STEP_SLUGS.includes(slug as any)
+      ) {
         redirect("/" + p.slug);
       }
     }
