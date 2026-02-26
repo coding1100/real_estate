@@ -134,9 +134,9 @@ export function DynamicForm({
           {...register("website")}
         />
 
-        {sortedFields.map((field) => (
+        {sortedFields.map((field, index) => (
           <FormField
-            key={field.id}
+            key={`${field.id}-${index}`}
             field={field}
             register={register}
             errors={errors}

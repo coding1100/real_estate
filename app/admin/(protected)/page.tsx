@@ -2,21 +2,35 @@ import { prisma } from "@/lib/prisma";
 import { TemplatesGridWithDialog } from "@/components/admin/TemplatesGridWithDialog";
 
 export default async function AdminDashboardPage() {
-  const [domainsCount, pagesCount, leadsCount, templates, domains] =
-    await Promise.all([
-      prisma.domain.count(),
-      prisma.landingPage.count(),
-      prisma.lead.count(),
-      prisma.masterTemplate.findMany({
-        orderBy: { type: "asc" },
-        select: { id: true, type: true, name: true },
-      }),
-      prisma.domain.findMany({
-        where: { isActive: true },
-        orderBy: { hostname: "asc" },
-        select: { id: true, hostname: true },
-      }),
-    ]);
+  const [domainsCount, pagesCount, leadsCount, domains] = await Promise.all([
+    prisma.domain.count(),
+    prisma.landingPage.count(),
+    prisma.lead.count(),
+    prisma.domain.findMany({
+      where: { isActive: true },
+      orderBy: { hostname: "asc" },
+      select: { id: true, hostname: true },
+    }),
+  ]);
+
+  // masterTemplate table might not exist yet on some databases.
+  // Fail gracefully and show no templates instead of breaking the dashboard.
+  let templates:
+    | {
+        id: string;
+        type: string;
+        name: string;
+      }[]
+    | [] = [];
+
+  try {
+    templates = await prisma.masterTemplate.findMany({
+      orderBy: { type: "asc" },
+      select: { id: true, type: true, name: true },
+    });
+  } catch {
+    templates = [];
+  }
 
   return (
     <div className="space-y-8">
