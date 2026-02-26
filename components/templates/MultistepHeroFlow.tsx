@@ -457,7 +457,7 @@ export function MultistepHeroFlow({
 
                 {layout?.formIntro?.trim() && (
                   <div
-                    className={` text-xs text-zinc-500 space-y-2 font-serif text-center`}
+                    className={`mt-4 text-xs text-zinc-500 space-y-2 font-serif text-center`}
                     dangerouslySetInnerHTML={{ __html: layout.formIntro }}
                   />
                 )}
