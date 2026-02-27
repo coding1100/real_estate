@@ -264,7 +264,7 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
               {(field.type === "select" || field.type === "radio" || field.type === "checkbox") && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <p className="text-[11px] font-medium text-zinc-500">
+                    <p className="text-[14px] font-medium text-zinc-500">
                       Options (value / label)
                     </p>
                     <button
@@ -273,7 +273,7 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
                         const opts = [...(field.options ?? []), { value: "", label: "" }];
                         updateField(index, { options: opts });
                       }}
-                      className="text-[11px] text-zinc-600 hover:text-zinc-900"
+                      className="text-[14px] text-zinc-600 hover:text-zinc-900"
                     >
                       + Add option
                     </button>
@@ -281,7 +281,7 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
                   {(field.options ?? []).map((opt, oi) => (
                     <div key={oi} className="flex gap-2 items-center">
                       <input
-                        className="w-20 rounded border border-zinc-300 px-1.5 py-0.5 font-mono text-[11px]"
+                        className="w-20 rounded border border-zinc-300 px-1.5 py-0.5 font-mono text-[14px]"
                         placeholder="value"
                         value={opt.value}
                         onChange={(e) => {
@@ -318,7 +318,7 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
             <button
               type="button"
               onClick={() => removeField(index)}
-              className="text-xs text-zinc-500 hover:text-red-500"
+              className="text-md text-zinc-500 hover:text-red-500"
             >
               ✕
             </button>

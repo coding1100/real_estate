@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { SlugEditor } from "@/components/admin/SlugEditor";
-import { DeletePageButton } from "@/components/admin/DeletePageButton";
 import { TypeEditor } from "@/components/admin/TypeEditor";
 import { AddPageDialog } from "@/components/admin/AddPageDialog";
+import { PageRowActions } from "@/components/admin/PageRowActions";
 
 export default async function AdminPagesListPage() {
   const [pages, domains, templates] = await Promise.all([
@@ -45,7 +45,7 @@ export default async function AdminPagesListPage() {
         />
       </div>
       <table className="min-w-full overflow-hidden rounded-lg bg-white text-xs shadow-sm">
-        <thead className="bg-zinc-50 text-[11px] uppercase tracking-[0.15em] text-zinc-500">
+        <thead className="bg-zinc-50 text-[16px] uppercase tracking-[0.15em] text-zinc-500">
           <tr>
             <th className="px-3 py-2 text-left">Domain</th>
             <th className="px-3 py-2 text-left">Slug</th>
@@ -60,18 +60,21 @@ export default async function AdminPagesListPage() {
             const isMaster =
               page.slug === "master-seller" || page.slug === "master-buyer";
             return (
-              <tr key={page.id} className="border-t border-zinc-100">
-                <td className="px-3 py-2 text-zinc-700">
+              <tr
+                key={page.id}
+                className="border-t border-zinc-100 hover:bg-zinc-50/80 transition-colors"
+              >
+                <td className="px-3 py-3 text-zinc-700">
                   {page.domain.hostname}
                 </td>
-                <td className="px-3 py-2 text-zinc-700">
+                <td className="px-3 py-3 text-zinc-700">
                   {isMaster ? (
                     <span className="truncate">{page.slug}</span>
                   ) : (
                     <SlugEditor pageId={page.id} initialSlug={page.slug} />
                   )}
                 </td>
-                <td className="px-3 py-2 text-zinc-700">
+                <td className="px-3 py-3 text-zinc-700">
                   {isMaster ? (
                     <span className="capitalize">{page.type}</span>
                   ) : (
@@ -81,81 +84,16 @@ export default async function AdminPagesListPage() {
                     />
                   )}
                 </td>
-                <td className="px-3 py-2 text-zinc-700">{page.status}</td>
+                <td className="px-3 py-3 text-zinc-700">{page.status}</td>
                 <td className="px-3 py-2 text-zinc-500">
                   {page.updatedAt.toLocaleString()}
                 </td>
                 <td className="px-3 py-2 text-right">
-                  {isMaster ? (
-                    <div className="inline-flex items-center gap-2 justify-end">
-                      <a
-                        href={`/${page.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-sm border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100"
-                      >
-                        View page
-                      </a>
-                      <Link
-                        href={`/admin/pages/${page.id}/edit`}
-                        className="rounded-sm border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100"
-                      >
-                        Edit
-                      </Link>
-                      <form
-                        action="/api/admin/pages/duplicate"
-                        method="post"
-                        className="inline"
-                      >
-                        <input type="hidden" name="pageId" value={page.id} />
-                        <button
-                          type="submit"
-                          className="rounded-sm border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100"
-                        >
-                          Duplicate
-                        </button>
-                      </form>
-                      <span className="text-[11px] text-zinc-400">
-                        Master template
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="inline-flex items-end gap-1">
-                      <div className="inline-flex gap-1">
-                        <a
-                          href={`/${page.slug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded-sm border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100"
-                        >
-                          View page
-                        </a>
-                        <Link
-                          href={`/admin/pages/${page.id}/edit`}
-                          className="rounded-sm border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100"
-                        >
-                          Edit
-                        </Link>
-                        <form
-                          action={`/api/admin/pages/duplicate`}
-                          method="post"
-                        >
-                          <input
-                            type="hidden"
-                            name="pageId"
-                            value={page.id}
-                          />
-                          <button
-                            type="submit"
-                            className="rounded-sm border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100"
-                          >
-                            Duplicate
-                          </button>
-                        </form>
-                      </div>
-                      <DeletePageButton pageId={page.id} slug={page.slug} />
-                    </div>
-                  )}
+                  <PageRowActions
+                    pageId={page.id}
+                    slug={page.slug}
+                    isMaster={isMaster}
+                  />
                 </td>
               </tr>
             );

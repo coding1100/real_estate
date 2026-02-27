@@ -120,7 +120,7 @@ export function TypeEditor({ pageId, initialType }: TypeEditorProps) {
         </button>
       </form>
       {error && (
-        <p className="text-[11px] text-red-600">
+        <p className="text-[14px] text-red-600">
           {error}
         </p>
       )}

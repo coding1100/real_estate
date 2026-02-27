@@ -118,7 +118,7 @@ export function WebhooksManager({
         </p>
       )}
       <table className="min-w-full overflow-hidden rounded-lg bg-white text-xs shadow-sm">
-        <thead className="bg-zinc-50 text-[11px] uppercase tracking-[0.15em] text-zinc-500">
+        <thead className="bg-zinc-50 text-[16px] uppercase tracking-[0.15em] text-zinc-500">
           <tr>
             <th className="px-3 py-2 text-left">Name</th>
             <th className="px-3 py-2 text-left">URL</th>
@@ -180,7 +180,7 @@ export function WebhooksManager({
                     type="button"
                     onClick={() => saveHook(h)}
                     disabled={isPending}
-                    className="rounded-sm border border-zinc-300 px-2 py-1 text-[11px] text-zinc-800 hover:bg-zinc-100 disabled:opacity-60"
+                    className="rounded-sm border border-zinc-300 px-2 py-1 text-[14px] text-zinc-800 hover:bg-zinc-100 disabled:opacity-60"
                   >
                     {savingId === h.id ? "Saving..." : "Save"}
                   </button>
@@ -189,7 +189,7 @@ export function WebhooksManager({
                       type="button"
                       onClick={() => deleteHook(h.id)}
                       disabled={isPending}
-                      className="rounded-md border border-zinc-300 px-2 py-1 text-[11px] text-red-600 hover:bg-red-50 disabled:opacity-60"
+                      className="rounded-md border border-zinc-300 px-2 py-1 text-[14px] text-red-600 hover:bg-red-50 disabled:opacity-60"
                     >
                       Delete
                     </button>

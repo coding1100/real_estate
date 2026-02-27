@@ -159,7 +159,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
         {fieldContent}
       </div>
       {helperText && !error && (
-        <p className="text-xs text-zinc-500 font-serif" dangerouslySetInnerHTML={{ __html: helperText }} />
+        <p className="text-md text-zinc-500 font-serif" dangerouslySetInnerHTML={{ __html: helperText }} />
       )}
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>

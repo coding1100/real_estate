@@ -36,7 +36,7 @@ export default function AdminLoginPage() {
         </h1>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-700">
+            <label className="mb-1 block text-md font-medium text-zinc-700">
               Email
             </label>
             <input
@@ -47,7 +47,7 @@ export default function AdminLoginPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-700">
+            <label className="mb-1 block text-md font-medium text-zinc-700">
               Password
             </label>
             <input

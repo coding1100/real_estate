@@ -43,7 +43,7 @@ export default async function AdminDashboardPage() {
           <div className="relative h-full rounded-[10px] bg-zinc-950/95 px-4 py-4 text-zinc-50">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[11px] font-medium uppercase tracking-[0.18em]">
+                <p className="text-[14px] font-medium uppercase tracking-[0.18em]">
                   Domains
                 </p>
                 <p className="mt-2 text-2xl font-semibold">
@@ -54,7 +54,7 @@ export default async function AdminDashboardPage() {
                 Routing
               </div>
             </div>
-            <p className="mt-3 text-[11px] text-zinc-300">
+            <p className="mt-3 text-[14px] text-zinc-300">
               Manage branded hostnames, logos, and tracking IDs.
             </p>
           </div>
@@ -64,7 +64,7 @@ export default async function AdminDashboardPage() {
         <div className="relative overflow-hidden rounded-sm bg-white p-4 shadow-sm ring-1 ring-zinc-100">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-500">
+              <p className="text-[14px] font-medium uppercase tracking-[0.18em] text-zinc-500">
                 Landing pages
               </p>
               <p className="mt-2 text-2xl font-semibold text-zinc-900">
@@ -75,7 +75,7 @@ export default async function AdminDashboardPage() {
               Funnels
             </div>
           </div>
-          <p className="mt-3 text-[11px] text-zinc-500">
+          <p className="mt-3 text-[14px] text-zinc-500">
             High-intent funnels across all domains.
           </p>
         </div>
@@ -84,7 +84,7 @@ export default async function AdminDashboardPage() {
         <div className="relative overflow-hidden rounded-sm bg-white p-4 shadow-sm ring-1 ring-emerald-100">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-700">
+              <p className="text-[14px] font-medium uppercase tracking-[0.18em] text-emerald-700">
                 Leads
               </p>
               <p className="mt-2 text-2xl font-semibold text-emerald-900">
@@ -95,7 +95,7 @@ export default async function AdminDashboardPage() {
               Pipeline
             </div>
           </div>
-          <p className="mt-3 text-[11px] text-emerald-800">
+          <p className="mt-3 text-[14px] text-emerald-800">
             Total inquiries captured from all live campaigns.
           </p>
         </div>
@@ -106,7 +106,7 @@ export default async function AdminDashboardPage() {
         <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
           Master templates
         </h2>
-        <p className="text-xs text-zinc-500">
+        <p className="text-md text-zinc-500">
           These are locked buyer/seller master templates. Create new landing
           pages by copying from them.
         </p>

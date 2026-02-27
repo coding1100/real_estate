@@ -183,7 +183,7 @@ export function MultistepHeroFlow({
         <div className={gridWrapperClass} style={gridWrapperStyle}>
           <div className={textContainerClass} style={textContainerStyle}>
             <div>
-              {/* <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.26em] text-zinc-300">
+              {/* <p className="mb-2 text-[14px] font-semibold uppercase tracking-[0.26em] text-zinc-300">
                 {mainPage.domain.displayName}
               </p>
               <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl lg:text-5xl">
@@ -309,7 +309,7 @@ export function MultistepHeroFlow({
                           />
                         )}
                         {submitError && (
-                          <p className="text-[11px] text-red-700 font-serif text-center">
+                          <p className="text-[14px] text-red-700 font-serif text-center">
                             {submitError}
                           </p>
                         )}
@@ -466,7 +466,7 @@ export function MultistepHeroFlow({
 
                 {layout?.formIntro?.trim() && (
                   <div
-                    className={`mt-4 text-xs text-zinc-500 space-y-2 font-serif text-center`}
+                    className={`mt-4 text-md text-zinc-500 space-y-2 font-serif text-center`}
                     dangerouslySetInnerHTML={{ __html: layout.formIntro }}
                   />
                 )}

@@ -212,11 +212,11 @@ export function PageEditor({ initialPage }: PageEditorProps) {
           <h1 className="text-lg font-semibold tracking-tight text-zinc-900">
             Edit page: {page.slug}
           </h1>
-          <p className="text-xs text-zinc-500">
+          <p className="text-md text-zinc-500">
             {page.domain.hostname} · {page.type}
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center gap-2 text-md">
           {status === "published" && (
             <a
               href={`/${page.slug}`}
@@ -257,10 +257,10 @@ export function PageEditor({ initialPage }: PageEditorProps) {
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`rounded-md px-3 py-1 ${
+            className={`rounded-md px-5 py-3 font-semibold ${
               tab === t
                 ? "bg-zinc-900 text-white"
-                : "bg-zinc-100 text-zinc-700"
+                : "bg-zinc-200 text-zinc-700"
             }`}
           >
             {t.toUpperCase()}
@@ -291,12 +291,12 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                   />
                 </div>
                 <div className="space-y-2 rounded-md border border-zinc-200 bg-zinc-50 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                  <p className="text-[14px] font-semibold uppercase tracking-[0.16em] text-zinc-600">
                     Form style
                   </p>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-3">
-                      <label className="mb-1 block text-xs font-medium text-zinc-700">
+                      <label className="mb-1 block text-md font-medium text-zinc-700">
                         Form layout
                       </label>
                       <select
@@ -327,7 +327,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                       </select>
                     </div>
                     <div className="col-span-3">
-                      <label className="mb-1 block text-xs font-medium text-zinc-700">
+                      <label className="mb-1 block text-md font-medium text-zinc-700">
                         Multistep flow (step slugs)
                       </label>
                       <textarea
@@ -344,7 +344,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         }
                         placeholder="market-report-1\nmarket-report-2\nmarket-report-3"
                       />
-                      <p className="mt-1 text-[11px] text-zinc-500">
+                      <p className="mt-1 text-[14px] text-zinc-500">
                         One slug per line. This page becomes the entry URL; step content is loaded from these slugs. Leave empty for a single-step page.
                       </p>
                     </div>
@@ -397,7 +397,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                       )}
                     </div>
                     <div >
-                      <label className="mb-1 block text-xs font-medium text-zinc-700">
+                      <label className="mb-1 block text-md font-medium text-zinc-700">
                         Form background color
                       </label>
                       <div className="inline-flex items-center gap-2">
@@ -441,7 +441,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                       placeholder="Message shown after successful submit."
                     />
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-zinc-700">
+                      <label className="mb-1 block text-md font-medium text-zinc-700">
                         CTA background color
                       </label>
                       <div className="flex items-center gap-2">
@@ -472,7 +472,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                 </div>
                 {(heroLayout.formStyle as string) === "detailed-perspective" && (
                   <div className="space-y-2 rounded-md border border-zinc-200 bg-zinc-50 p-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                    <p className="text-[14px] font-semibold uppercase tracking-[0.16em] text-zinc-600">
                       Profile Section (Right Column)
                     </p>
                     <div className="space-y-3">
@@ -492,7 +492,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         placeholder="Optional: rich text for the profile block (name, title, role, phone, email, etc.). When set, this is shown instead of the fields below."
                       />
                       {/* <div>
-                        <label className="mb-1 block text-xs font-medium text-zinc-700">
+                        <label className="mb-1 block text-md font-medium text-zinc-700">
                           Name
                         </label>
                         <input
@@ -506,7 +506,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         />
                       </div> */}
                       {/* <div>
-                        <label className="mb-1 block text-xs font-medium text-zinc-700">
+                        <label className="mb-1 block text-md font-medium text-zinc-700">
                           Title
                         </label>
                         <input
@@ -520,7 +520,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         />
                       </div> */}
                       {/* <div>
-                        <label className="mb-1 block text-xs font-medium text-zinc-700">
+                        <label className="mb-1 block text-md font-medium text-zinc-700">
                           Role
                         </label>
                         <input
@@ -534,7 +534,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         />
                       </div> */}
                       {/* <div>
-                        <label className="mb-1 block text-xs font-medium text-zinc-700">
+                        <label className="mb-1 block text-md font-medium text-zinc-700">
                           Phone
                         </label>
                         <input
@@ -548,7 +548,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         />
                       </div> */}
                       {/* <div>
-                        <label className="mb-1 block text-xs font-medium text-zinc-700">
+                        <label className="mb-1 block text-md font-medium text-zinc-700">
                           Email
                         </label>
                         <input
@@ -566,7 +566,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                 )}
                 {(heroLayout.formStyle as string) === "detailed-perspective" && (
                   <div className="space-y-2 rounded-md border border-zinc-200 bg-zinc-50 p-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                    <p className="text-[14px] font-semibold uppercase tracking-[0.16em] text-zinc-600">
                       Form text (Detailed Perspective)
                     </p>
                     <RichTextEditor

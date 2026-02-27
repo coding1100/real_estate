@@ -30,7 +30,7 @@ export default async function NewPagePage({ searchParams }: NewPageProps) {
         method="post"
       >
         <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-700">
+          <label className="mb-1 block text-md font-medium text-zinc-700">
             Domain
           </label>
           <select
@@ -46,7 +46,7 @@ export default async function NewPagePage({ searchParams }: NewPageProps) {
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-700">
+            <label className="mb-1 block text-md font-medium text-zinc-700">
               Template
             </label>
             <select
@@ -62,7 +62,7 @@ export default async function NewPagePage({ searchParams }: NewPageProps) {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-700">
+            <label className="mb-1 block text-md font-medium text-zinc-700">
               Slug
             </label>
             <input
@@ -74,7 +74,7 @@ export default async function NewPagePage({ searchParams }: NewPageProps) {
           </div>
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-700">
+          <label className="mb-1 block text-md font-medium text-zinc-700">
             Headline
           </label>
           <input
@@ -85,7 +85,7 @@ export default async function NewPagePage({ searchParams }: NewPageProps) {
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-700">
+          <label className="mb-1 block text-md font-medium text-zinc-700">
             Subheadline
           </label>
           <textarea
@@ -100,7 +100,7 @@ export default async function NewPagePage({ searchParams }: NewPageProps) {
         >
           Create page
         </button>
-        <p className="mt-2 text-[11px] text-zinc-500">
+        <p className="mt-2 text-[14px] text-zinc-500">
           After creating, go back to{" "}
           <Link href="/admin/pages" className="underline">
             Pages
