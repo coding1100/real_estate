@@ -69,7 +69,7 @@ export function DynamicGridLayout({
                 <h3 className="text-sm font-semibold text-zinc-900">
                   {item.label}
                 </h3>
-                <div className="text-xs text-zinc-500 select-none">
+                <div className="text-md text-zinc-500 select-none">
                   ⋮⋮
                 </div>
               </div>

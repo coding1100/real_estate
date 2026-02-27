@@ -48,7 +48,7 @@ export function SeoEditor({
   return (
     <div className="space-y-4">
       <div>
-        <label className="mb-1 block text-xs font-medium text-zinc-700">
+        <label className="mb-1 block text-md font-medium text-zinc-700">
           Page Title
         </label>
         <input
@@ -63,12 +63,12 @@ export function SeoEditor({
             })
           }
         />
-        <p className={`mt-1 text-[11px] ${titleColor}`}>
+        <p className={`mt-1 text-[14px] ${titleColor}`}>
           {titleCount} characters (recommended 30–60)
         </p>
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-zinc-700">
+        <label className="mb-1 block text-md font-medium text-zinc-700">
           Meta Description
         </label>
         <textarea
@@ -84,12 +84,12 @@ export function SeoEditor({
             })
           }
         />
-        <p className={`mt-1 text-[11px] ${descColor}`}>
+        <p className={`mt-1 text-[14px] ${descColor}`}>
           {descCount} characters (recommended 70–170)
         </p>
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-zinc-700">
+        <label className="mb-1 block text-md font-medium text-zinc-700">
           Canonical URL
         </label>
         <input
@@ -105,7 +105,7 @@ export function SeoEditor({
           }
         />
       </div>
-      <label className="flex items-center gap-2 text-xs text-zinc-700">
+      <label className="flex items-center gap-2 text-md text-zinc-700">
         <input
           type="checkbox"
           checked={noIndex}
@@ -124,7 +124,7 @@ export function SeoEditor({
         <p className="text-[13px] text-[#1a0dab]">
           {seoTitle || "Example title"}
         </p>
-        <p className="text-[11px] text-[#006621]">{canonical}</p>
+        <p className="text-[14px] text-[#006621]">{canonical}</p>
         <p className="mt-1 text-[13px] text-[#545454]">
           {seoDescription || "Example description snippet shown in search."}
         </p>

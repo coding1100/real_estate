@@ -135,7 +135,7 @@ export function HeroSection({
                   />
                 ) : (
                   <>
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.26em] text-zinc-300">
+                    <p className="mb-2 text-[14px] font-semibold uppercase tracking-[0.26em] text-zinc-300">
                       {page.domain.displayName}
                     </p>
                     {useHeroElements ? (
@@ -449,7 +449,7 @@ export function HeroSection({
                     />
                     {layout?.formIntro?.trim() && (
                       <div
-                        className={`mt-4 text-xs text-zinc-500 space-y-2 font-serif ${
+                        className={`mt-4 text-md text-zinc-500 space-y-2 font-serif ${
                           isQuestionnaire ? "text-center text-zinc-600" : "text-center"
                         }`}
                         dangerouslySetInnerHTML={{

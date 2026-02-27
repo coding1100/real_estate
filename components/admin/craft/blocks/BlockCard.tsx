@@ -88,7 +88,7 @@ export function BlockCard({ label, description, icon }: BlockCardProps) {
       <div className="min-w-0 flex-1 space-y-0.5">
         <p className="font-medium text-zinc-800">{label}</p>
         {description && (
-          <p className="text-[11px] leading-snug text-zinc-500">
+          <p className="text-[14px] leading-snug text-zinc-500">
             {description}
           </p>
         )}

@@ -29,7 +29,7 @@ export function RichTextEditor({
   return (
     <div className="space-y-1">
       {label && (
-        <label className="mb-1 block text-xs font-medium text-zinc-700">
+        <label className="mb-1 block text-md font-medium text-zinc-700">
           {label}
         </label>
       )}

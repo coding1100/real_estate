@@ -30,7 +30,7 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
   const [collapsed, setCollapsed] = React.useState(false);
 
   return (
-    <div className="h-screen bg-zinc-50 flex flex-col">
+    <div className="admin-root h-screen bg-zinc-50 flex flex-col">
       <header className="border-b bg-white">
         <div className="mx-auto flex w-full items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
@@ -46,14 +46,14 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
               Admin
             </div>
           </div>
-          <div className="text-xs text-zinc-500">{userEmail}</div>
+          <div className="text-md text-zinc-500">{userEmail}</div>
         </div>
       </header>
 
       <div className="mx-auto flex w-full flex-1 gap-6 px-4 py-6 overflow-auto">
         <aside
           className={`hidden h-full overflow-y-auto rounded-md bg-white/80 p-2 shadow-sm ring-1 ring-zinc-100 backdrop-blur md:block transition-all duration-200 ${
-            collapsed ? "w-12" : "w-56"
+            collapsed ? "w-[52px]" : "w-56"
           }`}
         >
           <nav className="space-y-1 text-sm">
@@ -68,13 +68,13 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 rounded-md px-2 py-2 text-xs font-medium transition-colors ${
+                  className={`flex items-center gap-2 rounded-lg px-2 py-2 text-md font-medium transition-colors min-h-[40px] ${
                     isActive
                       ? "bg-zinc-900 text-zinc-50 shadow-sm"
                       : "text-zinc-700 hover:bg-zinc-100"
                   }`}
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
+                  <Icon className="h-5 w-5 shrink-0 " />
                   {!collapsed && (
                     <span className="truncate">{item.label}</span>
                   )}

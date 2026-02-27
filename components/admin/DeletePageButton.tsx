@@ -8,9 +8,14 @@ import { Dialog } from "@/components/ui/Dialog";
 interface DeletePageButtonProps {
   pageId: string;
   slug: string;
+  variant?: "default" | "menu";
 }
 
-export function DeletePageButton({ pageId, slug }: DeletePageButtonProps) {
+export function DeletePageButton({
+  pageId,
+  slug,
+  variant = "default",
+}: DeletePageButtonProps) {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -50,15 +55,20 @@ export function DeletePageButton({ pageId, slug }: DeletePageButtonProps) {
     }
   }
 
+  const triggerButtonClassName =
+    variant === "menu"
+      ? "flex w-full items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 focus:outline-none"
+      : "inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-[14px] text-red-700 hover:bg-red-50 disabled:opacity-60";
+
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className={variant === "menu" ? "w-full" : "flex flex-col items-end gap-1"}>
       <button
         type="button"
         onClick={() => setConfirmOpen(true)}
         disabled={loading}
-        className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-[11px] text-red-700 hover:bg-red-50 disabled:opacity-60"
+        className={triggerButtonClassName}
       >
-        <Trash2 className="h-3 w-3" />
+        <Trash2 className="h-3.5 w-3.5" />
         <span>Delete</span>
       </button>
 

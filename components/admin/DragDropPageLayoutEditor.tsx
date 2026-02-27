@@ -215,7 +215,7 @@ export function DragDropPageLayoutEditor({
                 Header Bar
               </span>
             </div>
-            <label className="flex items-center gap-2 text-xs font-medium cursor-pointer select-none shrink-0" onClick={(e) => e.stopPropagation()}>
+            <label className="flex items-center gap-2 text-md font-semibold cursor-pointer select-none shrink-0" onClick={(e) => e.stopPropagation()}>
               <input
                 type="checkbox"
                 checked={isVisible("header-bar")}
@@ -237,7 +237,7 @@ export function DragDropPageLayoutEditor({
                 Footer Bar
               </span>
             </div>
-            <label className="flex items-center gap-2 text-xs font-medium cursor-pointer select-none shrink-0" onClick={(e) => e.stopPropagation()}>
+            <label className="flex items-center gap-2 text-md font-semibold cursor-pointer select-none shrink-0" onClick={(e) => e.stopPropagation()}>
               <input
                 type="checkbox"
                 checked={isVisible("footer-bar")}
@@ -298,7 +298,7 @@ export function DragDropPageLayoutEditor({
 
             {/* Resize Handle Indicator */}
             <div className="text-center border-t border-zinc-300 bg-zinc-100 px-2 py-1">
-              <span className="text-xs text-zinc-500">Drag corner to resize →</span>
+              <span className="text-md text-zinc-500">Drag corner to resize →</span>
             </div>
           </div>
 
@@ -352,7 +352,7 @@ export function DragDropPageLayoutEditor({
 
             {/* Resize Handle Indicator */}
             <div className="text-center border-t border-zinc-300 bg-green-100 px-2 py-1">
-              <span className="text-xs text-zinc-500">Drag corner to resize →</span>
+              <span className="text-md text-zinc-500">Drag corner to resize →</span>
             </div>
           </div>
         </GridLayout>

@@ -19,7 +19,7 @@ export default async function TemplatesPage() {
       <h1 className="text-lg font-semibold tracking-tight text-zinc-900">
         Master templates
       </h1>
-      <p className="text-xs text-zinc-500">
+      <p className="text-md text-zinc-500">
         These are locked buyer/seller master templates. Create new landing
         pages by copying from them.
       </p>

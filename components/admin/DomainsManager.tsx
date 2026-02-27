@@ -225,7 +225,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         <button
           type="button"
           onClick={openAddDialog}
-          className="inline-flex items-center gap-2 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
+          className="inline-flex items-center gap-2 rounded-md bg-zinc-900 px-3 py-1.5 text-lg font-medium text-white hover:bg-zinc-800"
         >
           <Plus className="h-3.5 w-3.5" />
           Add domain
@@ -331,7 +331,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
             </div>
           </div>
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-xs font-medium text-zinc-700">
+            <label className="flex items-center gap-2 text-md font-semibold text-zinc-700">
               <input
                 type="checkbox"
                 checked={newDomainForm.isActive}
@@ -408,10 +408,10 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-[11px] uppercase tracking-[0.16em] text-zinc-500">
+                        <p className="text-[14px] uppercase tracking-[0.16em] text-zinc-500">
                           Hostname
                         </p>
-                        <div className="flex items-center gap-1 text-[11px]">
+                        <div className="flex items-center gap-1 text-[14px]">
                           {!isEditing ? (
                             <button
                               type="button"
@@ -461,7 +461,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                       )}
                     </div>
                     <div className="flex items-center gap-3">
-                      <label className="flex items-center gap-2 text-[11px] font-medium text-zinc-700">
+                      <label className="flex items-center gap-2 text-[14px] font-medium text-zinc-700">
                         <input
                           type="checkbox"
                           checked={current.isActive}
@@ -472,7 +472,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                         />
                         Active
                       </label>
-                      <div className="flex items-center gap-1 text-[11px]">
+                      <div className="flex items-center gap-1 text-[14px]">
                         {d.id !== "new" && !isEditing && (
                           <button
                             type="button"
@@ -492,7 +492,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2">
-                        <label className="block text-[11px] font-medium text-zinc-700">
+                        <label className="block text-[14px] font-medium text-zinc-700">
                           Display name
                         </label>
                         <div className="flex items-center gap-1">
@@ -545,7 +545,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                       )}
 
                       <div className="flex items-center justify-between gap-2">
-                        <label className="block text-[11px] font-medium text-zinc-700">
+                        <label className="block text-[14px] font-medium text-zinc-700">
                           Notify email
                         </label>
                         <div className="flex items-center gap-1">
@@ -598,7 +598,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                       )}
 
                       <div className="flex items-center justify-between gap-2">
-                        <label className="block text-[11px] font-medium text-zinc-700">
+                        <label className="block text-[14px] font-medium text-zinc-700">
                           Notify SMS
                         </label>
                         <div className="flex items-center gap-1">
@@ -655,7 +655,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
 
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2">
-                        <label className="block text-[11px] font-medium text-zinc-700">
+                        <label className="block text-[14px] font-medium text-zinc-700">
                           GA4 ID
                         </label>
                         <div className="flex items-center gap-1">
@@ -710,7 +710,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                       )}
 
                       <div className="flex items-center justify-between gap-2">
-                        <label className="block text-[11px] font-medium text-zinc-700">
+                        <label className="block text-[14px] font-medium text-zinc-700">
                           Meta Pixel ID
                         </label>
                         <div className="flex items-center gap-1">
@@ -771,7 +771,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
               {/* Logos row */}
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-600">
+                  <p className="text-[14px] font-medium uppercase tracking-[0.12em] text-zinc-600">
                     Logo (left)
                   </p>
                   <ImageUploader
@@ -792,7 +792,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-600">
+                  <p className="text-[14px] font-medium uppercase tracking-[0.12em] text-zinc-600">
                     Logo (right)
                   </p>
                   <ImageUploader
@@ -821,7 +821,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         })}
 
         {domains.length === 0 && (
-          <p className="py-8 text-center text-xs text-zinc-500">
+          <p className="py-8 text-center text-md text-zinc-500">
             No domains yet. Click &quot;+ Add domain&quot; to create one.
           </p>
         )}

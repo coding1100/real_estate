@@ -53,7 +53,7 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
           />
         </div>
       )}
-      <div className="flex items-center gap-2 text-xs">
+      <div className="flex items-center gap-2 text-md">
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
@@ -66,7 +66,7 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
           <button
             type="button"
             onClick={() => onChange(null)}
-            className="text-xs text-zinc-500 hover:text-zinc-800"
+            className="text-md text-zinc-500 hover:text-zinc-800"
           >
             Remove
           </button>

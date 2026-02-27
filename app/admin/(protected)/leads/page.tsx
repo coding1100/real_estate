@@ -22,7 +22,7 @@ export default async function LeadsPage() {
         Leads
       </h1>
       <table className="min-w-full overflow-hidden rounded-lg bg-white text-xs shadow-sm">
-        <thead className="bg-zinc-50 text-[11px] uppercase tracking-[0.15em] text-zinc-500">
+        <thead className="bg-zinc-50 text-[16px] uppercase tracking-[0.15em] text-zinc-500">
           <tr>
             <th className="px-3 py-2 text-left">Created</th>
             <th className="px-3 py-2 text-left">Domain</th>
@@ -34,19 +34,19 @@ export default async function LeadsPage() {
         <tbody>
           {leads.map((lead: LeadRow) => (
             <tr key={lead.id} className="border-t border-zinc-100">
-              <td className="px-3 py-2 text-zinc-700">
+              <td className="px-33 py-2 text-zinc-700">
                 {lead.createdAt.toLocaleString()}
               </td>
-              <td className="px-3 py-2 text-zinc-700">
+              <td className="px-3 py-3 text-zinc-700">
                 {lead.domain.hostname}
               </td>
-              <td className="px-3 py-2 text-zinc-700">
+              <td className="px-3 py-3 text-zinc-700">
                 {lead.page.slug}
               </td>
-              <td className="px-3 py-2 text-zinc-700">
+              <td className="px-3 py-3 text-zinc-700">
                 {lead.type}
               </td>
-              <td className="px-3 py-2 text-zinc-700">
+              <td className="px-3 py-3 text-zinc-700">
                 {lead.status}
               </td>
             </tr>

@@ -26,6 +26,23 @@ body {
   font-family: var(--font-body), system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
 }
+
+/* Admin area typography scaling - make admin UI larger without zoom hacks */
+.admin-root {
+  font-size: 0.95rem;
+}
+
+.admin-root .text-xs {
+  font-size: 0.85rem;
+}
+
+.admin-root .text-sm {
+  font-size: 1rem; /* behave like text-md/base inside admin */
+}
+
+.admin-root .text-base {
+  font-size: 1.05rem;
+}
 a{
   border-radius: 2px;
 }

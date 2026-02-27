@@ -63,7 +63,7 @@ export function TemplatesGridWithDialog({
                 </div>
 
                 <div className="space-y-1 text-center">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-400">
+                  <p className="text-[14px] uppercase tracking-[0.2em] text-zinc-400">
                     {tpl.type}
                   </p>
                   <p className="text-sm font-semibold text-zinc-900">

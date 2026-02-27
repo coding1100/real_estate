@@ -159,9 +159,9 @@ export function AddPageDialog({
         <button
           type="button"
           onClick={() => openDialog()}
-          className="inline-flex items-center gap-2 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
+          className="inline-flex items-center gap-2 rounded-md bg-zinc-900 px-3 py-1.5 text-lg font-medium text-white hover:bg-zinc-800"
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="h-3.5 w-3.5 text-white" />
           New page
         </button>
       )}
