@@ -247,11 +247,11 @@ export function PageEditor({ initialPage }: PageEditorProps) {
         </div>
       </div>
       {message && (
-        <p className="text-xs text-emerald-600">
+        <p className="text-md text-emerald-600">
           {message}
         </p>
       )}
-      <div className="flex gap-4 text-xs">
+      <div className="flex gap-4 text-md">
         {(["content", "form", "seo", "layout"] as Tab[]).map((t) => (
           <button
             key={t}
@@ -300,7 +300,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         Form layout
                       </label>
                       <select
-                        className="w-full rounded border border-zinc-300 px-2 py-1.5 text-xs"
+                        className="w-full rounded border border-zinc-300 px-2 py-1.5 text-md"
                         value={(heroLayout.formStyle as string) ?? "default"}
                         onChange={(e) =>
                           updateHeroLayout({
@@ -331,7 +331,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         Multistep flow (step slugs)
                       </label>
                       <textarea
-                        className="w-full rounded border border-zinc-300 px-2 py-1.5 text-xs"
+                        className="w-full rounded border border-zinc-300 px-2 py-1.5 text-md"
                         rows={3}
                         value={multistepStepSlugs.join("\n")}
                         onChange={(e) =>
@@ -413,7 +413,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         />
                         <input
                           type="text"
-                          className="h-9 flex-1 rounded-md border border-zinc-300 px-2 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                          className="h-9 flex-1 rounded-md border border-zinc-300 px-2 text-md shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
                           value={heroLayout.formBgColor ?? "#ffffff"}
                           onChange={(e) =>
                             updateHeroLayout({
@@ -457,7 +457,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         />
                         <input
                           type="text"
-                          className="h-9 flex-1 rounded-md border border-zinc-300 px-2 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                          className="h-9 flex-1 rounded-md border border-zinc-300 px-2 text-md shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
                           value={heroLayout.ctaBgColor ?? "#18181b"}
                           onChange={(e) =>
                             updateHeroLayout({
@@ -497,7 +497,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         </label>
                         <input
                           type="text"
-                          className="w-full rounded border border-zinc-300 px-2 py-1.5 text-xs"
+                          className="w-full rounded border border-zinc-300 px-2 py-1.5 text-md"
                           value={(heroLayout.profileName as string) ?? ""}
                           onChange={(e) =>
                             updateHeroLayout({ profileName: e.target.value })
@@ -511,7 +511,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         </label>
                         <input
                           type="text"
-                          className="w-full rounded border border-zinc-300 px-2 py-1.5 text-xs"
+                          className="w-full rounded border border-zinc-300 px-2 py-1.5 text-md"
                           value={(heroLayout.profileTitle as string) ?? ""}
                           onChange={(e) =>
                             updateHeroLayout({ profileTitle: e.target.value })
@@ -525,7 +525,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         </label>
                         <input
                           type="text"
-                          className="w-full rounded border border-zinc-300 px-2 py-1.5 text-xs"
+                          className="w-full rounded border border-zinc-300 px-2 py-1.5 text-md"
                           value={(heroLayout.profileRole as string) ?? ""}
                           onChange={(e) =>
                             updateHeroLayout({ profileRole: e.target.value })
@@ -539,7 +539,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         </label>
                         <input
                           type="text"
-                          className="w-full rounded border border-zinc-300 px-2 py-1.5 text-xs"
+                          className="w-full rounded border border-zinc-300 px-2 py-1.5 text-md"
                           value={(heroLayout.profilePhone as string) ?? ""}
                           onChange={(e) =>
                             updateHeroLayout({ profilePhone: e.target.value })
@@ -553,7 +553,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         </label>
                         <input
                           type="email"
-                          className="w-full rounded border border-zinc-300 px-2 py-1.5 text-xs"
+                          className="w-full rounded border border-zinc-300 px-2 py-1.5 text-md"
                           value={(heroLayout.profileEmail as string) ?? ""}
                           onChange={(e) =>
                             updateHeroLayout({ profileEmail: e.target.value })

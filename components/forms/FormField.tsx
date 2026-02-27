@@ -143,7 +143,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
             {...register(id, { required })}
           />
         </div>
-        {error && <p className="text-xs text-red-500">{error}</p>}
+        {error && <p className="text-md text-red-500">{error}</p>}
       </div>
     );
   }
@@ -161,7 +161,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
       {helperText && !error && (
         <p className="text-md text-zinc-500 font-serif" dangerouslySetInnerHTML={{ __html: helperText }} />
       )}
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p className="text-md text-red-500">{error}</p>}
     </div>
   );
 }

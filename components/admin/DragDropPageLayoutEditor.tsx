@@ -183,7 +183,7 @@ export function DragDropPageLayoutEditor({
           <div className="flex-shrink-0 text-blue-600 text-lg">💡</div>
           <div className="text-sm text-blue-900">
             <p className="font-semibold mb-1">Layout Instructions</p>
-            <ul className="space-y-1 text-xs list-disc list-inside">
+            <ul className="space-y-1 text-md list-disc list-inside">
               <li>Drag containers to swap positions (left ↔ right)</li>
               <li>Resize from the bottom-right corner to change width/height</li>
               <li>Minimum width: 33% (4 columns) - can create 3-column or 2-column layouts</li>
@@ -263,7 +263,7 @@ export function DragDropPageLayoutEditor({
                 </h3>
               </div>
               <div className="flex items-center gap-3">
-                <label className="flex items-center gap-1.5 text-xs font-medium text-white/90 cursor-pointer select-none" onClick={(e) => e.stopPropagation()}>
+                <label className="flex items-center gap-1.5 text-md font-medium text-white/90 cursor-pointer select-none" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="checkbox"
                     checked={isVisible("text-container")}
@@ -278,7 +278,7 @@ export function DragDropPageLayoutEditor({
 
             {/* Content Area */}
             <div className="flex-1 p-4 overflow-auto">
-              <div className="space-y-3 text-xs text-zinc-600">
+              <div className="space-y-3 text-md text-zinc-600">
                 <p className="font-semibold text-zinc-900">
                   Left Column Content
                 </p>
@@ -317,7 +317,7 @@ export function DragDropPageLayoutEditor({
                 </h3>
               </div>
               <div className="flex items-center gap-3">
-                <label className="flex items-center gap-1.5 text-xs font-medium text-white/90 cursor-pointer select-none" onClick={(e) => e.stopPropagation()}>
+                <label className="flex items-center gap-1.5 text-md font-medium text-white/90 cursor-pointer select-none" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="checkbox"
                     checked={isVisible("form-container")}
@@ -332,7 +332,7 @@ export function DragDropPageLayoutEditor({
 
             {/* Content Area */}
             <div className="flex-1 p-4 overflow-auto">
-              <div className="space-y-3 text-xs text-zinc-600">
+              <div className="space-y-3 text-md text-zinc-600">
                 <p className="font-semibold text-zinc-900">
                   Right Column Content
                 </p>
@@ -360,7 +360,7 @@ export function DragDropPageLayoutEditor({
 
       {/* Current Layout Info */}
       <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 mt-3">
-        <p className="text-xs font-semibold text-zinc-700 mb-2 uppercase tracking-wide">
+        <p className="text-md font-semibold text-zinc-700 mb-2 uppercase tracking-wide">
           📍 Current Layout Configuration
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -369,11 +369,11 @@ export function DragDropPageLayoutEditor({
               key={item.i}
               className="rounded-md border border-zinc-300 bg-white p-3"
             >
-              <p className="text-xs font-bold text-zinc-900 capitalize mb-2">
+              <p className="text-md font-bold text-zinc-900 capitalize mb-2">
                 {item.i.replace(/-/g, " ")}
                 {item.hidden && <span className="ml-1 text-amber-600 font-normal">(hidden)</span>}
               </p>
-              <div className="grid grid-cols-2 gap-2 text-xs text-zinc-600">
+              <div className="grid grid-cols-2 gap-2 text-md text-zinc-600">
                 <div>
                   <span className="text-zinc-700 font-medium">Position:</span>
                   <p className="text-zinc-500">

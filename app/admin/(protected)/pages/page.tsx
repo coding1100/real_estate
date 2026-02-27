@@ -44,7 +44,7 @@ export default async function AdminPagesListPage() {
           pages={pageOptions}
         />
       </div>
-      <table className="min-w-full overflow-hidden rounded-lg bg-white text-xs shadow-sm">
+      <table className="min-w-full overflow-hidden rounded-lg bg-white text-md shadow-sm">
         <thead className="bg-zinc-50 text-[16px] uppercase tracking-[0.15em] text-zinc-500">
           <tr>
             <th className="px-3 py-2 text-left">Domain</th>

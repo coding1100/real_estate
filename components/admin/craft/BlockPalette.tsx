@@ -54,7 +54,7 @@ export function BlockPalette() {
 
   return (
     <div className="flex flex-col gap-1">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+      <p className="mb-2 text-md font-semibold uppercase tracking-wide text-zinc-500">
         Drag blocks here
       </p>
       <div className="flex flex-col gap-2">
@@ -77,7 +77,7 @@ export function BlockPalette() {
                     .toNodeTree(),
               );
             }}
-            className="flex cursor-grab items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-left text-xs shadow-sm active:cursor-grabbing hover:border-zinc-300 hover:bg-zinc-50"
+            className="flex cursor-grab items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-left text-md shadow-sm active:cursor-grabbing hover:border-zinc-300 hover:bg-zinc-50"
           >
             <GripVertical className="h-4 w-4 shrink-0 text-zinc-400" />
             <span className="font-medium text-zinc-800">{entry.label}</span>

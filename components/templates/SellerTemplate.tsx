@@ -26,7 +26,7 @@ function BrandHeader({ page }: { page: LandingPageContent }) {
               className="h-[60px] w-auto object-contain"
             />
           ) : (
-            <span className="text-xs font-medium uppercase tracking-[0.2em] text-zinc-700">
+            <span className="text-md font-medium uppercase tracking-[0.2em] text-zinc-700">
               {page.domain.displayName}
             </span>
           )}
@@ -126,7 +126,7 @@ export function SellerTemplate({ page }: SellerTemplateProps) {
       {hasLayoutFooter && (
         <footer className="hidden fixed bottom-0 left-0 right-0 z-50 max-h-[100px] border-t border-zinc-200 bg-white overflow-hidden">
           <div className="mx-auto flex max-w-6xl items-center justify-center px-4 py-3">
-            <span className="text-xs text-zinc-600">
+            <span className="text-md text-zinc-600">
               {page.domain.displayName}
             </span>
           </div>

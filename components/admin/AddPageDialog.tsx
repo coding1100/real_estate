@@ -174,12 +174,12 @@ export function AddPageDialog({
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <p className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">
+            <p className="rounded-md bg-red-50 px-3 py-2 text-md text-red-700">
               {error}
             </p>
           )}
 
-          <div className="flex flex-wrap items-center gap-3 text-xs">
+          <div className="flex flex-wrap items-center gap-3 text-md">
             <label className="flex items-center gap-1">
               <input
                 type="radio"
@@ -207,7 +207,7 @@ export function AddPageDialog({
           {mode === "template" ? (
             <>
               <div className="space-y-2">
-                <label className="block text-xs font-medium text-zinc-700">
+                <label className="block text-md font-medium text-zinc-700">
                   Domain <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -227,7 +227,7 @@ export function AddPageDialog({
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="block text-xs font-medium text-zinc-700">
+                  <label className="block text-md font-medium text-zinc-700">
                     Template <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -243,7 +243,7 @@ export function AddPageDialog({
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-xs font-medium text-zinc-700">
+                  <label className="block text-md font-medium text-zinc-700">
                     Slug <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -258,7 +258,7 @@ export function AddPageDialog({
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xs font-medium text-zinc-700">
+                <label className="block text-md font-medium text-zinc-700">
                   Headline <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -272,7 +272,7 @@ export function AddPageDialog({
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xs font-medium text-zinc-700">
+                <label className="block text-md font-medium text-zinc-700">
                   Subheadline
                 </label>
                 <textarea
@@ -287,7 +287,7 @@ export function AddPageDialog({
           ) : (
             <>
               <div className="space-y-2">
-                <label className="block text-xs font-medium text-zinc-700">
+                <label className="block text-md font-medium text-zinc-700">
                   Base page to duplicate <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -314,7 +314,7 @@ export function AddPageDialog({
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xs font-medium text-zinc-700">
+                <label className="block text-md font-medium text-zinc-700">
                   Domain for new page <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -333,7 +333,7 @@ export function AddPageDialog({
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xs font-medium text-zinc-700">
+                <label className="block text-md font-medium text-zinc-700">
                   Slug for new page
                 </label>
                 <input
@@ -352,14 +352,14 @@ export function AddPageDialog({
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+              className="rounded-md border border-zinc-300 px-4 py-2 text-md font-medium text-zinc-700 hover:bg-zinc-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="rounded-md bg-zinc-900 px-4 py-2 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+              className="rounded-md bg-zinc-900 px-4 py-2 text-md font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
             >
               {isPending ? "Creating…" : "Create page"}
             </button>

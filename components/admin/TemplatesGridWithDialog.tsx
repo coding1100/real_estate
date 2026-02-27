@@ -72,7 +72,7 @@ export function TemplatesGridWithDialog({
                   <button
                     type="button"
                     onClick={() => open(tpl.type)}
-                    className="mt-2 inline-flex items-center rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
+                    className="mt-2 inline-flex items-center rounded-md bg-zinc-900 px-3 py-1.5 text-md font-medium text-white hover:bg-zinc-800"
                   >
                     Create page from template
                   </button>

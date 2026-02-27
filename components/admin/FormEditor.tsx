@@ -161,35 +161,35 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-medium text-zinc-700">
+        <p className="text-md font-medium text-zinc-700">
           Fields
         </p>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={loadDefaultContactPreset}
-            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-md font-medium text-zinc-700 hover:bg-zinc-50"
           >
             Load default contact form
           </button>
           <button
             type="button"
             onClick={loadQuestionnairePreset}
-            className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100"
+            className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-md font-medium text-amber-800 hover:bg-amber-100"
           >
             Load questionnaire preset
           </button>
           <button
             type="button"
             onClick={loadDetailedPerspectivePreset}
-            className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100"
+            className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-md font-medium text-amber-800 hover:bg-amber-100"
           >
             Load detailed perspective preset
           </button>
           <button
             type="button"
             onClick={addField}
-            className="rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-800 hover:bg-zinc-100"
+            className="rounded-md border border-zinc-300 px-2 py-1 text-md font-medium text-zinc-800 hover:bg-zinc-100"
           >
             + Add field
           </button>
@@ -201,7 +201,7 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
             key={field.id}
             className="flex items-start justify-between gap-2 rounded-md border border-zinc-200 bg-white p-2"
           >
-            <div className="flex-1 space-y-2 text-xs">
+            <div className="flex-1 space-y-2 text-md">
               <RichTextEditor
                 label="Field label (rich text – use toolbar for color, font size, etc.)"
                 value={field.label ?? ""}
@@ -306,7 +306,7 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
                           const opts = (field.options ?? []).filter((_, i) => i !== oi);
                           updateField(index, { options: opts });
                         }}
-                        className="text-zinc-400 hover:text-red-500 text-xs"
+                        className="text-zinc-400 hover:text-red-500 text-md"
                       >
                         ✕
                       </button>
@@ -326,15 +326,15 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
         ))}
       </div>
       <div>
-        <p className="mb-1 text-xs font-medium text-zinc-700">
+        <p className="mb-1 text-md font-medium text-zinc-700">
           Raw JSON (advanced)
         </p>
         <textarea
-          className="h-40 w-full rounded-md border border-zinc-300 px-2 py-1 text-xs font-mono"
+          className="h-40 w-full rounded-md border border-zinc-300 px-2 py-1 text-md font-mono"
           defaultValue={JSON.stringify(schema, null, 2)}
           onBlur={(e) => handleJsonChange(e.target.value)}
         />
-        {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        {error && <p className="mt-1 text-md text-red-500">{error}</p>}
       </div>
     </div>
   );

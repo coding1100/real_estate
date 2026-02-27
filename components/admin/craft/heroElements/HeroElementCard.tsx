@@ -32,7 +32,7 @@ export function HeroElementCard({ label, children }: HeroElementCardProps) {
       ref={(ref) => {
         if (ref) connect(drag(ref));
       }}
-      className={`flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-left text-xs shadow-sm ${
+      className={`flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-left text-md shadow-sm ${
         hidden
           ? "border-amber-200 bg-amber-50/50 opacity-80"
           : "border-zinc-200"
