@@ -57,7 +57,7 @@ export default function AdminLoginPage() {
               className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
             />
           </div>
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p className="text-md text-red-500">{error}</p>}
           <button
             type="submit"
             disabled={loading}

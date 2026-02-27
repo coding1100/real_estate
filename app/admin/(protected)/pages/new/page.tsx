@@ -25,7 +25,7 @@ export default async function NewPagePage({ searchParams }: NewPageProps) {
         New page
       </h1>
       <form
-        className="space-y-3 rounded-sm bg-white p-4 shadow-sm text-xs"
+        className="space-y-3 rounded-sm bg-white p-4 shadow-sm text-md"
         action="/api/admin/pages"
         method="post"
       >
@@ -96,7 +96,7 @@ export default async function NewPagePage({ searchParams }: NewPageProps) {
         </div>
         <button
           type="submit"
-          className="mt-2 inline-flex items-center rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
+          className="mt-2 inline-flex items-center rounded-md bg-zinc-900 px-3 py-1.5 text-md font-medium text-white hover:bg-zinc-800"
         >
           Create page
         </button>

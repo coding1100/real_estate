@@ -73,7 +73,7 @@ export function BlockCard({ label, description, icon }: BlockCardProps) {
       ref={(ref) => {
         if (ref) connect(drag(ref));
       }}
-      className={`group relative flex items-start gap-3 rounded-xl border bg-white px-4 text-left text-xs shadow-sm transition-colors ${
+      className={`group relative flex items-start gap-3 rounded-xl border bg-white px-4 text-left text-md shadow-sm transition-colors ${
         hidden
           ? "border-amber-200 bg-amber-50/70 opacity-80"
           : "border-zinc-200 group-hover:border-zinc-300"

@@ -302,7 +302,7 @@ export function MultistepHeroFlow({
                         </button>
                         {isFinalSubmitted && mainPage.successMessage && (
                           <div
-                            className="text-xs text-emerald-800 font-serif text-center"
+                            className="text-md text-emerald-800 font-serif text-center"
                             dangerouslySetInnerHTML={{
                               __html: mainPage.successMessage,
                             }}

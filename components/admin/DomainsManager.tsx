@@ -246,12 +246,12 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
           className="space-y-4"
         >
           {addFormError && (
-            <p className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">
+            <p className="rounded-md bg-red-50 px-3 py-2 text-md text-red-700">
               {addFormError}
             </p>
           )}
           <div className="space-y-2">
-            <label className="block text-xs font-medium text-zinc-700">
+            <label className="block text-md font-medium text-zinc-700">
               Hostname <span className="text-red-500">*</span>
             </label>
             <input
@@ -263,7 +263,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
             />
           </div>
           <div className="space-y-2">
-            <label className="block text-xs font-medium text-zinc-700">
+            <label className="block text-md font-medium text-zinc-700">
               Display name <span className="text-red-500">*</span>
             </label>
             <input
@@ -275,7 +275,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
             />
           </div>
           <div className="space-y-2">
-            <label className="block text-xs font-medium text-zinc-700">
+            <label className="block text-md font-medium text-zinc-700">
               Notify email <span className="text-red-500">*</span>
             </label>
             <input
@@ -287,7 +287,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
             />
           </div>
           <div className="space-y-2">
-            <label className="block text-xs font-medium text-zinc-700">
+            <label className="block text-md font-medium text-zinc-700">
               Notify SMS
             </label>
             <input
@@ -302,7 +302,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label className="block text-xs font-medium text-zinc-700">
+              <label className="block text-md font-medium text-zinc-700">
                 GA4 ID
               </label>
               <input
@@ -316,7 +316,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-xs font-medium text-zinc-700">
+              <label className="block text-md font-medium text-zinc-700">
                 Meta Pixel ID
               </label>
               <input
@@ -345,7 +345,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label className="block text-xs font-medium text-zinc-700">
+              <label className="block text-md font-medium text-zinc-700">
                 Logo (left)
               </label>
               <ImageUploader
@@ -355,7 +355,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-xs font-medium text-zinc-700">
+              <label className="block text-md font-medium text-zinc-700">
                 Logo (right)
               </label>
               <ImageUploader
@@ -371,14 +371,14 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
             <button
               type="button"
               onClick={() => setAddDialogOpen(false)}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+              className="rounded-md border border-zinc-300 px-4 py-2 text-md font-medium text-zinc-700 hover:bg-zinc-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isPending && savingId === "new"}
-              className="rounded-md bg-zinc-900 px-4 py-2 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+              className="rounded-md bg-zinc-900 px-4 py-2 text-md font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
             >
               {isPending && savingId === "new" ? "Creating…" : "Create domain"}
             </button>
@@ -387,7 +387,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
       </Dialog>
 
       {error && (
-        <p className="text-xs text-red-500">
+        <p className="text-md text-red-500">
           {error}
         </p>
       )}
@@ -447,7 +447,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                       </div>
                       {isEditing ? (
                         <input
-                          className="w-full max-w-xs rounded-md border border-zinc-300 px-2 py-1 text-xs"
+                          className="w-full max-w-xs rounded-md border border-zinc-300 px-2 py-1 text-md"
                           value={current.hostname}
                           onChange={(e) =>
                             updateDraft({ hostname: e.target.value })
@@ -531,7 +531,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                       </div>
                       {isEditing ? (
                         <input
-                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-xs"
+                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
                           value={current.displayName}
                           onChange={(e) =>
                             updateDraft({ displayName: e.target.value })
@@ -539,7 +539,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                           placeholder="Bend Homes"
                         />
                       ) : (
-                        <p className="text-xs text-zinc-800">
+                        <p className="text-md text-zinc-800">
                           {d.displayName}
                         </p>
                       )}
@@ -584,7 +584,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                       </div>
                       {isEditing ? (
                         <input
-                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-xs"
+                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
                           value={current.notifyEmail}
                           onChange={(e) =>
                             updateDraft({ notifyEmail: e.target.value })
@@ -592,7 +592,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                           placeholder="you@example.com"
                         />
                       ) : (
-                        <p className="text-xs text-zinc-800">
+                        <p className="text-md text-zinc-800">
                           {d.notifyEmail}
                         </p>
                       )}
@@ -637,7 +637,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                       </div>
                       {isEditing ? (
                         <input
-                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-xs"
+                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
                           value={current.notifySms ?? ""}
                           onChange={(e) =>
                             updateDraft({
@@ -647,7 +647,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                           placeholder="+15551234567"
                         />
                       ) : (
-                        <p className="text-xs text-zinc-800">
+                        <p className="text-md text-zinc-800">
                           {d.notifySms || "—"}
                         </p>
                       )}
@@ -694,7 +694,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                       </div>
                       {isEditing ? (
                         <input
-                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-xs"
+                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
                           value={current.ga4Id ?? ""}
                           onChange={(e) =>
                             updateDraft({
@@ -704,7 +704,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                           placeholder="G-XXXXXXX"
                         />
                       ) : (
-                        <p className="text-xs text-zinc-800">
+                        <p className="text-md text-zinc-800">
                           {d.ga4Id || "—"}
                         </p>
                       )}
@@ -749,7 +749,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                       </div>
                       {isEditing ? (
                         <input
-                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-xs"
+                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
                           value={current.metaPixelId ?? ""}
                           onChange={(e) =>
                             updateDraft({
@@ -759,7 +759,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                           placeholder="123456789012345"
                         />
                       ) : (
-                        <p className="text-xs text-zinc-800">
+                        <p className="text-md text-zinc-800">
                           {d.metaPixelId || "—"}
                         </p>
                       )}

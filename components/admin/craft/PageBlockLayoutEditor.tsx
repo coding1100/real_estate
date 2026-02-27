@@ -87,7 +87,7 @@ export function PageBlockLayoutEditor({
           <BlockPalette />
         </aside>
         <main className="min-h-[360px] flex-1 rounded-lg border-2 border-dashed border-zinc-200 bg-white p-4">
-          <p className="mb-3 text-xs font-medium text-zinc-500">
+          <p className="mb-3 text-md font-medium text-zinc-500">
             Page canvas — drop blocks here
           </p>
           <div className="min-h-[320px] rounded-lg border border-zinc-100 bg-zinc-50/50 p-4">

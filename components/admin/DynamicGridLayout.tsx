@@ -48,7 +48,7 @@ export function DynamicGridLayout({
   return (
     <div className={`space-y-4 ${className}`}>
       <div className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-4">
-        <p className="mb-4 text-xs font-medium text-zinc-600">
+        <p className="mb-4 text-md font-medium text-zinc-600">
           📍 Drag to reposition • ↗ Resize from bottom-right corner • Min width: 50% (6 cols)
         </p>
         
@@ -85,8 +85,8 @@ export function DynamicGridLayout({
 
       {/* Layout Info */}
       <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-        <p className="text-xs font-medium text-zinc-600 mb-2">Current Layout:</p>
-        <div className="grid grid-cols-2 gap-2 text-xs text-zinc-600">
+        <p className="text-md font-medium text-zinc-600 mb-2">Current Layout:</p>
+        <div className="grid grid-cols-2 gap-2 text-md text-zinc-600">
           {layout.map((item) => (
             <div key={item.i} className="rounded bg-white p-2 border border-zinc-200">
               <p className="font-medium">{itemsMap.get(item.i)?.label}</p>

@@ -30,7 +30,7 @@ export function SectionPalette() {
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+      <p className="mb-2 text-md font-semibold uppercase tracking-wide text-gray-500">
         Add section
       </p>
       <div className="flex flex-wrap gap-2">
@@ -39,7 +39,7 @@ export function SectionPalette() {
             key={kind}
             type="button"
             onClick={() => addSection(kind, Component)}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-md font-medium text-gray-700 hover:bg-gray-50"
           >
             {label}
           </button>

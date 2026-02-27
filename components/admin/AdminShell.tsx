@@ -104,7 +104,7 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`flex items-center gap-2 rounded-md px-2 py-2 text-xs font-medium transition-colors ${
+                      className={`flex items-center gap-2 rounded-md px-2 py-2 text-md font-medium transition-colors ${
                         isActive
                           ? "bg-zinc-900 text-zinc-50 shadow-sm"
                           : "text-zinc-700 hover:bg-zinc-100"

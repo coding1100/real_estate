@@ -80,7 +80,7 @@ export function DeletePageButton({
       >
         <div className="space-y-4">
           {error && (
-            <p className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">
+            <p className="rounded-md bg-red-50 px-3 py-2 text-md text-red-700">
               {error}
             </p>
           )}
@@ -89,7 +89,7 @@ export function DeletePageButton({
               type="button"
               onClick={() => setConfirmOpen(false)}
               disabled={loading}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+              className="rounded-md border border-zinc-300 px-4 py-2 text-md font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
             >
               Cancel
             </button>
@@ -97,7 +97,7 @@ export function DeletePageButton({
               type="button"
               onClick={handleConfirmDelete}
               disabled={loading}
-              className="rounded-md bg-red-600 px-4 py-2 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-60"
+              className="rounded-md bg-red-600 px-4 py-2 text-md font-medium text-white hover:bg-red-700 disabled:opacity-60"
             >
               {loading ? "Deleting…" : "Delete"}
             </button>

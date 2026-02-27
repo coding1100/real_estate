@@ -95,7 +95,7 @@ export function TypeEditor({ pageId, initialType }: TypeEditorProps) {
         <select
           value={draft}
           onChange={(e) => setDraft(e.target.value as PageType)}
-          className="h-7 flex-1 rounded border border-zinc-300 px-2 text-xs focus:outline-none focus:ring-2 focus:ring-zinc-900"
+          className="h-7 flex-1 rounded border border-zinc-300 px-2 text-md focus:outline-none focus:ring-2 focus:ring-zinc-900"
           disabled={saving}
         >
           <option value="buyer">buyer</option>

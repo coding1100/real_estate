@@ -169,7 +169,7 @@ export function DynamicForm({
         </button>
         {helperText && (
           <p
-            className={`${isDetailedPerspective ? "mt-4 text-xs" : "mt-3 text-xs"} text-zinc-600 font-serif text-center leading-relaxed`}
+            className={`${isDetailedPerspective ? "mt-4 text-md" : "mt-3 text-md"} text-zinc-600 font-serif text-center leading-relaxed`}
             dangerouslySetInnerHTML={{ __html: helperText }}
           />
         )}

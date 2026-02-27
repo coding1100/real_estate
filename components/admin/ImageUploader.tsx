@@ -41,7 +41,7 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
   return (
     <div className="space-y-2">
       {label && (
-        <p className="text-xs font-medium text-zinc-700">{label}</p>
+        <p className="text-md font-medium text-zinc-700">{label}</p>
       )}
       {value && (
         <div className="relative w-[200px] overflow-hidden rounded-md flex p-[10px] border border-[#eee] rounded-[2px]">
@@ -57,7 +57,7 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="inline-flex items-center rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-800 hover:bg-zinc-100"
+          className="inline-flex items-center rounded-md border border-zinc-300 px-2 py-1 text-md font-medium text-zinc-800 hover:bg-zinc-100"
           disabled={loading}
         >
           {loading ? "Uploading..." : value ? "Change image" : "Upload image"}
@@ -79,7 +79,7 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
         className="hidden"
         onChange={handleFileChange}
       />
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p className="text-md text-red-500">{error}</p>}
     </div>
   );
 }
