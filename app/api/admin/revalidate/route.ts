@@ -16,7 +16,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const path = `/${domain}/${slug}`;
+  // Our landing routes live at /[slug]; the domain is resolved from the host
+  // header, so we only need to revalidate by slug path.
+  const path = `/${slug}`;
   revalidatePath(path);
 
   return NextResponse.json({ revalidated: true, path });

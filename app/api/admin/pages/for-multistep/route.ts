@@ -1,0 +1,42 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getServerAuthSession } from "@/lib/auth";
+
+export async function GET(req: NextRequest) {
+  const session = await getServerAuthSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const domainId = searchParams.get("domainId");
+  if (!domainId) {
+    return NextResponse.json(
+      { error: "Missing domainId query parameter" },
+      { status: 400 },
+    );
+  }
+
+  const pages = await prisma.landingPage.findMany({
+    where: {
+      domainId,
+      status: "published",
+    },
+    select: {
+      id: true,
+      slug: true,
+      headline: true,
+      type: true,
+    },
+    orderBy: { slug: "asc" },
+  });
+
+  return NextResponse.json({
+    pages: pages.map((p) => ({
+      id: p.id,
+      slug: p.slug,
+      headline: p.headline ?? "",
+      type: p.type,
+    })),
+  });
+}
