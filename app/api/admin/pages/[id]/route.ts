@@ -111,6 +111,7 @@ export async function DELETE(_req: NextRequest, ctx: RouteContext) {
   try {
     await prisma.$transaction([
       prisma.lead.deleteMany({ where: { pageId: id } }),
+      prisma.pageLayout.deleteMany({ where: { pageId: id } }),
       prisma.landingPage.delete({ where: { id } }),
     ]);
     return NextResponse.json({ ok: true }, { status: 200 });

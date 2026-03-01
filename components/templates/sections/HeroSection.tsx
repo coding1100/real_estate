@@ -83,7 +83,7 @@ export function HeroSection({
   const useSavedLayout = textLayout && formLayout;
 
   const gridWrapperClass = useSavedLayout
-    ? "grid items-start md:grid-cols-12 md:items-center"
+    ? "hero-grid-wrapper grid items-start md:grid-cols-12 md:items-center"
     : "grid items-start gap-6 md:grid-cols-12 md:gap-8 md:items-center";
   const gridWrapperStyle = useSavedLayout
     ? { display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: "1.5rem 2rem", alignItems: "start" as const }
@@ -108,7 +108,7 @@ export function HeroSection({
     : "col-span-12 w-full md:col-span-4 md:w-auto";
 
   return (
-    <section className="relative text-white min-h-[calc(100vh_-_85px)]  pt-[120px]">
+    <section className="relative text-white min-h-[calc(100vh_-_85px)] pt-[120px] max-[768px]:pt-20">
       {page.heroImageUrl && (
         <div className="pointer-events-none inset-0 fixed top-0 left-0 right-0 bottom-0">
           <Image
@@ -122,7 +122,7 @@ export function HeroSection({
         </div>
       )}
 
-      <div className="mx-auto flex h-full max-w-6xl flex-col justify-start gap-8 px-4 pt-8 pb-6 md:gap-10 md:px-0 md:pt-10 md:pb-8">
+      <div className="mx-auto flex h-full max-w-6xl flex-col justify-start gap-8 px-4 pt-8 pb-6 max-[768px]:px-4 md:gap-10 md:px-0 md:pt-10 md:pb-8">
         <div className={gridWrapperClass} style={gridWrapperStyle}>
           {(useHeroElements || visibleBlocks?.showLeft !== false) && (
             <div className={textContainerClass} style={textContainerStyle}>
@@ -217,7 +217,7 @@ export function HeroSection({
                       dangerouslySetInnerHTML={{ __html: formHeading }}
                     />
                   )}
-                  <div className="grid gap-4 md:grid-cols-2 md:gap-4">
+                  <div className="grid gap-4 max-[768px]:grid-cols-1 md:grid-cols-2 md:gap-4">
                     <div className="space-y-3">
                       <div className=" rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4">
                         {(layout?.nextStepsFirstHtml || layout?.leftMainHtml) && (
@@ -232,10 +232,10 @@ export function HeroSection({
                           />
                         )}
                       </div>
-                      <div className="relative flex items-stretch rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4">
+                      <div className="relative flex items-stretch rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4 max-[768px]:flex-wrap">
                       {(layout?.nextStepsSecondImageUrl ||
                           layout?.profileImageUrl) && (
-                          <div className="relative h-[110px] w-[90px] flex-shrink-0 self-center overflow-hidden rounded-[2px] mr-[15px]">
+                          <div className="relative h-[110px] w-[90px] flex-shrink-0 self-center overflow-hidden rounded-[2px] mr-[15px] max-[768px]:mb-2">
                             <Image
                               src={
                                 (layout?.nextStepsSecondImageUrl ||
@@ -318,7 +318,7 @@ export function HeroSection({
                     className="cust1 form-area relative w-full rounded-[2px] p-6 text-zinc-900 shadow-2xl bg-amber-50/95 opacity-95 border border-amber-200/60"
                     style={formBgColor ? { backgroundColor: formBgColor } : undefined}
                   >
-                    <div className="grid md:grid-cols-[57%_40%] gap-[3%]">
+                    <div className="grid max-[768px]:grid-cols-1 md:grid-cols-[57%_40%] gap-[3%]">
                       <div className="space-y-5">
                         {formHeading && (
                           <h2
@@ -353,14 +353,14 @@ export function HeroSection({
                         />
                       </div>
                       <div className="space-y-4 relative flex flex-col justify-center">
-                        <div className="w-full px-[25px] pt-[30px] pb-[70px] break-all border border-[#cbb1a7ab] pr-[44%] flex flex-col justify-center">
+                        <div className="w-full px-[25px] pt-[30px] pb-[70px] break-all border border-[#cbb1a7ab] pr-[44%] flex flex-col justify-center max-[768px]:pr-4 max-[768px]:pb-4">
                           {layout?.profileImageUrl && (
-                            <div className="absolute h-[265px] w-[220px] -bottom-[0px] -right-[58px] text-transparent rounded-[2px]">
+                            <div className="absolute h-[265px] w-[220px] -bottom-[0px] -right-[58px] text-transparent rounded-[2px] max-[768px]:relative max-[768px]:h-40 max-[768px]:w-full max-[768px]:bottom-auto max-[768px]:right-auto max-[768px]:mx-0 max-[768px]:mb-3">
                               <Image
                                 src={layout.profileImageUrl as string}
                                 alt={(layout?.profileName as string) || "Profile"}
                                 fill
-                                className="object-cover"
+                                className="object-cover max-[768px]:!w-auto"
                                 style={{ borderRadius: "2px" }}
                               />
                             </div>

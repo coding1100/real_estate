@@ -73,11 +73,11 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
           ))}
         </ul>
       ) : (
-        <div className="flex flex-wrap gap-x-6 gap-y-1 pt-1">
+        <div className="flex flex-wrap gap-x-6 gap-y-1 pt-1 max-[768px]:gap-x-3 min-w-0">
           {options?.map((opt) => (
             <label
               key={opt.value}
-              className="inline-flex items-center gap-2 text-sm text-zinc-800 font-serif cursor-pointer"
+              className="inline-flex items-center gap-2 text-sm text-zinc-800 font-serif cursor-pointer min-w-0"
             >
               <input
                 type="radio"
@@ -85,17 +85,17 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
                 className={radioCheckClass}
                 {...register(id, { required })}
               />
-              <span>{opt.label}</span>
+              <span className="min-w-0 break-words">{opt.label}</span>
             </label>
           ))}
         </div>
       )
     ) : type === "checkbox" ? (
-      <div className="flex flex-wrap gap-x-6 gap-y-1 pt-1">
+      <div className="flex flex-wrap gap-x-6 gap-y-1 pt-1 max-[768px]:gap-x-3 min-w-0">
         {options?.map((opt) => (
           <label
             key={opt.value}
-            className="inline-flex items-center gap-2 text-sm text-zinc-800 font-serif cursor-pointer"
+            className="inline-flex items-center gap-2 text-sm text-zinc-800 font-serif cursor-pointer min-w-0"
           >
             <input
               type="checkbox"
@@ -103,7 +103,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
               className={radioCheckClass}
               {...register(id)}
             />
-            <span>{opt.label}</span>
+            <span className="min-w-0 break-words">{opt.label}</span>
           </label>
         ))}
       </div>

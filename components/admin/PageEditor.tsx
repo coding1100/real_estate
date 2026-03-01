@@ -218,7 +218,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
             <span className="capitalize">{page.type}</span>
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 max-[768px]:flex-col max-[768px]:items-stretch">
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${status === "published"
               ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200"
@@ -304,7 +304,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
           </label>
         </div>
       </div>
-      <div className="border-b border-zinc-200">
+      <div className="border-b border-zinc-200 max-[768px]:overflow-x-auto max-[768px]:pb-1">
         <nav className="flex gap-4 text-sm font-medium text-zinc-600">
           {(["content", "form", "seo", "layout"] as Tab[]).map((t) => {
             const isActive = tab === t;
