@@ -44,7 +44,7 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
         <p className="text-md font-medium text-zinc-700">{label}</p>
       )}
       {value && (
-        <div className="relative w-[200px] overflow-hidden rounded-md flex p-[10px] border border-[#eee] rounded-[2px]">
+        <div className="relative w-[200px] max-[768px]:w-full max-[768px]:max-w-[200px] overflow-hidden rounded-md flex p-[10px] border border-[#eee] rounded-[2px]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={value}
