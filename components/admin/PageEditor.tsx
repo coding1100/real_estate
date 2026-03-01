@@ -335,15 +335,13 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                   setTab(t);
                 }}
                 aria-disabled={disabledInMultistep}
-                className={`inline-flex items-center gap-1.5 border-b-2 px-1 pb-2 pt-1 transition-colors ${
-                  isActive
+                className={`inline-flex items-center gap-1.5 border-b-2 px-1 pb-2 pt-1 transition-colors ${isActive
                     ? "border-zinc-900 text-zinc-900"
                     : "border-transparent text-zinc-500 hover:text-zinc-800"
-                } ${
-                  disabledInMultistep
+                  } ${disabledInMultistep
                     ? "cursor-not-allowed opacity-40 hover:text-zinc-500"
                     : ""
-                }`}
+                  }`}
               >
                 <Icon className="h-3.5 w-3.5" />
                 <span>{label}</span>
@@ -376,6 +374,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                               updateHeroLayout({ leftMainHtml: html as any })
                             }
                             placeholder="Main hero copy block (domain label, headline, supporting text). Leave empty to use the defaults."
+                            height={330}
                           />
                         </div>
                         {/* RIGHT SECTION */}
@@ -438,46 +437,48 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                             </option>
                           </select>
                         </div>
-                      </div>
-                      <div className="space-y-3">
-                        <RichTextEditor
-                          label="Form heading (rich text)"
-                          value={heroLayout.formHeading ?? ""}
-                          onChange={(html) =>
-                            updateHeroLayout({ formHeading: html as any })
-                          }
-                          placeholder="Request the Market Brief"
-                        />
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-zinc-700">
-                            Form background color
-                          </label>
-                          <div className="inline-flex items-center gap-2">
-                            <input
-                              type="color"
-                              className="h-9 w-9 rounded-md border border-zinc-300 bg-white"
-                              value={heroLayout.formBgColor ?? "#ffffff"}
-                              onChange={(e) =>
-                                updateHeroLayout({
-                                  formBgColor: e.target.value,
-                                })
-                              }
-                            />
-                            <input
-                              type="text"
-                              className="h-9 flex-1 rounded-md border border-zinc-300 px-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                              value={heroLayout.formBgColor ?? "#ffffff"}
-                              onChange={(e) =>
-                                updateHeroLayout({
-                                  formBgColor: e.target.value,
-                                })
-                              }
-                              placeholder="#ffffff"
-                            />
-                          </div>
+                        <div className="space-y-3">
+                          <RichTextEditor
+                            label="Form heading (rich text)"
+                            value={heroLayout.formHeading ?? ""}
+                            onChange={(html) =>
+                              updateHeroLayout({ formHeading: html as any })
+                            }
+                            placeholder="Request the Market Brief"
+                            height={286}
+                          />
+                          
                         </div>
                       </div>
-                      <div className="space-y-3 md:col-span-2 lg:col-span-5">
+                      <div className="space-y-3 ">
+                      <div>
+                            <label className="mb-1 block text-sm font-medium text-zinc-700">
+                              Form background color
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                className="h-9 w-9 rounded-md border border-zinc-300 bg-white"
+                                value={heroLayout.formBgColor ?? "#ffffff"}
+                                onChange={(e) =>
+                                  updateHeroLayout({
+                                    formBgColor: e.target.value,
+                                  })
+                                }
+                              />
+                              <input
+                                type="text"
+                                className="h-9 flex-1 rounded-md border border-zinc-300 px-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                                value={heroLayout.formBgColor ?? "#ffffff"}
+                                onChange={(e) =>
+                                  updateHeroLayout({
+                                    formBgColor: e.target.value,
+                                  })
+                                }
+                                placeholder="#ffffff"
+                              />
+                            </div>
+                          </div>
                         <RichTextEditor
                           label="Form intro text (right column, rich text)"
                           value={heroLayout.formIntro ?? ""}
@@ -485,8 +486,10 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                             updateHeroLayout({ formIntro: html as any })
                           }
                           placeholder="Explain what the visitor receives after submitting the form."
+                          height={286}
                         />
                       </div>
+                      
                     </div>
                   </div>
 
@@ -504,6 +507,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           value={page.ctaText ?? ""}
                           onChange={(html) => update("ctaText", html as any)}
                           placeholder="Button label, e.g. Request the Market Brief"
+                          height={286}
                         />
                         <div>
                           <label className="mb-1 block text-sm font-medium text-zinc-700">
@@ -542,6 +546,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                             update("successMessage", html as any)
                           }
                           placeholder="Message shown after successful submit."
+                          height={286}
                         />
                       </div>
                     </div>

@@ -18,13 +18,17 @@ interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  height?: number;
 }
+
+const DEFAULT_EDITOR_HEIGHT = 220;
 
 export function RichTextEditor({
   label,
   value,
   onChange,
   placeholder,
+  height = DEFAULT_EDITOR_HEIGHT,
 }: RichTextEditorProps) {
   return (
     <div className="space-y-1">
@@ -40,7 +44,7 @@ export function RichTextEditor({
           init={{
             menubar: false,
             placeholder,
-            height: 220,
+            height,
             resize: false,
             plugins: [
               "advlist",
