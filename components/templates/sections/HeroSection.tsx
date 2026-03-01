@@ -127,7 +127,10 @@ export function HeroSection({
           {(useHeroElements || visibleBlocks?.showLeft !== false) && (
             <div className={textContainerClass} style={textContainerStyle}>
               <div>
-                {layout?.leftMainHtml && !useHeroElements ? (
+                {/* When authored, the rich text hero card should always
+                   take precedence over default headline/subheadline or
+                   hero element wiring. */}
+                {layout?.leftMainHtml ? (
                   <div
                     className="space-y-2"
                     // authored by admin via rich text editor
