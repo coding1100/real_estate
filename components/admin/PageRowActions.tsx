@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { MoreHorizontal, Eye, Pencil, Copy } from "lucide-react";
 import { DeletePageButton } from "@/components/admin/DeletePageButton";
 
@@ -14,6 +15,8 @@ interface PageRowActionsProps {
 export function PageRowActions({ pageId, slug, isMaster }: PageRowActionsProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -74,20 +77,45 @@ export function PageRowActions({ pageId, slug, isMaster }: PageRowActionsProps) 
               <Pencil className="h-3.5 w-3.5" />
               <span>Edit</span>
             </Link>
-            <form
-              action="/api/admin/pages/duplicate"
-              method="post"
-              className="w-full"
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => {
+                startTransition(async () => {
+                  try {
+                    const res = await fetch("/api/admin/pages/duplicate", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ pageId }),
+                    });
+                    const data = await res.json().catch(() => null);
+                    if (!res.ok) {
+                      const msg =
+                        (data && typeof data.error === "string" && data.error) ||
+                        "Failed to duplicate page.";
+                      if (typeof window !== "undefined") {
+                        window.alert(msg);
+                      }
+                      return;
+                    }
+                    setOpen(false);
+                    router.refresh();
+                    if (typeof window !== "undefined") {
+                      window.alert("Page duplicated successfully.");
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    if (typeof window !== "undefined") {
+                      window.alert("Failed to duplicate page.");
+                    }
+                  }
+                });
+              }}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
             >
-              <input type="hidden" name="pageId" value={pageId} />
-              <button
-                type="submit"
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50"
-              >
-                <Copy className="h-3.5 w-3.5" />
-                <span>Duplicate</span>
-              </button>
-            </form>
+              <Copy className="h-3.5 w-3.5" />
+              <span>Duplicate</span>
+            </button>
             <div className="mt-1 border-t border-zinc-100 pt-1">
               <DeletePageButton pageId={pageId} slug={slug} variant="menu" />
             </div>
