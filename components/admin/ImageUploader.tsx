@@ -19,12 +19,7 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
 
     // Basic client-side validation for image uploads
     const MAX_BYTES = 25 * 1024 * 1024; // 25MB
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-      "image/gif",
-    ];
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
 
     if (!allowedTypes.includes(file.type)) {
       setError("Please upload a JPG, PNG, WEBP, or SVG image.");
