@@ -35,8 +35,10 @@ export async function generateMetadata({
 }: RouteParams): Promise<Metadata> {
   const { slug } = await params;
   const hostname = await getHostnameFromHeaders();
+  const isPreviewHost =
+    hostname === "bendhomes.us" || hostname.endsWith(".vercel.app");
   const page = await getLandingPage(hostname, slug, {
-    allowFallbackToAnyDomain: hostname === "bendhomes.us",
+    allowFallbackToAnyDomain: isPreviewHost,
   });
 
   const title = page.seo.title || page.headline;
@@ -92,9 +94,11 @@ export async function generateMetadata({
 export default async function LandingPage({ params }: RouteParams) {
   const { slug } = await params;
   const hostname = await getHostnameFromHeaders();
+  const isPreviewHost =
+    hostname === "bendhomes.us" || hostname.endsWith(".vercel.app");
   console.log("[landing-page] Fetching page:", slug, "hostname:", hostname);
   const page = await getLandingPage(hostname, slug, {
-    allowFallbackToAnyDomain: hostname === "bendhomes.us",
+    allowFallbackToAnyDomain: isPreviewHost,
   });
   console.log("[landing-page] Got page:", page.slug, "headline:", page.headline);
 
