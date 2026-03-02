@@ -16,6 +16,28 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Basic client-side validation for image uploads
+    const MAX_BYTES = 25 * 1024 * 1024; // 25MB
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setError("Please upload a JPG, PNG, WEBP, or SVG image.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_BYTES) {
+      setError("Image must be smaller than 25MB.");
+      e.target.value = "";
+      return;
+    }
+
     setError(null);
     setLoading(true);
     const formData = new FormData();

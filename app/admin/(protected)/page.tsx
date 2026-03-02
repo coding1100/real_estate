@@ -2,16 +2,24 @@ import { prisma } from "@/lib/prisma";
 import { TemplatesGridWithDialog } from "@/components/admin/TemplatesGridWithDialog";
 
 export default async function AdminDashboardPage() {
-  const [domainsCount, pagesCount, leadsCount, domains] = await Promise.all([
+  const [domainsCount, pagesCount, domains] = await Promise.all([
     prisma.domain.count(),
     prisma.landingPage.count(),
-    prisma.lead.count(),
     prisma.domain.findMany({
       where: { isActive: true },
       orderBy: { hostname: "asc" },
       select: { id: true, hostname: true },
     }),
   ]);
+
+  // Some databases may not have the Lead table yet.
+  // Fail gracefully and treat leads count as 0 instead of breaking the dashboard.
+  let leadsCount = 0;
+  try {
+    leadsCount = await prisma.lead.count();
+  } catch {
+    leadsCount = 0;
+  }
 
   // masterTemplate table might not exist yet on some databases.
   // Fail gracefully and show no templates instead of breaking the dashboard.
