@@ -71,12 +71,24 @@ export async function POST(req: NextRequest) {
     domainId: _domainId,
     createdAt: _createdAt,
     updatedAt: _updatedAt,
-    ...copySource
-  } = original;
+    sections,
+    formSchema,
+    multistepStepSlugs,
+    seoKeywords,
+    schemaMarkup,
+    customHeadTags,
+    ...rest
+  } = original as any;
 
   const copy = await prisma.landingPage.create({
     data: {
-      ...copySource,
+      ...rest,
+      sections: sections as any,
+      formSchema: formSchema as any,
+      multistepStepSlugs: multistepStepSlugs as any,
+      seoKeywords: seoKeywords as any,
+      schemaMarkup: schemaMarkup as any,
+      customHeadTags: customHeadTags as any,
       slug: slugToUse,
       status: "draft",
       domainId: domainIdToUse,
