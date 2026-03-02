@@ -385,6 +385,9 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           <p className="text-xs text-zinc-500">
                             This image appears behind the hero content on the public landing page.
                           </p>
+                          <p className="text-[11px] text-zinc-500">
+                            JPG, PNG, WEBP, or SVG only. Maximum size 25&nbsp;MB.
+                          </p>
                           <ImageUploader
                             label="Hero image"
                             value={page.heroImageUrl ?? null}
@@ -447,7 +450,6 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                             placeholder="Request the Market Brief"
                             height={286}
                           />
-                          
                         </div>
                       </div>
                       <div className="space-y-3 ">
@@ -489,8 +491,42 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           height={286}
                         />
                       </div>
-                      
                     </div>
+
+                    {((page.slug === "home-value") ||
+                      !!heroLayout.heroLowerStripHtml ||
+                      !!heroLayout.formFooterText) && (
+                      <div className="mt-4 space-y-4 border-t border-dashed border-zinc-200 pt-3">
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-zinc-600">
+                            Lower strip text (between hero and map)
+                          </p>
+                          <RichTextEditor
+                            label="Hero lower strip (rich text)"
+                            value={(heroLayout.heroLowerStripHtml as string) ?? ""}
+                            onChange={(html) =>
+                              updateHeroLayout({
+                                heroLowerStripHtml: html as string,
+                              })
+                            }
+                            placeholder="Short line of text shown in the colored strip between the hero and the map."
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-zinc-600">
+                            Text below form / map (rich text)
+                          </p>
+                          <RichTextEditor
+                            label="Form & map footer text"
+                            value={(heroLayout.formFooterText as string) ?? ""}
+                            onChange={(html) =>
+                              updateHeroLayout({ formFooterText: html as string })
+                            }
+                            placeholder="Optional footer text shown below the form or map (e.g. disclaimer, attribution, confidentiality)."
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
