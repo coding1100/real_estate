@@ -91,11 +91,7 @@ export async function getLandingPage(
     include: { domain: true },
   });
 
-  if (
-    !page &&
-    options?.allowFallbackToAnyDomain &&
-    hostname === DEFAULT_DEV_HOSTNAME
-  ) {
+  if (!page && options?.allowFallbackToAnyDomain) {
     page = await prisma.landingPage.findFirst({
       where: {
         slug: fetchSlug,
