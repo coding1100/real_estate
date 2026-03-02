@@ -7,6 +7,7 @@ import { HeroSection } from "./sections/HeroSection";
 import { MultistepHeroFlow } from "./MultistepHeroFlow";
 import Image from "next/image";
 import { getDefaultBlocksForPage } from "@/lib/blocks/defaultBlocks";
+import { HomeValueExperience } from "./sections/HomeValueExperience";
 
 interface SellerTemplateProps {
   page: LandingPageContent;
@@ -78,8 +79,21 @@ export function SellerTemplate({ page }: SellerTemplateProps) {
   const layoutData = page.pageLayout?.layoutData as
     | { i: string; hidden?: boolean }[]
     | undefined;
-  const hasLayoutHeader = layoutData?.some((l) => l.i === "header-bar" && l.hidden !== true);
-  const hasLayoutFooter = layoutData?.some((l) => l.i === "footer-bar" && l.hidden !== true);
+  const hasLayoutHeader = layoutData?.some(
+    (l) => l.i === "header-bar" && l.hidden !== true,
+  );
+  const hasLayoutFooter = layoutData?.some(
+    (l) => l.i === "footer-bar" && l.hidden !== true,
+  );
+
+  // Use the special HomeValueExperience layout for:
+  // - The canonical /home-value page on bendhomeforsale.us, and
+  // - Any duplicated pages that carry the home-value specific hero layout fields.
+  const isHomeValuePage =
+    (page.slug === "home-value" &&
+      page.domain.hostname === "bendhomeforsale.us") ||
+    !!(heroConfig as any).heroLowerStripHtml ||
+    !!(heroConfig as any).formFooterText;
 
   return (
     <div className="min-h-screen bg-zinc-50 custom">
@@ -101,7 +115,13 @@ export function SellerTemplate({ page }: SellerTemplateProps) {
                 : undefined
         }
       >
-        {page.multistepSteps && page.multistepSteps.length > 0 ? (
+        {isHomeValuePage ? (
+          <HomeValueExperience
+            page={page}
+            layout={heroConfig as any}
+            formSchema={heroFormSchema as any}
+          />
+        ) : page.multistepSteps && page.multistepSteps.length > 0 ? (
           <MultistepHeroFlow
             mainPage={page}
             steps={page.multistepSteps}

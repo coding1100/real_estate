@@ -78,8 +78,12 @@ export function BuyerTemplate({ page }: BuyerTemplateProps) {
   const layoutData = page.pageLayout?.layoutData as
     | { i: string; hidden?: boolean }[]
     | undefined;
-  const hasLayoutHeader = layoutData?.some((l) => l.i === "header-bar" && l.hidden !== true);
-  const hasLayoutFooter = layoutData?.some((l) => l.i === "footer-bar" && l.hidden !== true);
+  const hasLayoutHeader = layoutData?.some(
+    (l) => l.i === "header-bar" && l.hidden !== true,
+  );
+  const hasLayoutFooter = layoutData?.some(
+    (l) => l.i === "footer-bar" && l.hidden !== true,
+  );
 
   return (
     <div className="min-h-screen bg-zinc-50 custom">

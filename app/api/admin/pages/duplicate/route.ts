@@ -65,17 +65,23 @@ export async function POST(req: NextRequest) {
       ? targetSlug
       : `${original.slug}-copy`;
 
+  const {
+    id: _id,
+    slug: _slug,
+    domainId: _domainId,
+    createdAt: _createdAt,
+    updatedAt: _updatedAt,
+    ...copySource
+  } = original;
+
   const copy = await prisma.landingPage.create({
     data: {
-      ...original,
-      id: undefined as any,
+      ...copySource,
       slug: slugToUse,
       status: "draft",
       domainId: domainIdToUse,
-      createdAt: undefined as any,
-      updatedAt: undefined as any,
     },
-  } as any);
+  });
 
   // Duplicate layout configuration if it exists
   try {
