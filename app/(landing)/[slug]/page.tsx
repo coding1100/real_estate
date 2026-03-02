@@ -6,6 +6,11 @@ import { SellerTemplate } from "@/components/templates/SellerTemplate";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { MetaPixel } from "@/components/analytics/MetaPixel";
 
+// Force dynamic rendering and no caching
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 type RouteParams = {
   params: Promise<{
     slug: string;
@@ -87,9 +92,11 @@ export async function generateMetadata({
 export default async function LandingPage({ params }: RouteParams) {
   const { slug } = await params;
   const hostname = await getHostnameFromHeaders();
+  console.log("[landing-page] Fetching page:", slug, "hostname:", hostname);
   const page = await getLandingPage(hostname, slug, {
     allowFallbackToAnyDomain: hostname === "bendhomes.us",
   });
+  console.log("[landing-page] Got page:", page.slug, "headline:", page.headline);
 
   const content =
     page.type === "seller" ? (

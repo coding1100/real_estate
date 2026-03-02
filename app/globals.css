@@ -245,3 +245,23 @@ pre span{
   margin-top: 15px;
   padding: 10px 20px 15px;
 }
+
+@media (max-width: 768px) {
+  .hero-grid-wrapper {
+    grid-template-columns: 1fr !important;
+  }
+  .hero-grid-wrapper .content-area,
+  .hero-grid-wrapper .form-area {
+    grid-column: 1 / -1 !important;
+    grid-row: auto !important;
+  }
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+  h4 { font-size: 1rem; }
+  h5 { font-size: 0.875rem; }
+  .template-preview-iframe {
+    transform: scale(0.2) !important;
+    transform-origin: top left;
+  }
+}

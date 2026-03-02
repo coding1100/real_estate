@@ -15,30 +15,30 @@ interface SellerTemplateProps {
 function BrandHeader({ page }: { page: LandingPageContent }) {
   return (
     <header className="border-b border-zinc-200 bg-white fixed top-0 right-0 left-0 z-[99]">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between md:px-6">
-        <div className="flex items-center gap-3">
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-3 max-[768px]:px-3 max-[768px]:py-2 md:flex-row md:items-center md:justify-between md:px-6">
+        <div className="flex items-center gap-3 min-w-0">
           {page.domain.logoUrl ? (
             <Image
               src={page.domain.logoUrl}
               alt={page.domain.displayName}
               width={180}
               height={62}
-              className="h-[60px] w-auto object-contain"
+              className="h-[60px] w-auto object-contain max-[768px]:max-h-10 max-[768px]:max-w-[120px]"
             />
           ) : (
-            <span className="text-md font-medium uppercase tracking-[0.2em] text-zinc-700">
+            <span className="text-md font-medium uppercase tracking-[0.2em] text-zinc-700 max-[768px]:text-sm truncate">
               {page.domain.displayName}
             </span>
           )}
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center shrink-0">
           {page.domain.rightLogoUrl ? (
             <Image
               src={page.domain.rightLogoUrl}
               alt="Right logo"
               width={150}
               height={24}
-              className="max-h-[55px] w-auto object-contain"
+              className="max-h-[55px] w-auto object-contain max-[768px]:max-h-8 max-[768px]:max-w-[100px]"
             />
           ) : (
             <Image
@@ -46,7 +46,7 @@ function BrandHeader({ page }: { page: LandingPageContent }) {
               alt="Engel & Völkers"
               width={150}
               height={24}
-              className="h-6 w-auto object-contain"
+              className="h-6 w-auto object-contain max-[768px]:max-h-5 max-[768px]:max-w-[90px]"
             />
           )}
         </div>
@@ -125,8 +125,8 @@ export function SellerTemplate({ page }: SellerTemplateProps) {
       </main>
       {hasLayoutFooter && (
         <footer className="hidden fixed bottom-0 left-0 right-0 z-50 max-h-[100px] border-t border-zinc-200 bg-white overflow-hidden">
-          <div className="mx-auto flex max-w-6xl items-center justify-center px-4 py-3">
-            <span className="text-md text-zinc-600">
+          <div className="mx-auto flex max-w-6xl items-center justify-center px-4 py-3 max-[768px]:px-3 max-[768px]:py-2">
+            <span className="text-md text-zinc-600 max-[768px]:text-sm truncate">
               {page.domain.displayName}
             </span>
           </div>

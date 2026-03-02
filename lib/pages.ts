@@ -72,9 +72,16 @@ export async function getLandingPage(
   slug: string,
   options?: { allowFallbackToAnyDomain?: boolean },
 ): Promise<LandingPageContent> {
+  const requestedSlug = slug;
+
+  // Executive relocation: entry slug and first-step slug share the same content.
+  // Fetch the canonical page row (first step) when entry URL is requested.
+  const fetchSlug =
+    requestedSlug === EXEC_REL_ENTRY_SLUG ? EXEC_REL_STEP_SLUGS[0] : requestedSlug;
+
   let page = await prisma.landingPage.findFirst({
     where: {
-      slug,
+      slug: fetchSlug,
       status: "published",
       domain: {
         hostname,
@@ -91,7 +98,7 @@ export async function getLandingPage(
   ) {
     page = await prisma.landingPage.findFirst({
       where: {
-        slug,
+        slug: fetchSlug,
         status: "published",
         domain: { isActive: true },
       },
@@ -102,10 +109,10 @@ export async function getLandingPage(
   if (!page) {
     // Special-case master buyer/seller: if the dedicated landing page
     // does not exist, fall back to the master template preview routes.
-    if (slug === "master-buyer") {
+    if (requestedSlug === "master-buyer") {
       redirect("/templates/master/buyer");
     }
-    if (slug === "master-seller") {
+    if (requestedSlug === "master-seller") {
       redirect("/templates/master/seller");
     }
     notFound();
@@ -119,9 +126,10 @@ export async function getLandingPage(
 
   // If no explicit multistep configuration, infer steps for entry pages
   // with hard-coded multistep flows (market-report, executive relocation).
+  // Use requestedSlug so both /executive-relocation-guide and /executive-relocation-guide-1 get steps.
   if (!stepSlugs || !Array.isArray(stepSlugs) || stepSlugs.length === 0) {
     const inferForEntry = async (
-      entrySlug: string,
+      _entrySlug: string,
       stepSlugList: readonly string[],
     ) => {
       const candidatePages = await prisma.landingPage.findMany({
@@ -142,7 +150,7 @@ export async function getLandingPage(
       return inferred;
     };
 
-    if (page.slug === MARKET_REPORT_ENTRY_SLUG) {
+    if (requestedSlug === MARKET_REPORT_ENTRY_SLUG || page.slug === MARKET_REPORT_ENTRY_SLUG) {
       const inferred = await inferForEntry(
         MARKET_REPORT_ENTRY_SLUG,
         MARKET_REPORT_STEP_SLUGS,
@@ -150,7 +158,10 @@ export async function getLandingPage(
       if (inferred.length > 0) {
         stepSlugs = inferred;
       }
-    } else if (page.slug === EXEC_REL_ENTRY_SLUG) {
+    } else if (
+      requestedSlug === EXEC_REL_ENTRY_SLUG ||
+      requestedSlug === EXEC_REL_STEP_SLUGS[0]
+    ) {
       const inferred = await inferForEntry(
         EXEC_REL_ENTRY_SLUG,
         EXEC_REL_STEP_SLUGS,
@@ -175,13 +186,13 @@ export async function getLandingPage(
       const arr = p.multistepStepSlugs as string[] | null;
       if (
         Array.isArray(arr) &&
-        arr.includes(slug) &&
-        p.slug !== slug &&
+        arr.includes(requestedSlug) &&
+        p.slug !== requestedSlug &&
         // Do not auto-redirect executive relocation guide steps
         // or market-report step slugs; those URLs should remain
         // directly accessible.
-        !EXEC_REL_STEP_SLUGS.includes(slug as any) &&
-        !MARKET_REPORT_STEP_SLUGS.includes(slug as any)
+        !EXEC_REL_STEP_SLUGS.includes(requestedSlug as any) &&
+        !MARKET_REPORT_STEP_SLUGS.includes(requestedSlug as any)
       ) {
         redirect("/" + p.slug);
       }
@@ -225,6 +236,9 @@ export async function getLandingPage(
     }
     content.multistepSteps = steps;
   }
+
+  // Preserve requested URL in content so frontend and SEO use the correct slug.
+  content.slug = requestedSlug;
 
   return content;
 }

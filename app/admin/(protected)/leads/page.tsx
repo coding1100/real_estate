@@ -21,7 +21,8 @@ export default async function LeadsPage() {
       <h1 className="text-lg font-semibold tracking-tight text-zinc-900">
         Leads
       </h1>
-      <table className="min-w-full overflow-hidden rounded-lg bg-white text-md shadow-sm">
+      <div className="max-[768px]:overflow-x-auto max-[768px]:-mx-2">
+        <table className="min-w-full overflow-hidden rounded-lg bg-white text-md shadow-sm max-[768px]:min-w-[600px]">
         <thead className="bg-zinc-50 text-[16px] uppercase tracking-[0.15em] text-zinc-500">
           <tr>
             <th className="px-3 py-2 text-left">Created</th>
@@ -63,6 +64,7 @@ export default async function LeadsPage() {
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

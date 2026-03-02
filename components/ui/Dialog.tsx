@@ -55,7 +55,7 @@ export function Dialog({
       {/* Panel - shadcn style */}
       <div
         ref={panelRef}
-        className={`relative z-50 w-full max-w-lg rounded-xl border border-zinc-200 bg-white shadow-2xl transition-all ${className}`}
+        className={`relative z-50 w-full max-w-lg max-[768px]:max-w-[calc(100vw-2rem)] max-[768px]:mx-2 rounded-xl border border-zinc-200 bg-white shadow-2xl transition-all ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4">
