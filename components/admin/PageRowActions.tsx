@@ -17,10 +17,16 @@ export function PageRowActions({ pageId, slug, isMaster }: PageRowActionsProps) 
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      if (
+        (target as Element).closest?.("[role=\"dialog\"]")
+      ) {
+        return;
+      }
       if (
         menuRef.current &&
-        event.target instanceof Node &&
-        !menuRef.current.contains(event.target)
+        target instanceof Node &&
+        !menuRef.current.contains(target)
       ) {
         setOpen(false);
       }

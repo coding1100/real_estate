@@ -46,11 +46,11 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
               Admin
             </div>
           </div>
-          <div className="text-md text-zinc-500">{userEmail}</div>
+          <div className="text-md text-zinc-500 max-[768px]:truncate max-[768px]:max-w-[140px] max-[768px]:text-xs">{userEmail}</div>
         </div>
       </header>
 
-      <div className="mx-auto flex w-full flex-1 gap-6 px-4 py-6 overflow-auto">
+      <div className="mx-auto flex w-full flex-1 gap-6 px-4 py-6 overflow-auto min-w-0 max-[768px]:min-w-0">
         <aside
           className={`hidden h-full overflow-y-auto rounded-md bg-white/80 p-2 shadow-sm ring-1 ring-zinc-100 backdrop-blur md:block transition-all duration-200 ${
             collapsed ? "w-[52px]" : "w-56"
@@ -120,7 +120,7 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
           </div>
         </aside>
 
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 min-w-0 max-[768px]:min-w-0">{children}</main>
       </div>
     </div>
   );

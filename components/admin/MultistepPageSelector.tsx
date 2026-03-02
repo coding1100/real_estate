@@ -1,0 +1,196 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { X, ChevronDown } from "lucide-react";
+
+interface PageOption {
+  id: string;
+  slug: string;
+  headline: string;
+  type: string;
+}
+
+interface MultistepPageSelectorProps {
+  domainId: string;
+  value: string[];
+  onChange: (slugs: string[]) => void;
+  disabled?: boolean;
+}
+
+export function MultistepPageSelector({
+  domainId,
+  value,
+  onChange,
+  disabled,
+}: MultistepPageSelectorProps) {
+  const [pages, setPages] = useState<PageOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    if (dropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [dropdownOpen]);
+
+  useEffect(() => {
+    if (!domainId) {
+      setPages([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    fetch(`/api/admin/pages/for-multistep?domainId=${encodeURIComponent(domainId)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch pages");
+        return res.json();
+      })
+      .then((data) => {
+        setPages(data.pages ?? []);
+      })
+      .catch((err) => {
+        setError(err.message ?? "Failed to load pages");
+        setPages([]);
+      })
+      .finally(() => setLoading(false));
+  }, [domainId]);
+
+  const slugToPage = new Map(pages.map((p) => [p.slug, p]));
+  const selectedSlugs = value;
+  const availableToAdd = pages.filter((p) => !selectedSlugs.includes(p.slug));
+
+  const handleAdd = (slug: string) => {
+    if (selectedSlugs.includes(slug)) return;
+    onChange([...selectedSlugs, slug]);
+  };
+
+  const handleRemove = (slug: string) => {
+    onChange(selectedSlugs.filter((s) => s !== slug));
+  };
+
+  if (loading) {
+    return (
+      <div className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-4 text-sm text-zinc-500">
+        Loading pages…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-md border border-red-200 bg-red-50 px-3 py-4 text-sm text-red-700">
+        {error}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-zinc-700">Selected steps (in order)</p>
+        {selectedSlugs.length === 0 ? (
+          <p className="text-xs text-zinc-500">No steps selected. Add pages below.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {selectedSlugs.map((slug, idx) => {
+              const page = slugToPage.get(slug);
+              return (
+                <li
+                  key={slug}
+                  className="flex items-center justify-between rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="text-zinc-400 font-mono text-xs w-5">
+                      {idx + 1}.
+                    </span>
+                    {page ? (
+                      <span className="text-zinc-800">
+                        {page.slug}
+                        {page.headline ? (
+                          <span className="ml-1.5 text-zinc-500 truncate max-w-[200px] inline-block">
+                            – {page.headline}
+                          </span>
+                        ) : null}
+                      </span>
+                    ) : (
+                      <span className="text-amber-700">
+                        {slug} <span className="text-amber-600">(page not found)</span>
+                      </span>
+                    )}
+                  </span>
+                  {!disabled && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(slug)}
+                      className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+                      aria-label={`Remove ${slug}`}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-zinc-700">Add steps</p>
+        <div className="relative" ref={dropdownRef}>
+          <button
+            type="button"
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            disabled={disabled || availableToAdd.length === 0}
+            className="flex w-full items-center justify-between rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span>
+              {availableToAdd.length === 0
+                ? "All pages added"
+                : `Select page (${availableToAdd.length} available)`}
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 text-zinc-500 transition-transform ${
+                dropdownOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+          {dropdownOpen && availableToAdd.length > 0 && (
+            <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-auto rounded-md border border-zinc-200 bg-white py-1 shadow-lg">
+              {availableToAdd.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    handleAdd(p.slug);
+                    setDropdownOpen(false);
+                  }}
+                  className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-50"
+                >
+                  <span className="font-mono text-zinc-600">{p.slug}</span>
+                  {p.headline ? (
+                    <span className="truncate text-zinc-500">– {p.headline}</span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {pages.length === 0 && (
+          <p className="text-xs text-amber-600">
+            No published pages in this domain. Publish at least one page first.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
 
@@ -33,6 +34,10 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     const layoutData = body.layoutData;
     delete body.layoutData;
 
+    console.log("[PATCH] Updating page:", id);
+    console.log("[PATCH] Body keys:", Object.keys(body));
+    console.log("[PATCH] Headline:", body.headline);
+
     // Update the page
     const page = await prisma.landingPage.update({
       where: { id },
@@ -41,6 +46,8 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
       },
     });
 
+    console.log("[PATCH] Updated page:", page.slug, "headline:", page.headline);
+
     if (layoutData && Array.isArray(layoutData) && layoutData.length > 0) {
       await prisma.pageLayout.upsert({
         where: { pageId: id },
@@ -48,6 +55,32 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
         create: { pageId: id, layoutData: layoutData },
       });
     }
+
+    // Revalidate the page cache so changes appear immediately on frontend
+    console.log("[revalidate] Triggering cache invalidation for:", page.slug);
+    if (page.slug) {
+      // Revalidate the slug path
+      revalidatePath(`/${page.slug}`);
+      revalidatePath("/");
+      // Also try domain-specific paths
+      revalidatePath(`/${page.slug}`);
+    }
+
+    // Also need to revalidate the domain page if it exists
+    if (page.domainId) {
+      try {
+        const domain = await prisma.domain.findUnique({
+          where: { id: page.domainId },
+        });
+        if (domain) {
+          console.log("[revalidate] Also invalidating domain path:", `/${domain.hostname}/${page.slug}`);
+          revalidatePath(`/${domain.hostname}/${page.slug}`);
+        }
+      } catch (e) {
+        // ignore domain lookup errors
+      }
+    }
+    console.log("[revalidate] Cache invalidation complete");
 
     return NextResponse.json({ page }, { status: 200 });
   } catch (err: any) {
@@ -78,6 +111,7 @@ export async function DELETE(_req: NextRequest, ctx: RouteContext) {
   try {
     await prisma.$transaction([
       prisma.lead.deleteMany({ where: { pageId: id } }),
+      prisma.pageLayout.deleteMany({ where: { pageId: id } }),
       prisma.landingPage.delete({ where: { id } }),
     ]);
     return NextResponse.json({ ok: true }, { status: 200 });
