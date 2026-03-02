@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyRecaptchaToken } from "@/lib/captcha";
 import { dispatchLeadToWebhooks } from "@/lib/webhooks";
+import { dispatchLeadToFollowUpBoss } from "@/lib/followupboss";
 import { sendLeadNotifications } from "@/lib/notifications";
 
 export async function POST(req: NextRequest) {
@@ -112,8 +113,11 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Await webhooks so they complete before serverless function exits (Vercel)
-    await dispatchLeadToWebhooks(lead.id);
+    // Await external dispatches so they complete before serverless function exits (Vercel)
+    await Promise.allSettled([
+      dispatchLeadToWebhooks(lead.id),
+      dispatchLeadToFollowUpBoss(lead.id),
+    ]);
     void sendLeadNotifications(lead.id);
 
     return NextResponse.json({ ok: true }, { status: 200 });
