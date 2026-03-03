@@ -13,7 +13,17 @@ interface FormFieldProps {
 }
 
 export function FormField({ field, register, errors, formStyle = "default" }: FormFieldProps) {
-  const { id, type, label, placeholder, required, options, helperText, optionalSection } = field;
+  const {
+    id,
+    type,
+    label,
+    placeholder,
+    required,
+    options,
+    helperText,
+    optionalSection,
+    boxedStyle,
+  } = field;
   const error = errors[id]?.message as string | undefined;
 
   if (type === "hidden") {
@@ -56,7 +66,8 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
         ))}
       </select>
     ) : type === "radio" ? (
-      formStyle === "detailed-perspective" ? (
+      (boxedStyle === true ||
+        (boxedStyle === undefined && formStyle === "detailed-perspective")) ? (
         <ul className="space-y-3 pt-2 text-sm text-zinc-800 font-serif detailed-perspective-radio-list">
           {options?.map((opt) => (
             <li key={opt.value} className="relative pl-5">
@@ -77,7 +88,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
           {options?.map((opt) => (
             <label
               key={opt.value}
-              className="inline-flex items-start items-center gap-2 text-sm text-zinc-800 font-serif cursor-pointer min-w-0"
+              className="inline-flex items-center gap-2 text-sm text-zinc-800 font-serif cursor-pointer min-w-0"
             >
               <input
                 type="radio"
@@ -91,22 +102,43 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
         </div>
       )
     ) : type === "checkbox" ? (
-      <div className="flex flex-wrap gap-x-6 gap-y-1 pt-1 max-[768px]:gap-x-3 min-w-0">
-        {options?.map((opt) => (
-          <label
-            key={opt.value}
-            className="inline-flex items-start items-center gap-2 text-sm text-zinc-800 font-serif cursor-pointer min-w-0"
-          >
-            <input
-              type="checkbox"
-              value={opt.value}
-              className={radioCheckClass}
-              {...register(id)}
-            />
-            <span className="min-w-0 break-words">{opt.label}</span>
-          </label>
-        ))}
-      </div>
+      (boxedStyle === true ||
+        (boxedStyle === undefined && formStyle === "detailed-perspective")) ? (
+        <ul className="space-y-3 pt-2 text-sm text-zinc-800 font-serif">
+          {options?.map((opt) => (
+            <li key={opt.value}>
+              <label className="flex cursor-pointer">
+                <input
+                  type="checkbox"
+                  value={opt.value}
+                  className="peer sr-only"
+                  {...register(id)}
+                />
+                <span className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 leading-relaxed shadow-sm transition peer-checked:border-amber-800 peer-checked:bg-amber-50">
+                  {opt.label}
+                </span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="flex flex-wrap gap-x-6 gap-y-1 pt-1 max-[768px]:gap-x-3 min-w-0">
+          {options?.map((opt) => (
+            <label
+              key={opt.value}
+              className="inline-flex items-start items-center gap-2 text-sm text-zinc-800 font-serif cursor-pointer min-w-0"
+            >
+              <input
+                type="checkbox"
+                value={opt.value}
+                className={radioCheckClass}
+                {...register(id)}
+              />
+              <span className="min-w-0 break-words">{opt.label}</span>
+            </label>
+          ))}
+        </div>
+      )
     ) : (
       <input
         id={id}

@@ -25,6 +25,8 @@ export interface FormFieldConfig {
   helperText?: string;
   /** When true, field is shown in an "Optional" section style (e.g. frosted panel) */
   optionalSection?: boolean;
+  /** When true, render this field using a boxed, stacked style (radios/checkboxes) */
+  boxedStyle?: boolean;
 }
 
 export interface FormSchema {
