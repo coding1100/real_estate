@@ -265,3 +265,26 @@ pre span{
     transform-origin: top left;
   }
 }
+.detailed-perspective-radio-list li{
+  background: #fefaf7f2;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  padding: 0px 50px;
+}
+.detailed-perspective-radio-list{
+list-style: none;
+margin-left: 0px;
+}
+.detailed-perspective-radio-list li:has(input:checked):before {
+  content: "✓";
+  color: #433124;
+  font-size: 1rem;
+  font-weight: bold;
+  line-height: 1.5;
+  position: absolute;
+  top: 16px;
+  left: 20px;
+}

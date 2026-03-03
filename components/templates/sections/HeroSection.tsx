@@ -70,6 +70,18 @@ export function HeroSection({
   const isDetailedPerspective = layout?.formStyle === "detailed-perspective";
   const isNextSteps = layout?.formStyle === "next-steps";
 
+  // Hero left: main card behavior
+  // - If a non-empty rich text block is authored, render it.
+  // - If the editor has been explicitly saved as empty string, suppress all
+  //   fallback hero copy (headline/subheadline) and show nothing.
+  // - If the field is undefined (never touched), use the normal defaults.
+  const leftMainRaw = (layout as any)?.leftMainHtml as string | undefined;
+  const hasExplicitBlankHero = leftMainRaw === "";
+  const leftMainHtml =
+    typeof leftMainRaw === "string" && leftMainRaw.trim().length > 0
+      ? leftMainRaw
+      : null;
+
   const useHeroElements =
     heroElements &&
     (heroElements.left.length > 0 || heroElements.right.length > 0);
@@ -130,13 +142,13 @@ export function HeroSection({
                 {/* When authored, the rich text hero card should always
                    take precedence over default headline/subheadline or
                    hero element wiring. */}
-                {layout?.leftMainHtml ? (
+                {leftMainHtml ? (
                   <div
                     className="space-y-2"
                     // authored by admin via rich text editor
-                    dangerouslySetInnerHTML={{ __html: layout.leftMainHtml }}
+                    dangerouslySetInnerHTML={{ __html: leftMainHtml }}
                   />
-                ) : (
+                ) : hasExplicitBlankHero ? null : (
                   <>
                     <p className="mb-2 text-[14px] font-semibold uppercase tracking-[0.26em] text-zinc-300">
                       {page.domain.displayName}
