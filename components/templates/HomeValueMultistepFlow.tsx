@@ -72,7 +72,23 @@ export function HomeValueMultistepFlow({
   steps,
   layoutData,
 }: HomeValueMultistepFlowProps) {
-  const totalSteps = 1 + (steps?.length ?? 0);
+  const hasHomeValueStep =
+    Array.isArray(steps) && steps.some((s) => s.slug === mainPage.slug);
+
+  // Start from the admin-configured steps. If /home-value itself is present
+  // in the step list, we treat it as a special entry step and render the
+  // dedicated Home Value UI for step 0, then use the remaining steps for
+  // subsequent pages. If /home-value is NOT present in the list, we behave
+  // like a normal multistep flow where the first configured slug controls
+  // the first visible step.
+  const baseSteps = Array.isArray(steps) ? steps : [];
+  const effectiveSteps = hasHomeValueStep
+    ? baseSteps.filter((s) => s.slug !== mainPage.slug)
+    : baseSteps;
+
+  const totalSteps = hasHomeValueStep
+    ? 1 + effectiveSteps.length
+    : effectiveSteps.length;
   if (!totalSteps) return null;
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -154,8 +170,6 @@ export function HomeValueMultistepFlow({
   }
 
   const mapSrc = getMapSrc();
-
-  const allSteps = [mainPage, ...steps];
   const isOverallLastStep = currentStep === totalSteps - 1;
 
   const handleNextStep = (values: Record<string, unknown>) => {
@@ -246,7 +260,10 @@ export function HomeValueMultistepFlow({
   };
 
   // STEP 0: /home-value UI (search + map), with CTA advancing to the next step.
-  if (currentStep === 0) {
+  // Only used when /home-value itself is explicitly included in the multistep
+  // step list in admin. When it is not, we skip this and treat the first
+  // configured slug as the first visible step (like other multistep pages).
+  if (hasHomeValueStep && currentStep === 0) {
     const heroSections = Array.isArray(mainPage.sections)
       ? mainPage.sections
       : [];
@@ -446,9 +463,11 @@ export function HomeValueMultistepFlow({
     );
   }
 
-  // Steps 1..N: generic multistep hero flow, reusing the existing layout patterns.
-  const innerIndex = currentStep - 1;
-  const step = steps[innerIndex];
+  // Steps: generic multistep hero flow, reusing the existing layout patterns.
+  // When hasHomeValueStep is true, currentStep 1 maps to effectiveSteps[0];
+  // when false, currentStep 0 maps to effectiveSteps[0] (no special entry step).
+  const innerIndex = hasHomeValueStep ? currentStep - 1 : currentStep;
+  const step = effectiveSteps[innerIndex];
 
   const stepLayoutData =
     (step.pageLayout?.layoutData as LayoutItem[] | undefined) ||
