@@ -198,7 +198,7 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
       <div className="space-y-3">
         {schema.fields.map((field, index) => (
           <div
-            key={field.id}
+            key={`${field.id}-${index}`}
             className="flex items-start justify-between gap-2 rounded-md border border-zinc-200 bg-white p-2"
           >
             <div className="flex-1 space-y-2 text-md">
