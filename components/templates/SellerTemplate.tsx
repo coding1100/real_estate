@@ -8,6 +8,7 @@ import { MultistepHeroFlow } from "./MultistepHeroFlow";
 import Image from "next/image";
 import { getDefaultBlocksForPage } from "@/lib/blocks/defaultBlocks";
 import { HomeValueExperience } from "./sections/HomeValueExperience";
+import { HomeValueMultistepFlow } from "./HomeValueMultistepFlow";
 
 interface SellerTemplateProps {
   page: LandingPageContent;
@@ -86,14 +87,19 @@ export function SellerTemplate({ page }: SellerTemplateProps) {
     (l) => l.i === "footer-bar" && l.hidden !== true,
   );
 
+  // Treat any page with slug "home-value" as the canonical home value experience,
+  // regardless of domain, so the specialized layout works consistently in all environments.
+  const isCanonicalHomeValue = page.slug === "home-value";
+
   // Use the special HomeValueExperience layout for:
   // - The canonical /home-value page on bendhomeforsale.us, and
-  // - Any duplicated pages that carry the home-value specific hero layout fields.
+  // - Any duplicated pages that carry the home-value specific hero layout fields,
+  //   EXCEPT the dedicated multistep /home-value-qualify page.
   const isHomeValuePage =
-    (page.slug === "home-value" &&
-      page.domain.hostname === "bendhomeforsale.us") ||
-    !!(heroConfig as any).heroLowerStripHtml ||
-    !!(heroConfig as any).formFooterText;
+    page.slug !== "home-value-qualify" &&
+    (isCanonicalHomeValue ||
+      !!(heroConfig as any).heroLowerStripHtml ||
+      !!(heroConfig as any).formFooterText);
 
   return (
     <div className="min-h-screen bg-zinc-50 custom">
@@ -115,7 +121,13 @@ export function SellerTemplate({ page }: SellerTemplateProps) {
                 : undefined
         }
       >
-        {isHomeValuePage ? (
+        {isCanonicalHomeValue && page.multistepSteps && page.multistepSteps.length > 0 ? (
+          <HomeValueMultistepFlow
+            mainPage={page}
+            steps={page.multistepSteps}
+            layoutData={layoutData as any}
+          />
+        ) : isHomeValuePage ? (
           <HomeValueExperience
             page={page}
             layout={heroConfig as any}
