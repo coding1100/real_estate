@@ -45,6 +45,9 @@ export function PageEditor({ initialPage }: PageEditorProps) {
   );
   const [saving, startSaving] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">(
+    "desktop",
+  );
   const layoutGetBlocksRef = useRef<(() => BlockConfig[]) | null>(null);
   const layoutGetHeroElementsRef =
     useRef<(() => HeroElementsByColumn | null) | null>(null);
@@ -776,21 +779,51 @@ export function PageEditor({ initialPage }: PageEditorProps) {
             )
           )}
         </div>
-        <div className="h-[420px] overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm md:h-[560px]">
+        <div className="h-[588px] overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm md:h-[784px]">
           <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50 px-3 py-2">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-600">
               Live preview
             </p>
-            <p className="text-xs text-zinc-500">
-              /{page.slug}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-zinc-500">/{page.slug}</p>
+              <div className="inline-flex items-center rounded-full border border-zinc-200 bg-white text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setPreviewDevice("desktop")}
+                  className={`px-2 py-0.5 rounded-full ${
+                    previewDevice === "desktop"
+                      ? "bg-zinc-900 text-white"
+                      : "text-zinc-600 hover:bg-zinc-100"
+                  }`}
+                >
+                  Desktop
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewDevice("mobile")}
+                  className={`px-2 py-0.5 rounded-full ${
+                    previewDevice === "mobile"
+                      ? "bg-zinc-900 text-white"
+                      : "text-zinc-600 hover:bg-zinc-100"
+                  }`}
+                >
+                  Mobile
+                </button>
+              </div>
+            </div>
           </div>
-          <iframe
-            id="page-preview"
-            title="Live preview"
-            src={`/${page.slug}`}
-            className="h-full w-full border-0"
-          />
+          <div className="flex h-full w-full items-center justify-center bg-zinc-50">
+            <iframe
+              id="page-preview"
+              title="Live preview"
+              src={`/${page.slug}`}
+              className={
+                previewDevice === "mobile"
+                  ? "h-full w-[380px] max-w-full border-0 rounded-[1.25rem] shadow-md"
+                  : "h-full w-full border-0"
+              }
+            />
+          </div>
         </div>
       </div>
     </div>
