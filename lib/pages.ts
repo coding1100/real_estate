@@ -168,33 +168,6 @@ export async function getLandingPage(
     }
   }
 
-  // Generic redirect: when this page is not an entry, but is referenced in another page's multistepStepSlugs.
-  if (!stepSlugs || !Array.isArray(stepSlugs) || stepSlugs.length === 0) {
-    const pagesWithMultistep = await prisma.landingPage.findMany({
-      where: {
-        domainId: page.domainId,
-        status: "published",
-        multistepStepSlugs: { not: null } as any,
-      },
-      include: { domain: true },
-    });
-    for (const p of pagesWithMultistep) {
-      const arr = p.multistepStepSlugs as string[] | null;
-      if (
-        Array.isArray(arr) &&
-        arr.includes(requestedSlug) &&
-        p.slug !== requestedSlug &&
-        // Do not auto-redirect executive relocation guide steps
-        // or market-report step slugs; those URLs should remain
-        // directly accessible.
-        !EXEC_REL_STEP_SLUGS.includes(requestedSlug as any) &&
-        !MARKET_REPORT_STEP_SLUGS.includes(requestedSlug as any)
-      ) {
-        redirect("/" + p.slug);
-      }
-    }
-  }
-
   let pageLayout: { layoutData: unknown } | null = null;
   try {
     const layout = await prisma.pageLayout.findUnique({

@@ -22,6 +22,8 @@ interface RichTextEditorProps {
 }
 
 const DEFAULT_EDITOR_HEIGHT = 220;
+const TINYMCE_API_KEY =
+  process.env.NEXT_PUBLIC_TINYMCE_API_KEY ?? "";
 
 export function RichTextEditor({
   label,
@@ -39,7 +41,7 @@ export function RichTextEditor({
       )}
       <div className="overflow-hidden rounded-md border border-zinc-300 bg-white text-sm shadow-sm">
         <Editor
-          apiKey="43s55u248c5ldzl0sgw8qqoulxq2qwfmantt5ici03v6alvr"
+          apiKey={TINYMCE_API_KEY}
           value={value}
           init={{
             menubar: false,
