@@ -72,7 +72,13 @@ export function HomeValueMultistepFlow({
   steps,
   layoutData,
 }: HomeValueMultistepFlowProps) {
-  const totalSteps = 1 + (steps?.length ?? 0);
+  // Exclude the entry page slug from the subsequent steps so that
+  // /home-value can safely appear in the multistep step list in admin
+  // without creating a duplicated intermediate step.
+  const effectiveSteps = Array.isArray(steps)
+    ? steps.filter((s) => s.slug !== mainPage.slug)
+    : [];
+  const totalSteps = 1 + effectiveSteps.length;
   if (!totalSteps) return null;
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -154,8 +160,6 @@ export function HomeValueMultistepFlow({
   }
 
   const mapSrc = getMapSrc();
-
-  const allSteps = [mainPage, ...steps];
   const isOverallLastStep = currentStep === totalSteps - 1;
 
   const handleNextStep = (values: Record<string, unknown>) => {
@@ -448,7 +452,7 @@ export function HomeValueMultistepFlow({
 
   // Steps 1..N: generic multistep hero flow, reusing the existing layout patterns.
   const innerIndex = currentStep - 1;
-  const step = steps[innerIndex];
+  const step = effectiveSteps[innerIndex];
 
   const stepLayoutData =
     (step.pageLayout?.layoutData as LayoutItem[] | undefined) ||
