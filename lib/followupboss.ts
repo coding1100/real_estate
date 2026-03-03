@@ -292,6 +292,11 @@ function serializeFormData(value: unknown): string {
   }
 }
 
+function stripHtml(value: string): string {
+  if (!value) return "";
+  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function toTitleCase(value: string): string {
   return value
     .split(" ")
@@ -361,6 +366,7 @@ function shouldSkipAsContactField(
 function formatAnswerGroups(
   formData: unknown,
   person: FollowUpBossPerson,
+  fieldLabels?: Record<string, string>,
 ): string[] {
   const fields = flattenFormData(formData).filter(
     (field) => !shouldSkipAsContactField(field, person),
@@ -383,7 +389,17 @@ function formatAnswerGroups(
     const groupSort = stepIndex == null ? Number.MAX_SAFE_INTEGER : stepIndex;
     const pathWithoutStep = stepIndex == null ? field.path : field.path.slice(1);
     const labelPath = pathWithoutStep.length > 0 ? pathWithoutStep : field.path;
-    const label = labelPath.map(humanizeSegment).join(" > ");
+    const label = labelPath
+      .map((segment, index) => {
+        // Prefer human-authored field labels (from form schemas) for the
+        // first non-step segment in the path, falling back to a humanized
+        // version of the underlying key (e.g. "ownPropertyTetherow").
+        if (index === 0 && fieldLabels && fieldLabels[segment]) {
+          return fieldLabels[segment];
+        }
+        return humanizeSegment(segment);
+      })
+      .join(" > ");
     const dedupeKey = `${groupSort}|${normalizeKey(label)}|${normalizeComparable(field.value)}`;
     if (seen.has(dedupeKey)) continue;
     seen.add(dedupeKey);
@@ -431,6 +447,7 @@ function buildMessage(
   lead: NonNullable<LeadRecord>,
   person: FollowUpBossPerson,
   config: FollowUpBossConfig,
+  fieldLabels: Record<string, string>,
 ): string {
   const eventType = getEventType(lead.page.type);
   const lines: string[] = [
@@ -455,7 +472,7 @@ function buildMessage(
     lines.push("", "Contact:", ...contactLines);
   }
 
-  const answerLines = formatAnswerGroups(lead.formData, person);
+  const answerLines = formatAnswerGroups(lead.formData, person, fieldLabels);
   if (answerLines.length > 0) {
     lines.push("", "Answers:", ...answerLines);
   }
@@ -498,6 +515,7 @@ function buildCampaign(
 function buildPayload(
   lead: NonNullable<LeadRecord>,
   config: FollowUpBossConfig,
+  fieldLabels: Record<string, string>,
 ): FollowUpBossEventPayload | null {
   const source = normalizeSourceDomain(lead.domain.hostname);
   const person = extractPerson(lead.formData);
@@ -515,7 +533,7 @@ function buildPayload(
     sourceUrl: getSourceUrl(lead),
     system: config.system,
     type: getEventType(lead.page.type),
-    message: buildMessage(lead, person, config),
+    message: buildMessage(lead, person, config, fieldLabels),
     person,
     ...(campaign ? { campaign } : {}),
   };
@@ -559,6 +577,52 @@ function toAuthorizationHeader(apiKey: string): string {
   return `Basic ${Buffer.from(`${apiKey}:`).toString("base64")}`;
 }
 
+async function buildFieldLabelsForLead(
+  lead: NonNullable<LeadRecord>,
+): Promise<Record<string, string>> {
+  const labels: Record<string, string> = {};
+
+  function addFromSchema(raw: unknown) {
+    if (!raw) return;
+    let schema: any = raw;
+    if (typeof raw === "string") {
+      try {
+        schema = JSON.parse(raw);
+      } catch {
+        return;
+      }
+    }
+    const fields = Array.isArray(schema?.fields) ? schema.fields : [];
+    for (const f of fields) {
+      const id = typeof f.id === "string" ? f.id : null;
+      const labelHtml = typeof f.label === "string" ? f.label : "";
+      if (!id || !labelHtml) continue;
+      if (!labels[id]) {
+        labels[id] = stripHtml(labelHtml);
+      }
+    }
+  }
+
+  addFromSchema((lead.page as any).formSchema);
+
+  const stepSlugs = (lead.page as any).multistepStepSlugs as string[] | null;
+  if (Array.isArray(stepSlugs) && stepSlugs.length > 0) {
+    const stepPages = await prisma.landingPage.findMany({
+      where: {
+        slug: { in: stepSlugs as any },
+        domainId: lead.domainId,
+        status: "published",
+      },
+      select: { formSchema: true },
+    });
+    for (const sp of stepPages) {
+      addFromSchema(sp.formSchema as any);
+    }
+  }
+
+  return labels;
+}
+
 function getErrorMessage(body: string): string {
   if (!body) return "No response body";
   try {
@@ -599,7 +663,8 @@ export async function dispatchLeadToFollowUpBoss(leadId: string): Promise<void> 
     return;
   }
 
-  const payload = buildPayload(lead, config);
+  const fieldLabels = await buildFieldLabelsForLead(lead);
+  const payload = buildPayload(lead, config, fieldLabels);
   if (!payload) return;
 
   const endpoint = `${config.baseUrl}${FUB_EVENTS_PATH}`;
