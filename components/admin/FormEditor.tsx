@@ -248,6 +248,18 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
                   />
                   <span>Required</span>
                 </label>
+                {(field.type === "radio" || field.type === "checkbox") && (
+                  <label className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={field.boxedStyle ?? false}
+                      onChange={(e) =>
+                        updateField(index, { boxedStyle: e.target.checked })
+                      }
+                    />
+                    <span>Boxed style</span>
+                  </label>
+                )}
                 {(field.type === "textarea") && (
                   <label className="flex items-center gap-1">
                     <input
