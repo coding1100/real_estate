@@ -73,6 +73,7 @@ model LandingPage {
   ctaText        String   @default("Get Access")
   successMessage String   @default("Thank you!")
   deliverableUrl String?
+  footerHtml     String?
 
   // Form
   useCustomForm Boolean @default(false)

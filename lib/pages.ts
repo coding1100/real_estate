@@ -39,6 +39,7 @@ function pageToContent(
     heroImageUrl: page.heroImageUrl,
     ctaText: page.ctaText,
     successMessage: page.successMessage,
+    footerHtml: (page as any).footerHtml ?? null,
     sections,
     formSchema: (page.formSchema as any) ?? null,
     domain: {

@@ -132,6 +132,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
         heroImageUrl: page.heroImageUrl,
         ctaText: page.ctaText,
         successMessage: page.successMessage,
+        footerHtml: (page as any).footerHtml ?? null,
         sections,
         blocks,
         formSchema,
@@ -589,6 +590,21 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         />
                       </div>
                     </div>
+                  </div>
+
+                  <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                      Page footer
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      Full-width footer content shown at the very bottom of the page. Leave empty to hide the footer.
+                    </p>
+                    <RichTextEditor
+                      label="Footer (rich text)"
+                      value={(page as any).footerHtml ?? ""}
+                      onChange={(html) => update("footerHtml", html as any)}
+                      placeholder="Optional footer text (e.g. brokerage disclaimers, licensing, copyright)."
+                    />
                   </div>
 
                   {(heroLayout.formStyle as string) === "detailed-perspective" && (
