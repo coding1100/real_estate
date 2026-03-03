@@ -64,6 +64,7 @@ export interface LandingPageContent {
   heroImageUrl?: string | null;
   ctaText: string;
   successMessage: string;
+  footerHtml?: string | null;
   sections: SectionConfig[];
   blocks?: BlockConfig[];
   formSchema?: FormSchema | null;

@@ -27,6 +27,20 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
       );
     }
     body.slug = body.slug.trim();
+
+    // Enforce global slug uniqueness (across all domains) on update
+    const existing = await prisma.landingPage.findFirst({
+      where: {
+        slug: body.slug,
+        NOT: { id },
+      },
+    });
+    if (existing) {
+      return NextResponse.json(
+        { error: "A page with this slug already exists." },
+        { status: 400 },
+      );
+    }
   }
 
   try {
