@@ -69,6 +69,8 @@ export function HeroSection({
   const isQuestionnaire = layout?.formStyle === "questionnaire";
   const isDetailedPerspective = layout?.formStyle === "detailed-perspective";
   const isNextSteps = layout?.formStyle === "next-steps";
+  const isStrategyCallNextSteps =
+    isNextSteps && page.slug === "strategy-call";
 
   // Hero left: main card behavior
   // - If a non-empty rich text block is authored, render it.
@@ -229,23 +231,12 @@ export function HeroSection({
                       dangerouslySetInnerHTML={{ __html: formHeading }}
                     />
                   )}
-                  <div className="grid gap-4 max-[768px]:grid-cols-1 md:grid-cols-2 md:gap-4">
+
+                  {isStrategyCallNextSteps ? (
+                    // Strategy call variant: show only the second block + CTA, full width
                     <div className="space-y-3">
-                      <div className=" rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4">
-                        {(layout?.nextStepsFirstHtml || layout?.leftMainHtml) && (
-                          <div
-                            className="text-sm text-zinc-800 font-serif leading-relaxed space-y-2"
-                            dangerouslySetInnerHTML={{
-                              __html:
-                                layout?.nextStepsFirstHtml ||
-                                layout?.leftMainHtml ||
-                                "",
-                            }}
-                          />
-                        )}
-                      </div>
                       <div className="relative flex items-stretch rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4 max-[768px]:flex-wrap">
-                      {(layout?.nextStepsSecondImageUrl ||
+                        {(layout?.nextStepsSecondImageUrl ||
                           layout?.profileImageUrl) && (
                           <div className="relative h-[110px] w-[90px] flex-shrink-0 self-center overflow-hidden rounded-[2px] mr-[15px] max-[768px]:mb-2">
                             <Image
@@ -287,23 +278,10 @@ export function HeroSection({
                             </>
                           )}
                         </div>
-                        
                       </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="flex h-full flex-col justify-between rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4">
-                        <div className="space-y-2">
-                          {layout?.formIntro?.trim() && (
-                            <div
-                              className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
-                              dangerouslySetInnerHTML={{
-                                __html: layout.formIntro ?? "",
-                              }}
-                            />
-                          )}
-                        </div>
-                        <div className="mt-3">
+
+                      {!!page.ctaText && (
+                        <div className="mt-2">
                           <button
                             type="button"
                             className="inline-flex w-full items-center justify-center rounded-[2px] px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-90 transition-colors"
@@ -318,9 +296,102 @@ export function HeroSection({
                             />
                           </button>
                         </div>
+                      )}
+                    </div>
+                  ) : (
+                    // Default Next steps layout: three sections across two columns
+                    <div className="grid gap-4 max-[768px]:grid-cols-1 md:grid-cols-2 md:gap-4">
+                      <div className="space-y-3">
+                        <div className=" rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4">
+                          {(layout?.nextStepsFirstHtml || layout?.leftMainHtml) && (
+                            <div
+                              className="text-sm text-zinc-800 font-serif leading-relaxed space-y-2"
+                              dangerouslySetInnerHTML={{
+                                __html:
+                                  layout?.nextStepsFirstHtml ||
+                                  layout?.leftMainHtml ||
+                                  "",
+                              }}
+                            />
+                          )}
+                        </div>
+                        <div className="relative flex items-stretch rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4 max-[768px]:flex-wrap">
+                          {(layout?.nextStepsSecondImageUrl ||
+                            layout?.profileImageUrl) && (
+                            <div className="relative h-[110px] w-[90px] flex-shrink-0 self-center overflow-hidden rounded-[2px] mr-[15px] max-[768px]:mb-2">
+                              <Image
+                                src={
+                                  (layout?.nextStepsSecondImageUrl ||
+                                    layout?.profileImageUrl) as string
+                                }
+                                alt={(layout?.profileName as string) || "Profile"}
+                                fill
+                                className="object-cover rounded-[4px]"
+                              />
+                            </div>
+                          )}
+                          <div className="flex flex-1 flex-col justify-center space-y-1.5 pr-4">
+                            {layout?.nextStepsSecondHtml ? (
+                              <div
+                                className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
+                                dangerouslySetInnerHTML={{
+                                  __html: layout.nextStepsSecondHtml,
+                                }}
+                              />
+                            ) : (
+                              <>
+                                {layout?.profileName && (
+                                  <h3 className="text-base font-semibold text-zinc-800 font-serif">
+                                    {layout.profileName as string}
+                                  </h3>
+                                )}
+                                {layout?.profileRole && (
+                                  <p className="text-sm text-zinc-700 font-serif">
+                                    {layout.profileRole as string}
+                                  </p>
+                                )}
+                                {layout?.profileTitle && (
+                                  <p className="text-sm text-zinc-600 font-serif">
+                                    {layout.profileTitle as string}
+                                  </p>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex h-full flex-col justify-between rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4">
+                          <div className="space-y-2">
+                            {layout?.formIntro?.trim() && (
+                              <div
+                                className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
+                                dangerouslySetInnerHTML={{
+                                  __html: layout.formIntro ?? "",
+                                }}
+                              />
+                            )}
+                          </div>
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              className="inline-flex w-full items-center justify-center rounded-[2px] px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-90 transition-colors"
+                              style={
+                                ctaBgColor
+                                  ? { backgroundColor: ctaBgColor }
+                                  : { backgroundColor: "#a5883b" }
+                              }
+                            >
+                              <span
+                                dangerouslySetInnerHTML={{ __html: page.ctaText }}
+                              />
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             ) : formSchema && (formSchema.fields?.length ?? 0) > 0 ? (
