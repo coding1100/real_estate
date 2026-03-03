@@ -69,16 +69,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Prevent duplicate (domainId, slug) combinations before attempting create
+  // Prevent duplicate slugs across ALL domains before attempting create
   const existing = await prisma.landingPage.findFirst({
     where: {
-      domainId: domainIdStr,
       slug: String(slug),
     },
   });
   if (existing) {
     return NextResponse.json(
-      { error: "A page with this slug already exists for this domain." },
+      { error: "A page with this slug already exists." },
       { status: 400 },
     );
   }

@@ -127,6 +127,16 @@ export function BuyerTemplate({ page }: BuyerTemplateProps) {
           />
         )}
       </main>
+      {page.footerHtml && page.footerHtml.trim().length > 0 && (
+        <footer className="mt-10 border-t border-zinc-200 bg-[#f5f0e9] relative z-50">
+          <div className="mx-auto max-w-6xl px-3 py-3 md:px-3">
+            <div
+              className="prose prose-sm max-w-none text-zinc-700"
+              dangerouslySetInnerHTML={{ __html: page.footerHtml as string }}
+            />
+          </div>
+        </footer>
+      )}
       {hasLayoutFooter && (
         <footer className="hidden fixed bottom-0 left-0 right-0 z-50 max-h-[100px] border-t border-zinc-200 bg-white overflow-hidden">
           <div className="mx-auto flex max-w-6xl items-center justify-center px-4 py-3 max-[768px]:px-3 max-[768px]:py-2">
