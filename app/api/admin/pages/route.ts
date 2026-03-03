@@ -102,30 +102,50 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Fallback: if the master template doesn't yet have sections / form schema defined,
-  // inherit from the most recently updated page that uses this masterTemplate.
-  if (
-    (!Array.isArray(sectionsSeed) || sectionsSeed.length === 0) ||
-    !formSchemaSeed
-  ) {
-    const basePage = await prisma.landingPage.findFirst({
+  // Also look at a base page so we can inherit hero image, CTA text, and
+  // success message. Prefer the canonical master-seller/master-buyer pages
+  // when creating from those templates so we don't accidentally inherit
+  // branding from an unrelated page (e.g. home-value).
+  let basePage = null as any;
+
+  const typeStr = String(type);
+  if (typeStr === "seller") {
+    basePage = await prisma.landingPage.findFirst({
+      where: { slug: "master-seller", type: "seller" },
+      orderBy: { updatedAt: "desc" },
+    });
+  } else if (typeStr === "buyer") {
+    basePage = await prisma.landingPage.findFirst({
+      where: { slug: "master-buyer", type: "buyer" },
+      orderBy: { updatedAt: "desc" },
+    });
+  }
+
+  if (!basePage) {
+    basePage = await prisma.landingPage.findFirst({
       where: { masterTemplateId: String(masterTemplateId) },
       orderBy: { updatedAt: "desc" },
     });
+  }
 
-    if (basePage) {
-      const baseSections = (basePage.sections as any) ?? [];
-      if (Array.isArray(baseSections) && baseSections.length > 0) {
-        sectionsSeed = baseSections;
-      }
-      if (basePage.formSchema) {
-        formSchemaSeed = basePage.formSchema as any;
-      }
-      heroImageUrlSeed = basePage.heroImageUrl ?? null;
-      ctaTextSeed = (basePage.ctaText as string) ?? ctaTextSeed;
-      successMessageSeed =
-        (basePage.successMessage as string) ?? successMessageSeed;
+  if (basePage) {
+    const baseSections = (basePage.sections as any) ?? [];
+    if (
+      (!Array.isArray(sectionsSeed) || sectionsSeed.length === 0) &&
+      Array.isArray(baseSections) &&
+      baseSections.length > 0
+    ) {
+      sectionsSeed = baseSections;
     }
+    if (!formSchemaSeed && basePage.formSchema) {
+      formSchemaSeed = basePage.formSchema as any;
+    }
+    if (!heroImageUrlSeed) {
+      heroImageUrlSeed = basePage.heroImageUrl ?? null;
+    }
+    ctaTextSeed = (basePage.ctaText as string) ?? ctaTextSeed;
+    successMessageSeed =
+      (basePage.successMessage as string) ?? successMessageSeed;
   }
 
   let page;
