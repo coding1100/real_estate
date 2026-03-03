@@ -442,7 +442,7 @@ export function HeroSection({
                   >
                     {formHeading && (
                       <h2
-                        className={`mb-4 text-base font-semibold border-b border-zinc-300 dot font-serif ${
+                        className={`mb-4 text-base font-semibold border-b border-[#eadbd3] dot font-serif ${
                           isQuestionnaire ? "text-zinc-800 text-center" : ""
                         }`}
                         dangerouslySetInnerHTML={{ __html: formHeading }}

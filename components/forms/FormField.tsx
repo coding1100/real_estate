@@ -37,7 +37,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
   const labelClass = "block text-sm font-medium text-zinc-800 font-serif";
 
   const radioCheckClass =
-    "form-radio-check h-4 w-4 min-w-4 rounded-sm border border-zinc-400 bg-white appearance-none cursor-pointer " +
+    "form-radio-check h-4 w-4 min-w-4 rounded-sm border border-zinc-400 bg-white appearance-none cursor-pointer mt-[5px] " +
     "checked:bg-transparent checked:border-zinc-400 focus:ring-2 focus:ring-zinc-900 focus:ring-offset-0";
 
   const fieldContent =

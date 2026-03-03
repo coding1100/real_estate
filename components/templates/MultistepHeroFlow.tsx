@@ -435,7 +435,7 @@ export function MultistepHeroFlow({
               >
                 {formHeading && (
                   <h2
-                    className="mb-4 text-base font-semibold border-b border-zinc-300 dot font-serif"
+                    className="mb-4 text-base font-semibold border-b border-[#eadbd3] dot font-serif"
                     dangerouslySetInnerHTML={{ __html: formHeading }}
                   />
                 )}
