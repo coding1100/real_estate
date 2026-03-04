@@ -58,6 +58,11 @@ export function PageEditor({ initialPage }: PageEditorProps) {
     heroSections.find((s) => s.kind === "hero") || null;
   const heroLayout = (heroSection?.props as any) || {};
 
+  const isHomeValueFamily =
+    page.slug === "home-value" ||
+    !!(heroLayout as any).heroLowerStripHtml ||
+    !!(heroLayout as any).formFooterText;
+
   const layoutData = page.pageLayout?.layoutData as any[] | undefined;
   const savedLayout =
     layoutData && layoutData.length > 0
@@ -310,7 +315,10 @@ export function PageEditor({ initialPage }: PageEditorProps) {
       </div>
       <div className="border-b border-zinc-200 max-[768px]:overflow-x-auto max-[768px]:pb-1">
         <nav className="flex gap-4 text-sm font-medium text-zinc-600">
-          {(["content", "form", "seo", "layout"] as Tab[]).map((t) => {
+          {(isHomeValueFamily
+            ? (["content", "form", "seo"] as Tab[])
+            : (["content", "form", "seo", "layout"] as Tab[])
+          ).map((t) => {
             const isActive = tab === t;
             const Icon =
               t === "content"

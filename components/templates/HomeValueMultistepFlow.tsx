@@ -307,7 +307,7 @@ export function HomeValueMultistepFlow({
         )}
 
         <div className="relative z-10 mx-auto  flex-col px-4 pt-[140px] pb-10 md:px-0 md:pb-12">
-          <div className="mx-auto  text-center h-[660px] max-w-6xl mx-auto">
+          <div className="mx-auto  text-center h-[660px] max-w-6xl mx-auto max-[768px]:h-auto max-[768px]:mb-[40px]">
             {hasHeroRichText ? (
               <div
                 className="space-y-2 text-amber-50"
@@ -377,8 +377,8 @@ export function HomeValueMultistepFlow({
               )}
             </div>
           </div>
-          <div className="mt-10 grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] md:items-start mt-[-340px] max-w-6xl  mx-auto">
-            <div className="overflow-hidden rounded-2xl mt-[230px]">
+          <div className="mt-10 grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] md:items-start mt-[-340px] max-w-6xl  mx-auto max-[768px]:flex max-[768px]:flex-col-reverse">
+            <div className="overflow-hidden rounded-2xl mt-[230px] max-[768px]:mt-[330px]">
               {mapSrc ? (
                 <iframe
                   key={mapSrc}
