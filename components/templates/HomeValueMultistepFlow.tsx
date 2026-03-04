@@ -485,8 +485,10 @@ export function HomeValueMultistepFlow({
   const isQuestionnaire = layout?.formStyle === "questionnaire";
   const isDetailedPerspective = layout?.formStyle === "detailed-perspective";
   const isNextSteps = layout?.formStyle === "next-steps";
-  const isStrategyCallNextSteps =
-    isNextSteps && step.slug === "strategy-call";
+  const isProfileOnlyNextSteps =
+    isNextSteps &&
+    ((((layout as any)?.nextStepsSecondOnly as boolean | undefined) === true) ||
+      step.slug === "strategy-call");
 
   const textLayout = stepLayoutData?.find(
     (l) => l.i === "text-container" && !l.hidden,
@@ -570,7 +572,7 @@ export function HomeValueMultistepFlow({
                     dangerouslySetInnerHTML={{ __html: formHeading }}
                   />
                 )}
-                {isStrategyCallNextSteps ? (
+                {isProfileOnlyNextSteps ? (
                   <div className="space-y-3">
                     <div className="relative flex items-stretch rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4 max-[768px]:flex-wrap">
                       {(layout?.nextStepsSecondImageUrl ||
