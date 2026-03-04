@@ -65,12 +65,12 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if ((token as any).expired) {
-        return null;
-      }
-
       if (session.user && (token as any).id) {
         (session.user as any).id = (token as any).id;
+      }
+
+      if ((token as any).expired) {
+        (session as any).expired = true;
       }
 
       return session;
@@ -78,7 +78,11 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-export function getServerAuthSession() {
-  return getServerSession(authOptions);
+export async function getServerAuthSession() {
+  const session = await getServerSession(authOptions);
+  if (session && (session as any).expired) {
+    return null;
+  }
+  return session;
 }
 
