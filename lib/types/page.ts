@@ -48,6 +48,7 @@ export interface BlockConfig {
 export interface LandingPageContent {
   id: string;
   slug: string;
+  title?: string | null;
   domain: {
     hostname: string;
     displayName: string;
