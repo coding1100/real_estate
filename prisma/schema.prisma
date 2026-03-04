@@ -66,6 +66,7 @@ model LandingPage {
   status           String   @default("draft")
 
   // Content
+  title          String?
   headline       String
   subheadline    String?
   heroImageUrl   String?

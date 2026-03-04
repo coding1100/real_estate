@@ -446,7 +446,6 @@ export function HomeValueMultistepFlow({
                       successMessage={mainPage.successMessage}
                       ctaBgColor={layout?.ctaBgColor}
                       onNextStep={handleNextStep}
-                      skipValidationForNextStep={true}
                     />
                   ) : (
                     <p className="text-xs text-amber-800/80">

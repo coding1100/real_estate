@@ -355,7 +355,6 @@ export function MultistepHeroFlow({
                           isLastStep ? extraHiddenFieldsForSubmit : undefined
                         }
                         onNextStep={isLastStep ? undefined : handleNextStep}
-                        skipValidationForNextStep={!isLastStep && isFirstStep}
                       />
                     )}
                   </div>
@@ -451,7 +450,6 @@ export function MultistepHeroFlow({
                       isLastStep ? extraHiddenFieldsForSubmit : undefined
                     }
                     onNextStep={isLastStep ? undefined : handleNextStep}
-                    skipValidationForNextStep={!isLastStep && isFirstStep}
                   />
                 ) : !isLastStep ? (
                   <button
