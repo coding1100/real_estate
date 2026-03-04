@@ -87,18 +87,11 @@ export function SellerTemplate({ page }: SellerTemplateProps) {
     (l) => l.i === "footer-bar" && l.hidden !== true,
   );
 
-  // Treat any page with slug "home-value" as the canonical home value experience,
-  // regardless of domain, so the specialized layout works consistently in all environments.
-  const isCanonicalHomeValue = page.slug === "home-value";
-
-  // Use the special HomeValueExperience layout for:
-  // - The canonical /home-value page on bendhomeforsale.us, and
-  // - Any duplicated pages that carry the home-value specific hero layout fields,
-  //   EXCEPT the dedicated multistep /home-value-qualify page.
+  // Any page that uses the home-value specific hero fields (lower strip / map footer),
+  // except the dedicated /home-value-qualify step, should get the specialized layout.
   const isHomeValuePage =
     page.slug !== "home-value-qualify" &&
-    (isCanonicalHomeValue ||
-      !!(heroConfig as any).heroLowerStripHtml ||
+    (!!(heroConfig as any).heroLowerStripHtml ||
       !!(heroConfig as any).formFooterText);
 
   return (
@@ -121,7 +114,7 @@ export function SellerTemplate({ page }: SellerTemplateProps) {
                 : undefined
         }
       >
-        {isCanonicalHomeValue && page.multistepSteps && page.multistepSteps.length > 0 ? (
+        {isHomeValuePage && page.multistepSteps && page.multistepSteps.length > 0 ? (
           <HomeValueMultistepFlow
             mainPage={page}
             steps={page.multistepSteps}
