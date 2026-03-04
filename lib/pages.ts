@@ -30,6 +30,29 @@ function pageToContent(
 ): LandingPageContent {
   const rawSections = page.sections as any;
   const sections: any[] = Array.isArray(rawSections) ? rawSections : [];
+
+  // Backfill Next-steps "profile-only" flag for legacy strategy-call pages.
+  // This keeps the 1-column layout stable even after we stop keying off the slug,
+  // and allows future renames to rely purely on this flag.
+  if (page.slug === "strategy-call" && Array.isArray(sections)) {
+    const heroIdx = sections.findIndex((s) => s && s.kind === "hero");
+    if (heroIdx !== -1) {
+      const hero = sections[heroIdx] || {};
+      const props = (hero.props || {}) as any;
+      if (
+        props.formStyle === "next-steps" &&
+        typeof props.nextStepsSecondOnly === "undefined"
+      ) {
+        sections[heroIdx] = {
+          ...hero,
+          props: {
+            ...props,
+            nextStepsSecondOnly: true,
+          },
+        };
+      }
+    }
+  }
   return {
     id: page.id,
     slug: page.slug,
