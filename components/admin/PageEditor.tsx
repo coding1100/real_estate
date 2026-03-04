@@ -58,6 +58,11 @@ export function PageEditor({ initialPage }: PageEditorProps) {
     heroSections.find((s) => s.kind === "hero") || null;
   const heroLayout = (heroSection?.props as any) || {};
 
+  const isHomeValueFamily =
+    page.slug === "home-value" ||
+    !!(heroLayout as any).heroLowerStripHtml ||
+    !!(heroLayout as any).formFooterText;
+
   const layoutData = page.pageLayout?.layoutData as any[] | undefined;
   const savedLayout =
     layoutData && layoutData.length > 0
@@ -310,7 +315,10 @@ export function PageEditor({ initialPage }: PageEditorProps) {
       </div>
       <div className="border-b border-zinc-200 max-[768px]:overflow-x-auto max-[768px]:pb-1">
         <nav className="flex gap-4 text-sm font-medium text-zinc-600">
-          {(["content", "form", "seo", "layout"] as Tab[]).map((t) => {
+          {(isHomeValueFamily
+            ? (["content", "form", "seo"] as Tab[])
+            : (["content", "form", "seo", "layout"] as Tab[])
+          ).map((t) => {
             const isActive = tab === t;
             const Icon =
               t === "content"
@@ -699,6 +707,31 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                             }
                           />
                         </div>
+                      </div>
+                      <div className="space-y-2 rounded-md border border-dashed border-zinc-200 bg-zinc-50 p-3">
+                        <label className="inline-flex items-center gap-2 text-xs text-zinc-700">
+                          <input
+                            type="checkbox"
+                            className="h-3.5 w-3.5 border border-zinc-400 text-zinc-900 focus:ring-zinc-900"
+                            checked={
+                              ((heroLayout as any)?.nextStepsSecondOnly as boolean | undefined) ===
+                              true
+                            }
+                            onChange={(e) =>
+                              updateHeroLayout({
+                                nextStepsSecondOnly: e.target.checked ? true : undefined,
+                              })
+                            }
+                          />
+                          <span className="font-medium">
+                            Show only profile block + CTA (single-column variant)
+                          </span>
+                        </label>
+                        <p className="text-[11px] text-zinc-500">
+                          When enabled, the Next steps layout will render only the middle profile
+                          block and CTA button in a single full-width column. This is useful for
+                          pages like strategy calls and dedicated thank-you panels.
+                        </p>
                       </div>
                     </div>
                   )}
