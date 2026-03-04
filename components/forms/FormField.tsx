@@ -112,7 +112,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
                   type="checkbox"
                   value={opt.value}
                   className="peer sr-only"
-                  {...register(id)}
+                  {...register(id, { required })}
                 />
                 <span className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 leading-relaxed shadow-sm transition peer-checked:border-amber-800 peer-checked:bg-amber-50">
                   {opt.label}
@@ -132,7 +132,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
                 type="checkbox"
                 value={opt.value}
                 className={radioCheckClass}
-                {...register(id)}
+                {...register(id, { required })}
               />
               <span className="min-w-0 break-words">{opt.label}</span>
             </label>

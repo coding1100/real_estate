@@ -5,6 +5,8 @@ import type {
 } from "@/lib/types/page";
 import { HeroSection } from "./sections/HeroSection";
 import { MultistepHeroFlow } from "./MultistepHeroFlow";
+import { HomeValueExperience } from "./sections/HomeValueExperience";
+import { HomeValueMultistepFlow } from "./HomeValueMultistepFlow";
 import Image from "next/image";
 import { getDefaultBlocksForPage } from "@/lib/blocks/defaultBlocks";
 
@@ -85,6 +87,14 @@ export function BuyerTemplate({ page }: BuyerTemplateProps) {
     (l) => l.i === "footer-bar" && l.hidden !== true,
   );
 
+  // Detect Home Value-style pages (those that use the lower strip / map footer fields),
+  // except for the dedicated /home-value-qualify step. These should use the specialized
+  // HomeValueExperience / HomeValueMultistepFlow layouts, even for buyer type.
+  const isHomeValuePage =
+    page.slug !== "home-value-qualify" &&
+    (!!(heroConfig as any).heroLowerStripHtml ||
+      !!(heroConfig as any).formFooterText);
+
   return (
     <div className="min-h-screen bg-zinc-50 custom">
       {hasLayoutHeader ? (
@@ -105,7 +115,19 @@ export function BuyerTemplate({ page }: BuyerTemplateProps) {
                 : undefined
         }
       >
-        {page.multistepSteps && page.multistepSteps.length > 0 ? (
+        {isHomeValuePage && page.multistepSteps && page.multistepSteps.length > 0 ? (
+          <HomeValueMultistepFlow
+            mainPage={page}
+            steps={page.multistepSteps}
+            layoutData={layoutData as any}
+          />
+        ) : isHomeValuePage ? (
+          <HomeValueExperience
+            page={page}
+            layout={heroConfig as any}
+            formSchema={heroFormSchema as any}
+          />
+        ) : page.multistepSteps && page.multistepSteps.length > 0 ? (
           <MultistepHeroFlow
             mainPage={page}
             steps={page.multistepSteps}

@@ -56,6 +56,7 @@ function pageToContent(
   return {
     id: page.id,
     slug: page.slug,
+    title: (page as any).title ?? null,
     type: page.type as LandingPageContent["type"],
     headline: page.headline,
     subheadline: page.subheadline,
@@ -116,6 +117,7 @@ export async function getLandingPage(
   });
 
   if (!page && options?.allowFallbackToAnyDomain) {
+    // First, try to find a published page with this slug on any active domain.
     page = await prisma.landingPage.findFirst({
       where: {
         slug: fetchSlug,
@@ -124,6 +126,33 @@ export async function getLandingPage(
       },
       include: { domain: true },
     });
+
+    // If still not found, fall back to any status on any active domain.
+    // This allows preview hosts (localhost / *.vercel.app) to render draft pages
+    // for editing and live preview, while production custom domains still only
+    // see published content (since allowFallbackToAnyDomain is false there).
+    if (!page) {
+      page = await prisma.landingPage.findFirst({
+        where: {
+          slug: fetchSlug,
+          domain: { isActive: true },
+        },
+        include: { domain: true },
+      });
+    }
+
+    // As an additional safety for executive relocation in preview environments:
+    // if we're requesting the entry slug but only the entry page exists (and not
+    // the canonical first-step slug), fall back to the entry slug row itself.
+    if (!page && requestedSlug === EXEC_REL_ENTRY_SLUG) {
+      page = await prisma.landingPage.findFirst({
+        where: {
+          slug: EXEC_REL_ENTRY_SLUG,
+          domain: { isActive: true },
+        },
+        include: { domain: true },
+      });
+    }
   }
 
   if (!page) {
