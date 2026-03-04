@@ -10,7 +10,9 @@ import {
   Layers,
   Menu,
   RadioTower,
+  LogOut,
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 
 interface AdminShellProps {
   children: ReactNode;
@@ -46,7 +48,23 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
               Admin
             </div>
           </div>
-          <div className="text-md text-zinc-500 max-[768px]:truncate max-[768px]:max-w-[140px] max-[768px]:text-xs">{userEmail}</div>
+          <div className="flex items-center gap-3">
+            <div className="text-md text-zinc-500 max-[768px]:truncate max-[768px]:max-w-[140px] max-[768px]:text-xs">
+              {userEmail}
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                signOut({
+                  callbackUrl: "/admin/login",
+                })
+              }
+              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
       </header>
 
