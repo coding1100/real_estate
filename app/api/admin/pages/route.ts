@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
     headline,
     subheadline,
   } = body;
+  const { title } = body;
 
   // Seed values that we will try to inherit from the master template (or a base page)
   let selectedTemplate: any = null;
@@ -156,6 +157,7 @@ export async function POST(req: NextRequest) {
         type: String(type),
         masterTemplateId: String(masterTemplateId),
         status: "draft",
+        title: typeof title === "string" && title.trim().length > 0 ? String(title) : String(headline),
         headline: String(headline),
         subheadline: subheadline != null ? String(subheadline) : "",
         heroImageUrl: heroImageUrlSeed,

@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
   let pageId: string | null = null;
   let targetDomainId: string | null = null;
   let targetSlug: string | null = null;
+  let targetType: string | null = null;
 
   if (contentType.includes("application/json")) {
     const body = await req.json().catch(() => null);
@@ -23,6 +24,12 @@ export async function POST(req: NextRequest) {
       if (body.slug) {
         const trimmed = String(body.slug).trim();
         targetSlug = trimmed.length > 0 ? trimmed : null;
+      }
+      if (body.type) {
+        const t = String(body.type).trim().toLowerCase();
+        if (t === "buyer" || t === "seller") {
+          targetType = t;
+        }
       }
     }
   } else {
@@ -38,6 +45,13 @@ export async function POST(req: NextRequest) {
       if (rawSlug != null) {
         const trimmed = String(rawSlug).trim();
         targetSlug = trimmed.length > 0 ? trimmed : null;
+      }
+      const rawType = formData.get("type");
+      if (rawType != null) {
+        const t = String(rawType).trim().toLowerCase();
+        if (t === "buyer" || t === "seller") {
+          targetType = t;
+        }
       }
     }
   }
@@ -83,6 +97,7 @@ export async function POST(req: NextRequest) {
   const copy = await prisma.landingPage.create({
     data: {
       ...rest,
+      type: (targetType as any) ?? rest.type,
       sections: sections as any,
       formSchema: formSchema as any,
       multistepStepSlugs: multistepStepSlugs as any,
