@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MoreHorizontal, Eye, Pencil, Copy } from "lucide-react";
 import { DeletePageButton } from "@/components/admin/DeletePageButton";
+import { useAdminToast } from "@/components/admin/useAdminToast";
 
 interface PageRowActionsProps {
   pageId: string;
@@ -17,6 +18,7 @@ export function PageRowActions({ pageId, slug, isMaster }: PageRowActionsProps) 
   const menuRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { success, error } = useAdminToast();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -93,21 +95,15 @@ export function PageRowActions({ pageId, slug, isMaster }: PageRowActionsProps) 
                       const msg =
                         (data && typeof data.error === "string" && data.error) ||
                         "Failed to duplicate page.";
-                      if (typeof window !== "undefined") {
-                        window.alert(msg);
-                      }
+                      error(msg);
                       return;
                     }
                     setOpen(false);
                     router.refresh();
-                    if (typeof window !== "undefined") {
-                      window.alert("Page duplicated successfully.");
-                    }
+                    success("Page duplicated successfully.");
                   } catch (err) {
                     console.error(err);
-                    if (typeof window !== "undefined") {
-                      window.alert("Failed to duplicate page.");
-                    }
+                    error("Failed to duplicate page.");
                   }
                 });
               }}

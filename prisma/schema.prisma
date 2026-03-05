@@ -147,3 +147,26 @@ model WebhookConfig {
   updatedAt DateTime @updatedAt
 }
 
+model AdminUiSettings {
+  /// Singleton row for global admin / UI settings (including toast design).
+  id               String   @id @default("singleton")
+  toastSuccessBg    String   @default("#ecfdf3")
+  toastSuccessText  String   @default("#166534")
+  toastErrorBg      String   @default("#fef2f2")
+  toastErrorText    String   @default("#b91c1c")
+  toastAlertBg      String   @default("#fffbeb")
+  toastAlertText    String   @default("#92400e")
+  toastInfoBg       String   @default("#eff6ff")
+  toastInfoText     String   @default("#1d4ed8")
+  toastIconSize     Int      @default(24)
+  toastSuccessTitle String   @default("Success")
+  toastSuccessBody  String   @default("Action completed successfully.")
+  toastErrorTitle   String   @default("Something went wrong")
+  toastErrorBody    String   @default("Please try again.")
+  toastAlertTitle   String   @default("Attention")
+  toastAlertBody    String   @default("Please review this information.")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+

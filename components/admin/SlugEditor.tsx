@@ -3,6 +3,7 @@
 import React, { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Check, X } from "lucide-react";
+import { useAdminToast } from "@/components/admin/useAdminToast";
 
 interface SlugEditorProps {
   pageId: string;
@@ -11,6 +12,7 @@ interface SlugEditorProps {
 
 export function SlugEditor({ pageId, initialSlug }: SlugEditorProps) {
   const router = useRouter();
+  const { success, error: errorToast } = useAdminToast();
   const [editing, setEditing] = useState(false);
   const [slug, setSlug] = useState(initialSlug);
   const [draft, setDraft] = useState(initialSlug);
@@ -22,6 +24,7 @@ export function SlugEditor({ pageId, initialSlug }: SlugEditorProps) {
     const trimmed = draft.trim();
     if (!trimmed) {
       setError("Slug cannot be empty.");
+      errorToast("Slug cannot be empty.");
       return;
     }
 
@@ -51,10 +54,11 @@ export function SlugEditor({ pageId, initialSlug }: SlugEditorProps) {
       }
 
       if (!res.ok) {
-        setError(
+        const message =
           (data && data.error) ||
-            "Failed to update slug. Please try again.",
-        );
+          "Failed to update slug. Please try again.";
+        setError(message);
+        errorToast(message);
         setSaving(false);
         return;
       }
@@ -63,10 +67,13 @@ export function SlugEditor({ pageId, initialSlug }: SlugEditorProps) {
       setDraft(trimmed);
       setEditing(false);
       setSaving(false);
+      success("Slug updated.");
       router.refresh();
     } catch (err) {
       console.error(err);
-      setError("Failed to update slug. Please try again.");
+      const message = "Failed to update slug. Please try again.";
+      setError(message);
+      errorToast(message);
       setSaving(false);
     }
   }

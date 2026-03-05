@@ -15,6 +15,7 @@ import { PageBlockLayoutEditor } from "@/components/admin/craft/PageBlockLayoutE
 import { DragDropPageLayoutEditor } from "@/components/admin/DragDropPageLayoutEditor";
 import { MultistepPageSelector } from "@/components/admin/MultistepPageSelector";
 import { Eye, FileText, ListChecks, Search, LayoutDashboard } from "lucide-react";
+import { useAdminToast } from "@/components/admin/useAdminToast";
 
 interface PageEditorProps {
   initialPage: LandingPageContent & {
@@ -52,6 +53,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
   const layoutGetHeroElementsRef =
     useRef<(() => HeroElementsByColumn | null) | null>(null);
   const layoutGetLayoutRef = useRef<(() => any[]) | null>(null);
+  const { success: successToast, error: errorToast } = useAdminToast();
 
   const heroSections = Array.isArray(page.sections) ? page.sections : [];
   const heroSection =
@@ -179,6 +181,11 @@ export function PageEditor({ initialPage }: PageEditorProps) {
       });
       if (!res.ok) {
         setMessage("Failed to save");
+        errorToast(
+          status === "published"
+            ? "Failed to publish page. Please try again."
+            : "Failed to save draft. Please try again.",
+        );
         return;
       }
       // Keep local page state in sync with what we just saved so
@@ -197,7 +204,12 @@ export function PageEditor({ initialPage }: PageEditorProps) {
           }
           : {}),
       }));
-      setMessage(status === "published" ? "Published" : "Saved");
+      const isPublishing = status === "published";
+      setMessage(isPublishing ? "Published" : "Saved");
+      successToast(
+        isPublishing ? "Page published." : "Draft saved.",
+        isPublishing ? "Published" : "Saved",
+      );
 
       // Refresh preview iframe so changes are visible - with cache busting
       setTimeout(() => {
