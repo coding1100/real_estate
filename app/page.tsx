@@ -1,6 +1,68 @@
 import Image from "next/image";
+import { notFound, redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import {
+  getRequestHostnameFromHeaders,
+  isPlatformHostname,
+  isPreviewHostname,
+  resolveTenantHostname,
+} from "@/lib/hostnames";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
+async function resolveTenantRootSlug(
+  hostname: string,
+  allowFallbackToAnyDomain: boolean,
+): Promise<string | null> {
+  const domain = await prisma.domain.findFirst({
+    where: {
+      hostname,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  if (domain) {
+    const preferredSlug = (process.env.DOMAIN_ROOT_DEFAULT_SLUG ?? "").trim();
+    if (preferredSlug) {
+      const preferredPage = await prisma.landingPage.findFirst({
+        where: {
+          domainId: domain.id,
+          slug: preferredSlug,
+          status: "published",
+        },
+        select: { slug: true },
+      });
+      if (preferredPage?.slug) return preferredPage.slug;
+    }
+
+    const latestPublishedPage = await prisma.landingPage.findFirst({
+      where: {
+        domainId: domain.id,
+        status: "published",
+      },
+      orderBy: { updatedAt: "desc" },
+      select: { slug: true },
+    });
+    return latestPublishedPage?.slug ?? null;
+  }
+
+  if (!allowFallbackToAnyDomain) return null;
+
+  const fallbackPage = await prisma.landingPage.findFirst({
+    where: {
+      status: "published",
+      domain: { isActive: true },
+    },
+    orderBy: { updatedAt: "desc" },
+    select: { slug: true },
+  });
+  return fallbackPage?.slug ?? null;
+}
+
+function PlatformHome() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
@@ -62,4 +124,22 @@ export default function Home() {
       </main>
     </div>
   );
+}
+
+export default async function Home() {
+  const rawHostname = await getRequestHostnameFromHeaders();
+  const hostname = resolveTenantHostname(rawHostname);
+
+  if (!isPlatformHostname(hostname)) {
+    const tenantRootSlug = await resolveTenantRootSlug(
+      hostname,
+      isPreviewHostname(rawHostname),
+    );
+    if (tenantRootSlug) {
+      redirect(`/${tenantRootSlug}`);
+    }
+    notFound();
+  }
+
+  return <PlatformHome />;
 }

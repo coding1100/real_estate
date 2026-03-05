@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import { getLandingPage } from "@/lib/pages";
 import { BuyerTemplate } from "@/components/templates/BuyerTemplate";
 import { SellerTemplate } from "@/components/templates/SellerTemplate";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { MetaPixel } from "@/components/analytics/MetaPixel";
+import {
+  getRequestHostnameFromHeaders,
+  isPreviewHostname,
+  resolveTenantHostname,
+} from "@/lib/hostnames";
 
 // Force dynamic rendering and no caching
 export const dynamic = "force-dynamic";
@@ -17,26 +21,19 @@ type RouteParams = {
   }>;
 };
 
-async function getHostnameFromHeaders() {
-  const h = await headers();
-  const host = h.get("host") || "";
-  const hostname = host.split(":")[0] || "localhost";
-
-  // In local dev, map localhost to a default domain so pages resolve
-  if (hostname === "localhost" || hostname === "127.0.0.1") {
-    return "bendhomes.us";
-  }
-
-  return hostname;
+async function getHostContextFromHeaders() {
+  const rawHostname = await getRequestHostnameFromHeaders();
+  return {
+    hostname: resolveTenantHostname(rawHostname),
+    isPreviewHost: isPreviewHostname(rawHostname),
+  };
 }
 
 export async function generateMetadata({
   params,
 }: RouteParams): Promise<Metadata> {
   const { slug } = await params;
-  const hostname = await getHostnameFromHeaders();
-  const isPreviewHost =
-    hostname === "bendhomes.us" || hostname.endsWith(".vercel.app");
+  const { hostname, isPreviewHost } = await getHostContextFromHeaders();
   const page = await getLandingPage(hostname, slug, {
     allowFallbackToAnyDomain: isPreviewHost,
   });
@@ -93,9 +90,7 @@ export async function generateMetadata({
 
 export default async function LandingPage({ params }: RouteParams) {
   const { slug } = await params;
-  const hostname = await getHostnameFromHeaders();
-  const isPreviewHost =
-    hostname === "bendhomes.us" || hostname.endsWith(".vercel.app");
+  const { hostname, isPreviewHost } = await getHostContextFromHeaders();
   console.log("[landing-page] Fetching page:", slug, "hostname:", hostname);
   const page = await getLandingPage(hostname, slug, {
     allowFallbackToAnyDomain: isPreviewHost,
