@@ -31,7 +31,6 @@ export async function POST(req: NextRequest) {
     headline,
     subheadline,
   } = body;
-  const { title } = body;
 
   // Seed values that we will try to inherit from the master template (or a base page)
   let selectedTemplate: any = null;
@@ -66,19 +65,6 @@ export async function POST(req: NextRequest) {
   if (!domainIdStr || !slug || !type || !masterTemplateId || !headline) {
     return NextResponse.json(
       { error: "Missing required fields" },
-      { status: 400 },
-    );
-  }
-
-  // Prevent duplicate slugs across ALL domains before attempting create
-  const existing = await prisma.landingPage.findFirst({
-    where: {
-      slug: String(slug),
-    },
-  });
-  if (existing) {
-    return NextResponse.json(
-      { error: "A page with this slug already exists." },
       { status: 400 },
     );
   }
@@ -157,7 +143,6 @@ export async function POST(req: NextRequest) {
         type: String(type),
         masterTemplateId: String(masterTemplateId),
         status: "draft",
-        title: typeof title === "string" && title.trim().length > 0 ? String(title) : String(headline),
         headline: String(headline),
         subheadline: subheadline != null ? String(subheadline) : "",
         heroImageUrl: heroImageUrlSeed,
