@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import type { FormSchema } from "@/lib/types/form";
 import { FormField } from "./FormField";
 import { useRecaptcha, RecaptchaScript } from "./Captcha";
+import { useToast } from "@/components/ui/use-toast";
 
 type FormStyle = "default" | "questionnaire" | "detailed-perspective";
 
@@ -49,6 +50,7 @@ export function DynamicForm({
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { execute } = useRecaptcha();
+  const { toast } = useToast();
 
   const handleNextClick = () => {
     if (!onNextStep) return;
@@ -92,9 +94,23 @@ export function DynamicForm({
         }
         setSubmitted(true);
         reset();
+        toast({
+          title: "Success",
+          description:
+            (successMessage &&
+              successMessage.replace(/<[^>]+>/g, "").trim()) ||
+            "Thank you! We'll be in touch shortly.",
+          variant: "default",
+        });
       } catch (e) {
         console.error(e);
-        setError("Something went wrong. Please try again.");
+        const msg = "Something went wrong. Please try again.";
+        setError(msg);
+        toast({
+          title: "Submission failed",
+          description: msg,
+          variant: "destructive",
+        });
       }
     });
   });
@@ -145,12 +161,6 @@ export function DynamicForm({
         ))}
 
         {error && <p className="text-sm text-red-500">{error}</p>}
-        {submitted && !error && successMessage && (
-          <p
-            className="text-sm text-emerald-600"
-            dangerouslySetInnerHTML={{ __html: successMessage }}
-          />
-        )}
 
         <button
           type={onNextStep && skipValidationForNextStep ? "button" : "submit"}

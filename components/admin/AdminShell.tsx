@@ -11,12 +11,16 @@ import {
   Menu,
   RadioTower,
   LogOut,
+  Settings,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { ToastProvider } from "@/components/ui/use-toast";
+import type { ToastTheme } from "@/lib/uiSettings";
 
 interface AdminShellProps {
   children: ReactNode;
   userEmail?: string | null;
+  toastTheme?: ToastTheme;
 }
 
 const navItems = [
@@ -24,14 +28,16 @@ const navItems = [
   { href: "/admin/domains", label: "Domains", icon: Globe2 },
   { href: "/admin/pages", label: "Landing Pages", icon: FileText },
   { href: "/admin/templates", label: "Templates", icon: Layers },
-  { href: "/admin/webhooks", label: "Webhooks", icon: RadioTower },
+  // { href: "/admin/webhooks", label: "Webhooks", icon: RadioTower },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
-export function AdminShell({ children, userEmail }: AdminShellProps) {
+export function AdminShell({ children, userEmail, toastTheme }: AdminShellProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = React.useState(false);
 
   return (
+    <ToastProvider theme={toastTheme}>
     <div className="admin-root h-screen bg-zinc-50 flex flex-col">
       <header className="border-b bg-white">
         <div className="mx-auto flex w-full items-center justify-between px-4 py-3">
@@ -141,6 +147,7 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
         <main className="flex-1 min-w-0 max-[768px]:min-w-0">{children}</main>
       </div>
     </div>
+    </ToastProvider>
   );
 }
 
