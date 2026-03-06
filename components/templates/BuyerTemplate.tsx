@@ -12,6 +12,11 @@ import { getDefaultBlocksForPage } from "@/lib/blocks/defaultBlocks";
 
 interface BuyerTemplateProps {
   page: LandingPageContent;
+  utm?: {
+    source?: string;
+    medium?: string;
+    campaign?: string;
+  };
 }
 
 function BrandHeader({ page }: { page: LandingPageContent }) {
@@ -57,7 +62,7 @@ function BrandHeader({ page }: { page: LandingPageContent }) {
   );
 }
 
-export function BuyerTemplate({ page }: BuyerTemplateProps) {
+export function BuyerTemplate({ page, utm }: BuyerTemplateProps) {
   const heroFormSchema = page.formSchema ?? {
     fields: [],
   };
@@ -95,6 +100,15 @@ export function BuyerTemplate({ page }: BuyerTemplateProps) {
     (!!(heroConfig as any).heroLowerStripHtml ||
       !!(heroConfig as any).formFooterText);
 
+  const utmHiddenFields =
+    utm && (utm.source || utm.medium || utm.campaign)
+      ? {
+          utm_source: utm.source,
+          utm_medium: utm.medium,
+          utm_campaign: utm.campaign,
+        }
+      : undefined;
+
   return (
     <div className="min-h-screen bg-zinc-50 custom">
       {hasLayoutHeader ? (
@@ -120,18 +134,21 @@ export function BuyerTemplate({ page }: BuyerTemplateProps) {
             mainPage={page}
             steps={page.multistepSteps}
             layoutData={layoutData as any}
+            utmHiddenFields={utmHiddenFields}
           />
         ) : isHomeValuePage ? (
           <HomeValueExperience
             page={page}
             layout={heroConfig as any}
             formSchema={heroFormSchema as any}
+            utmHiddenFields={utmHiddenFields}
           />
         ) : page.multistepSteps && page.multistepSteps.length > 0 ? (
           <MultistepHeroFlow
             mainPage={page}
             steps={page.multistepSteps}
             layoutData={layoutData as any}
+            utmHiddenFields={utmHiddenFields}
           />
         ) : (
           <HeroSection
@@ -140,6 +157,7 @@ export function BuyerTemplate({ page }: BuyerTemplateProps) {
             layout={heroConfig as any}
             layoutData={layoutData as any}
             heroElements={heroElements}
+            utmHiddenFields={utmHiddenFields}
             visibleBlocks={{
               showHeadline: hasBlock("heroHeadline"),
               showSubheadline: hasBlock("heroSubheadline"),

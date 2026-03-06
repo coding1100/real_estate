@@ -65,12 +65,14 @@ interface HomeValueMultistepFlowProps {
    * When a step has its own PageLayout, that layout is used instead.
    */
   layoutData?: LayoutItem[] | null;
+  utmHiddenFields?: Record<string, string | undefined>;
 }
 
 export function HomeValueMultistepFlow({
   mainPage,
   steps,
   layoutData,
+  utmHiddenFields,
 }: HomeValueMultistepFlowProps) {
   const hasHomeValueStep =
     Array.isArray(steps) && steps.some((s) => s.slug === mainPage.slug);
@@ -205,6 +207,17 @@ export function HomeValueMultistepFlow({
   }
   if (typeof result?.lng === "number") {
     extraHiddenFieldsForSubmit.longitude = String(result.lng);
+  }
+  if (utmHiddenFields) {
+    if (utmHiddenFields.utm_source) {
+      extraHiddenFieldsForSubmit.utm_source = utmHiddenFields.utm_source;
+    }
+    if (utmHiddenFields.utm_medium) {
+      extraHiddenFieldsForSubmit.utm_medium = utmHiddenFields.utm_medium;
+    }
+    if (utmHiddenFields.utm_campaign) {
+      extraHiddenFieldsForSubmit.utm_campaign = utmHiddenFields.utm_campaign;
+    }
   }
 
   const handleFinalSubmitFromNextSteps = async () => {
