@@ -13,9 +13,7 @@ import { SeoEditor } from "@/components/admin/SeoEditor";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { PageBlockLayoutEditor } from "@/components/admin/craft/PageBlockLayoutEditor";
 import { DragDropPageLayoutEditor } from "@/components/admin/DragDropPageLayoutEditor";
-import { MultistepPageSelector } from "@/components/admin/MultistepPageSelector";
 import { Eye, FileText, ListChecks, Search, LayoutDashboard } from "lucide-react";
-import { useAdminToast } from "@/components/admin/useAdminToast";
 
 interface PageEditorProps {
   initialPage: LandingPageContent & {
@@ -46,24 +44,15 @@ export function PageEditor({ initialPage }: PageEditorProps) {
   );
   const [saving, startSaving] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
-  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">(
-    "desktop",
-  );
   const layoutGetBlocksRef = useRef<(() => BlockConfig[]) | null>(null);
   const layoutGetHeroElementsRef =
     useRef<(() => HeroElementsByColumn | null) | null>(null);
   const layoutGetLayoutRef = useRef<(() => any[]) | null>(null);
-  const { success: successToast, error: errorToast } = useAdminToast();
 
   const heroSections = Array.isArray(page.sections) ? page.sections : [];
   const heroSection =
     heroSections.find((s) => s.kind === "hero") || null;
   const heroLayout = (heroSection?.props as any) || {};
-
-  const isHomeValueFamily =
-    page.slug === "home-value" ||
-    !!(heroLayout as any).heroLowerStripHtml ||
-    !!(heroLayout as any).formFooterText;
 
   const layoutData = page.pageLayout?.layoutData as any[] | undefined;
   const savedLayout =
@@ -139,7 +128,6 @@ export function PageEditor({ initialPage }: PageEditorProps) {
         heroImageUrl: page.heroImageUrl,
         ctaText: page.ctaText,
         successMessage: page.successMessage,
-        footerHtml: (page as any).footerHtml ?? null,
         sections,
         blocks,
         formSchema,
@@ -181,11 +169,6 @@ export function PageEditor({ initialPage }: PageEditorProps) {
       });
       if (!res.ok) {
         setMessage("Failed to save");
-        errorToast(
-          status === "published"
-            ? "Failed to publish page. Please try again."
-            : "Failed to save draft. Please try again.",
-        );
         return;
       }
       // Keep local page state in sync with what we just saved so
@@ -204,12 +187,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
           }
           : {}),
       }));
-      const isPublishing = status === "published";
-      setMessage(isPublishing ? "Published" : "Saved");
-      successToast(
-        isPublishing ? "Page published." : "Draft saved.",
-        isPublishing ? "Published" : "Saved",
-      );
+      setMessage(status === "published" ? "Published" : "Saved");
 
       // Refresh preview iframe so changes are visible - with cache busting
       setTimeout(() => {
@@ -239,7 +217,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
             <span className="capitalize">{page.type}</span>
           </p>
         </div>
-        <div className="flex items-center gap-3 max-[768px]:flex-col max-[768px]:items-stretch">
+        <div className="flex items-center gap-3">
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${status === "published"
               ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200"
@@ -325,12 +303,9 @@ export function PageEditor({ initialPage }: PageEditorProps) {
           </label>
         </div>
       </div>
-      <div className="border-b border-zinc-200 max-[768px]:overflow-x-auto max-[768px]:pb-1">
+      <div className="border-b border-zinc-200">
         <nav className="flex gap-4 text-sm font-medium text-zinc-600">
-          {(isHomeValueFamily
-            ? (["content", "form", "seo"] as Tab[])
-            : (["content", "form", "seo", "layout"] as Tab[])
-          ).map((t) => {
+          {(["content", "form", "seo", "layout"] as Tab[]).map((t) => {
             const isActive = tab === t;
             const Icon =
               t === "content"
@@ -359,13 +334,15 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                   setTab(t);
                 }}
                 aria-disabled={disabledInMultistep}
-                className={`inline-flex items-center gap-1.5 border-b-2 px-1 pb-2 pt-1 transition-colors ${isActive
+                className={`inline-flex items-center gap-1.5 border-b-2 px-1 pb-2 pt-1 transition-colors ${
+                  isActive
                     ? "border-zinc-900 text-zinc-900"
                     : "border-transparent text-zinc-500 hover:text-zinc-800"
-                  } ${disabledInMultistep
+                } ${
+                  disabledInMultistep
                     ? "cursor-not-allowed opacity-40 hover:text-zinc-500"
                     : ""
-                  }`}
+                }`}
               >
                 <Icon className="h-3.5 w-3.5" />
                 <span>{label}</span>
@@ -398,7 +375,6 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                               updateHeroLayout({ leftMainHtml: html as any })
                             }
                             placeholder="Main hero copy block (domain label, headline, supporting text). Leave empty to use the defaults."
-                            height={330}
                           />
                         </div>
                         {/* RIGHT SECTION */}
@@ -408,9 +384,6 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           </p>
                           <p className="text-xs text-zinc-500">
                             This image appears behind the hero content on the public landing page.
-                          </p>
-                          <p className="text-[11px] text-zinc-500">
-                            JPG, PNG, WEBP, or SVG only. Maximum size 25&nbsp;MB.
                           </p>
                           <ImageUploader
                             label="Hero image"
@@ -464,47 +437,46 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                             </option>
                           </select>
                         </div>
-                        <div className="space-y-3">
-                          <RichTextEditor
-                            label="Form heading (rich text)"
-                            value={heroLayout.formHeading ?? ""}
-                            onChange={(html) =>
-                              updateHeroLayout({ formHeading: html as any })
-                            }
-                            placeholder="Request the Market Brief"
-                            height={286}
-                          />
+                      </div>
+                      <div className="space-y-3">
+                        <RichTextEditor
+                          label="Form heading (rich text)"
+                          value={heroLayout.formHeading ?? ""}
+                          onChange={(html) =>
+                            updateHeroLayout({ formHeading: html as any })
+                          }
+                          placeholder="Request the Market Brief"
+                        />
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-zinc-700">
+                            Form background color
+                          </label>
+                          <div className="inline-flex items-center gap-2">
+                            <input
+                              type="color"
+                              className="h-9 w-9 rounded-md border border-zinc-300 bg-white"
+                              value={heroLayout.formBgColor ?? "#ffffff"}
+                              onChange={(e) =>
+                                updateHeroLayout({
+                                  formBgColor: e.target.value,
+                                })
+                              }
+                            />
+                            <input
+                              type="text"
+                              className="h-9 flex-1 rounded-md border border-zinc-300 px-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                              value={heroLayout.formBgColor ?? "#ffffff"}
+                              onChange={(e) =>
+                                updateHeroLayout({
+                                  formBgColor: e.target.value,
+                                })
+                              }
+                              placeholder="#ffffff"
+                            />
+                          </div>
                         </div>
                       </div>
-                      <div className="space-y-3 ">
-                      <div>
-                            <label className="mb-1 block text-sm font-medium text-zinc-700">
-                              Form background color
-                            </label>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="color"
-                                className="h-9 w-9 rounded-md border border-zinc-300 bg-white"
-                                value={heroLayout.formBgColor ?? "#ffffff"}
-                                onChange={(e) =>
-                                  updateHeroLayout({
-                                    formBgColor: e.target.value,
-                                  })
-                                }
-                              />
-                              <input
-                                type="text"
-                                className="h-9 flex-1 rounded-md border border-zinc-300 px-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                                value={heroLayout.formBgColor ?? "#ffffff"}
-                                onChange={(e) =>
-                                  updateHeroLayout({
-                                    formBgColor: e.target.value,
-                                  })
-                                }
-                                placeholder="#ffffff"
-                              />
-                            </div>
-                          </div>
+                      <div className="space-y-3 md:col-span-2 lg:col-span-5">
                         <RichTextEditor
                           label="Form intro text (right column, rich text)"
                           value={heroLayout.formIntro ?? ""}
@@ -512,45 +484,9 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                             updateHeroLayout({ formIntro: html as any })
                           }
                           placeholder="Explain what the visitor receives after submitting the form."
-                          height={286}
                         />
                       </div>
                     </div>
-
-                    {((page.slug === "home-value") ||
-                      !!heroLayout.heroLowerStripHtml ||
-                      !!heroLayout.formFooterText) && (
-                      <div className="mt-4 space-y-4 border-t border-dashed border-zinc-200 pt-3">
-                        <div className="space-y-2">
-                          <p className="text-xs font-medium text-zinc-600">
-                            Lower strip text (between hero and map)
-                          </p>
-                          <RichTextEditor
-                            label="Hero lower strip (rich text)"
-                            value={(heroLayout.heroLowerStripHtml as string) ?? ""}
-                            onChange={(html) =>
-                              updateHeroLayout({
-                                heroLowerStripHtml: html as string,
-                              })
-                            }
-                            placeholder="Short line of text shown in the colored strip between the hero and the map."
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-xs font-medium text-zinc-600">
-                            Text below form / map (rich text)
-                          </p>
-                          <RichTextEditor
-                            label="Form & map footer text"
-                            value={(heroLayout.formFooterText as string) ?? ""}
-                            onChange={(html) =>
-                              updateHeroLayout({ formFooterText: html as string })
-                            }
-                            placeholder="Optional footer text shown below the form or map (e.g. disclaimer, attribution, confidentiality)."
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
@@ -567,7 +503,6 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           value={page.ctaText ?? ""}
                           onChange={(html) => update("ctaText", html as any)}
                           placeholder="Button label, e.g. Request the Market Brief"
-                          height={286}
                         />
                         <div>
                           <label className="mb-1 block text-sm font-medium text-zinc-700">
@@ -606,25 +541,9 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                             update("successMessage", html as any)
                           }
                           placeholder="Message shown after successful submit."
-                          height={286}
                         />
                       </div>
                     </div>
-                  </div>
-
-                  <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
-                      Page footer
-                    </p>
-                    <p className="text-xs text-zinc-500">
-                      Full-width footer content shown at the very bottom of the page. Leave empty to hide the footer.
-                    </p>
-                    <RichTextEditor
-                      label="Footer (rich text)"
-                      value={(page as any).footerHtml ?? ""}
-                      onChange={(html) => update("footerHtml", html as any)}
-                      placeholder="Optional footer text (e.g. brokerage disclaimers, licensing, copyright)."
-                    />
                   </div>
 
                   {(heroLayout.formStyle as string) === "detailed-perspective" && (
@@ -720,31 +639,6 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           />
                         </div>
                       </div>
-                      <div className="space-y-2 rounded-md border border-dashed border-zinc-200 bg-zinc-50 p-3">
-                        <label className="inline-flex items-center gap-2 text-xs text-zinc-700">
-                          <input
-                            type="checkbox"
-                            className="h-3.5 w-3.5 border border-zinc-400 text-zinc-900 focus:ring-zinc-900"
-                            checked={
-                              ((heroLayout as any)?.nextStepsSecondOnly as boolean | undefined) ===
-                              true
-                            }
-                            onChange={(e) =>
-                              updateHeroLayout({
-                                nextStepsSecondOnly: e.target.checked ? true : undefined,
-                              })
-                            }
-                          />
-                          <span className="font-medium">
-                            Show only profile block + CTA (single-column variant)
-                          </span>
-                        </label>
-                        <p className="text-[11px] text-zinc-500">
-                          When enabled, the Next steps layout will render only the middle profile
-                          block and CTA button in a single full-width column. This is useful for
-                          pages like strategy calls and dedicated thank-you panels.
-                        </p>
-                      </div>
                     </div>
                   )}
                 </>
@@ -760,17 +654,26 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                       Multistep flow (step slugs)
                     </p>
                     <p className="text-xs text-zinc-500">
-                      Choose pages for each step, in order. The first page controls the
-                      SEO and layout for this multistep experience.
+                      Enter the slugs for each step, in order. The first slug controls
+                      the SEO and layout for this multistep experience.
                     </p>
-                    <MultistepPageSelector
-                      domainId={(initialPage as { domainId?: string }).domainId ?? ""}
-                      value={multistepStepSlugs}
-                      onChange={setMultistepStepSlugs}
+                    <textarea
+                      className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                      rows={3}
+                      value={multistepStepSlugs.join("\n")}
+                      onChange={(e) =>
+                        setMultistepStepSlugs(
+                          e.target.value
+                            .split("\n")
+                            .map((s) => s.trim())
+                            .filter(Boolean),
+                        )
+                      }
+                      placeholder="market-report-1&#10;market-report-2&#10;market-report-3"
                     />
                     <p className="mt-1 text-xs text-zinc-500">
-                      This page becomes the entry URL; step content is loaded from the
-                      selected pages.
+                      One slug per line. This page becomes the entry URL; step content is
+                      loaded from these slugs.
                     </p>
                   </div>
                 </>
@@ -840,51 +743,21 @@ export function PageEditor({ initialPage }: PageEditorProps) {
             )
           )}
         </div>
-        <div className="h-[588px] overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm md:h-[784px]">
+        <div className="h-[420px] overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm md:h-[560px]">
           <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50 px-3 py-2">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-600">
               Live preview
             </p>
-            <div className="flex items-center gap-2">
-              <p className="text-xs text-zinc-500">/{page.slug}</p>
-              <div className="inline-flex items-center rounded-full border border-zinc-200 bg-white text-[11px]">
-                <button
-                  type="button"
-                  onClick={() => setPreviewDevice("desktop")}
-                  className={`px-2 py-0.5 rounded-full ${
-                    previewDevice === "desktop"
-                      ? "bg-zinc-900 text-white"
-                      : "text-zinc-600 hover:bg-zinc-100"
-                  }`}
-                >
-                  Desktop
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreviewDevice("mobile")}
-                  className={`px-2 py-0.5 rounded-full ${
-                    previewDevice === "mobile"
-                      ? "bg-zinc-900 text-white"
-                      : "text-zinc-600 hover:bg-zinc-100"
-                  }`}
-                >
-                  Mobile
-                </button>
-              </div>
-            </div>
+            <p className="text-xs text-zinc-500">
+              /{page.slug}
+            </p>
           </div>
-          <div className="flex h-full w-full items-center justify-center bg-zinc-50">
-            <iframe
-              id="page-preview"
-              title="Live preview"
-              src={`/${page.slug}`}
-              className={
-                previewDevice === "mobile"
-                  ? "h-full w-[380px] max-w-full border-0 rounded-[1.25rem] shadow-md"
-                  : "h-full w-full border-0"
-              }
-            />
-          </div>
+          <iframe
+            id="page-preview"
+            title="Live preview"
+            src={`/${page.slug}`}
+            className="h-full w-full border-0"
+          />
         </div>
       </div>
     </div>
