@@ -3,6 +3,7 @@
 import React, { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Check, X } from "lucide-react";
+import { useAdminToast } from "@/components/admin/useAdminToast";
 
 interface TitleEditorProps {
   pageId: string;
@@ -16,6 +17,7 @@ export function TitleEditor({ pageId, initialTitle }: TitleEditorProps) {
   const [draft, setDraft] = useState(initialTitle);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { success, error: errorToast } = useAdminToast();
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -49,10 +51,11 @@ export function TitleEditor({ pageId, initialTitle }: TitleEditorProps) {
       }
 
       if (!res.ok) {
-        setError(
+        const message =
           (data && data.error) ||
-            "Failed to update title. Please try again.",
-        );
+          "Failed to update title. Please try again.";
+        setError(message);
+        errorToast(message);
         setSaving(false);
         return;
       }
@@ -61,10 +64,13 @@ export function TitleEditor({ pageId, initialTitle }: TitleEditorProps) {
       setDraft(trimmed);
       setEditing(false);
       setSaving(false);
+      success("Title updated.");
       router.refresh();
     } catch (err) {
       console.error(err);
-      setError("Failed to update title. Please try again.");
+      const message = "Failed to update title. Please try again.";
+      setError(message);
+      errorToast(message);
       setSaving(false);
     }
   }

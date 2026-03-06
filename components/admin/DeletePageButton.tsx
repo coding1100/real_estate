@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { Dialog } from "@/components/ui/Dialog";
+import { useAdminToast } from "@/components/admin/useAdminToast";
 
 interface DeletePageButtonProps {
   pageId: string;
@@ -20,6 +21,7 @@ export function DeletePageButton({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { success, error: errorToast } = useAdminToast();
 
   async function handleConfirmDelete() {
     if (loading) return;
@@ -38,18 +40,23 @@ export function DeletePageButton({
         } catch {
           // ignore
         }
-        setError(
-          (data && data.error) || "Failed to delete page. Please try again.",
-        );
+        const message =
+          (data && data.error) ||
+          "Failed to delete page. Please try again.";
+        setError(message);
+        errorToast(message);
         setLoading(false);
         return;
       }
 
       setConfirmOpen(false);
       router.refresh();
+      success(`Page "${slug}" deleted.`, "Page deleted");
     } catch (err) {
       console.error(err);
-      setError("Failed to delete page. Please try again.");
+      const message = "Failed to delete page. Please try again.";
+      setError(message);
+      errorToast(message);
     } finally {
       setLoading(false);
     }

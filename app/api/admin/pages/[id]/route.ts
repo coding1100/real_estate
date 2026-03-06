@@ -17,6 +17,13 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
 
   const body = await req.json();
   const { id } = await ctx.params;
+  const existingPage = await prisma.landingPage.findUnique({
+    where: { id },
+    select: { domainId: true },
+  });
+  if (!existingPage) {
+    return NextResponse.json({ error: "Page not found." }, { status: 404 });
+  }
 
   // Basic validation for slug updates
   if (Object.prototype.hasOwnProperty.call(body, "slug")) {
@@ -28,16 +35,22 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     }
     body.slug = body.slug.trim();
 
-    // Enforce global slug uniqueness (across all domains) on update
+    const targetDomainId =
+      typeof body.domainId === "string" && body.domainId.trim().length > 0
+        ? body.domainId.trim()
+        : existingPage.domainId;
+
+    // Enforce slug uniqueness only within the target domain.
     const existing = await prisma.landingPage.findFirst({
       where: {
         slug: body.slug,
+        domainId: targetDomainId,
         NOT: { id },
       },
     });
     if (existing) {
       return NextResponse.json(
-        { error: "A page with this slug already exists." },
+        { error: "A page with this slug already exists for this domain." },
         { status: 400 },
       );
     }
