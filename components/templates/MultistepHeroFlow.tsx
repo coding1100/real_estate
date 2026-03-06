@@ -353,27 +353,25 @@ export function MultistepHeroFlow({
                       />
                     )}
                     {formSchema && formSchema.fields?.length > 0 && (
-                      <>
-                        <DynamicForm
-                          schema={formSchema}
-                          ctaText={step.ctaText}
-                          successMessage={mainPage.successMessage}
-                          textSize={formTextSize}
-                          ctaBgColor={ctaBgColor}
-                          formStyle="detailed-perspective"
-                          helperText={
-                            layout?.formIntro?.trim()
-                              ? undefined
-                              : "This helps us ensure the data you receive is relevant to your situation."
-                          }
-                          postCtaText={layout?.formPostCtaText?.trim() || undefined}
-                          extraHiddenFields={
-                            isLastStep ? extraHiddenFieldsForSubmit : undefined
-                          }
-                          onNextStep={isLastStep ? undefined : handleNextStep}
-                        />
-                        <SocialLinksBar domain={mainPage.domain} className="mt-3" />
-                      </>
+                      <DynamicForm
+                        schema={formSchema}
+                        ctaText={step.ctaText}
+                        successMessage={mainPage.successMessage}
+                        textSize={formTextSize}
+                        ctaBgColor={ctaBgColor}
+                        formStyle="detailed-perspective"
+                        helperText={
+                          layout?.formIntro?.trim()
+                            ? undefined
+                            : "This helps us ensure the data you receive is relevant to your situation."
+                        }
+                        postCtaText={layout?.formPostCtaText?.trim() || undefined}
+                        postCtaContent={<SocialLinksBar domain={mainPage.domain} />}
+                        extraHiddenFields={
+                          isLastStep ? extraHiddenFieldsForSubmit : undefined
+                        }
+                        onNextStep={isLastStep ? undefined : handleNextStep}
+                      />
                     )}
                   </div>
                   <div className="space-y-4 relative flex flex-col justify-center">
@@ -457,27 +455,31 @@ export function MultistepHeroFlow({
                   />
                 )}
                     {formSchema && formSchema.fields?.length > 0 ? (
-                  <DynamicForm
-                    schema={formSchema}
-                    ctaText={step.ctaText}
-                    successMessage={mainPage.successMessage}
-                    textSize={formTextSize}
-                    ctaBgColor={ctaBgColor}
-                    formStyle={isQuestionnaire ? "questionnaire" : "default"}
-                    extraHiddenFields={
-                      isLastStep ? extraHiddenFieldsForSubmit : undefined
-                    }
-                    onNextStep={isLastStep ? undefined : handleNextStep}
-                  />
+                      <DynamicForm
+                        schema={formSchema}
+                        ctaText={step.ctaText}
+                        successMessage={mainPage.successMessage}
+                        textSize={formTextSize}
+                        ctaBgColor={ctaBgColor}
+                        formStyle={isQuestionnaire ? "questionnaire" : "default"}
+                        extraHiddenFields={
+                          isLastStep ? extraHiddenFieldsForSubmit : undefined
+                        }
+                        postCtaContent={<SocialLinksBar domain={mainPage.domain} />}
+                        onNextStep={isLastStep ? undefined : handleNextStep}
+                      />
                 ) : !isLastStep ? (
-                  <button
-                    type="button"
-                    onClick={() => handleNextStep({})}
-                    className="inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
-                    style={ctaBgColor ? { backgroundColor: ctaBgColor } : undefined}
-                  >
-                    <span dangerouslySetInnerHTML={{ __html: step.ctaText }} />
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleNextStep({})}
+                      className="inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+                      style={ctaBgColor ? { backgroundColor: ctaBgColor } : undefined}
+                    >
+                      <span dangerouslySetInnerHTML={{ __html: step.ctaText }} />
+                    </button>
+                    <SocialLinksBar domain={mainPage.domain} className="mt-3" />
+                  </>
                 ) : null}
 
                 {layout?.formIntro?.trim() && (
@@ -486,7 +488,6 @@ export function MultistepHeroFlow({
                     dangerouslySetInnerHTML={{ __html: layout.formIntro }}
                   />
                 )}
-                <SocialLinksBar domain={mainPage.domain} className="mt-3" />
               </div>
             )}
           </div>
