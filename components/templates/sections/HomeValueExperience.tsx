@@ -34,12 +34,14 @@ interface HomeValueExperienceProps {
   page: LandingPageContent;
   layout?: HomeValueLayout | null;
   formSchema?: FormSchema | null;
+  utmHiddenFields?: Record<string, string | undefined>;
 }
 
 export function HomeValueExperience({
   page,
   layout,
   formSchema,
+  utmHiddenFields,
 }: HomeValueExperienceProps) {
   const [address, setAddress] = useState("");
   const [searchState, setSearchState] = useState<SearchState>("idle");
@@ -297,6 +299,7 @@ export function HomeValueExperience({
                         typeof result?.lng === "number"
                           ? String(result.lng)
                           : "",
+                      ...(utmHiddenFields ?? {}),
                     }}
                   />
                 ) : (
