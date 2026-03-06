@@ -61,6 +61,16 @@ export async function POST(req: NextRequest) {
     metaPixelId,
     logoUrl,
     rightLogoUrl,
+    linkedinUrl,
+    linkedinVisible,
+    googleUrl,
+    googleVisible,
+    facebookUrl,
+    facebookVisible,
+    instagramUrl,
+    instagramVisible,
+    zillowUrl,
+    zillowVisible,
   } = body ?? {};
 
   const normalizedHostname = normalizeHostname(String(hostname ?? ""));
@@ -110,6 +120,16 @@ export async function POST(req: NextRequest) {
         metaPixelId,
         logoUrl,
         agentPhoto: rightLogoUrl,
+        linkedinUrl,
+        linkedinVisible,
+        googleUrl,
+        googleVisible,
+        facebookUrl,
+        facebookVisible,
+        instagramUrl,
+        instagramVisible,
+        zillowUrl,
+        zillowVisible,
       },
     });
   } catch (error: unknown) {

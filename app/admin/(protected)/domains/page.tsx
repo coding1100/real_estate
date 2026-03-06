@@ -18,6 +18,16 @@ export default async function DomainsPage() {
     metaPixelId: d.metaPixelId,
     logoUrl: d.logoUrl,
     rightLogoUrl: d.agentPhoto ?? null,
+    linkedinUrl: d.linkedinUrl ?? null,
+    linkedinVisible: d.linkedinVisible ?? true,
+    googleUrl: d.googleUrl ?? null,
+    googleVisible: d.googleVisible ?? true,
+    facebookUrl: d.facebookUrl ?? null,
+    facebookVisible: d.facebookVisible ?? true,
+    instagramUrl: d.instagramUrl ?? null,
+    instagramVisible: d.instagramVisible ?? true,
+    zillowUrl: d.zillowUrl ?? null,
+    zillowVisible: d.zillowVisible ?? true,
   }));
 
   return <DomainsManager initialDomains={initialDomains} />;

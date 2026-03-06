@@ -126,6 +126,54 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
         agentPhoto: Object.prototype.hasOwnProperty.call(body, "rightLogoUrl")
           ? body.rightLogoUrl
           : existing.agentPhoto,
+        linkedinUrl: Object.prototype.hasOwnProperty.call(body, "linkedinUrl")
+          ? body.linkedinUrl
+          : existing.linkedinUrl,
+        linkedinVisible: Object.prototype.hasOwnProperty.call(
+          body,
+          "linkedinVisible",
+        )
+          ? body.linkedinVisible
+          : existing.linkedinVisible,
+        googleUrl: Object.prototype.hasOwnProperty.call(body, "googleUrl")
+          ? body.googleUrl
+          : existing.googleUrl,
+        googleVisible: Object.prototype.hasOwnProperty.call(
+          body,
+          "googleVisible",
+        )
+          ? body.googleVisible
+          : existing.googleVisible,
+        facebookUrl: Object.prototype.hasOwnProperty.call(body, "facebookUrl")
+          ? body.facebookUrl
+          : existing.facebookUrl,
+        facebookVisible: Object.prototype.hasOwnProperty.call(
+          body,
+          "facebookVisible",
+        )
+          ? body.facebookVisible
+          : existing.facebookVisible,
+        instagramUrl: Object.prototype.hasOwnProperty.call(
+          body,
+          "instagramUrl",
+        )
+          ? body.instagramUrl
+          : existing.instagramUrl,
+        instagramVisible: Object.prototype.hasOwnProperty.call(
+          body,
+          "instagramVisible",
+        )
+          ? body.instagramVisible
+          : existing.instagramVisible,
+        zillowUrl: Object.prototype.hasOwnProperty.call(body, "zillowUrl")
+          ? body.zillowUrl
+          : existing.zillowUrl,
+        zillowVisible: Object.prototype.hasOwnProperty.call(
+          body,
+          "zillowVisible",
+        )
+          ? body.zillowVisible
+          : existing.zillowVisible,
       },
     });
   } catch (error: unknown) {
