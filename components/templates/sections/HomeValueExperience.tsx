@@ -8,6 +8,7 @@ import type { LandingPageContent } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
 import { RecaptchaScript } from "@/components/forms/Captcha";
 import { DynamicForm } from "@/components/forms/DynamicForm";
+import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
 
 type SearchState = "idle" | "found" | "error";
 
@@ -329,6 +330,7 @@ export function HomeValueExperience({
                     Form tab in admin.
                   </p>
                 )}
+                <SocialLinksBar domain={page.domain} />
               </div>
             </div>
           </div>

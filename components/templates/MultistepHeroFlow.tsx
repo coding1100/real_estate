@@ -5,6 +5,7 @@ import Image from "next/image";
 import type { LandingPageContent } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
 import { DynamicForm } from "@/components/forms/DynamicForm";
+import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
 import { useRecaptcha, RecaptchaScript } from "@/components/forms/Captcha";
 
 interface LayoutItem {
@@ -301,7 +302,7 @@ export function MultistepHeroFlow({
                           />
                         )}
                       </div>
-                      <div className="mt-3 space-y-2">
+                      <div className="mt-3 space-y-3">
                         <button
                           type="button"
                           onClick={isLastStep ? handleFinalSubmitFromNextSteps : undefined}
@@ -326,6 +327,7 @@ export function MultistepHeroFlow({
                             {submitError}
                           </p>
                         )}
+                        <SocialLinksBar domain={mainPage.domain} />
                       </div>
                     </div>
                   </div>
@@ -351,24 +353,27 @@ export function MultistepHeroFlow({
                       />
                     )}
                     {formSchema && formSchema.fields?.length > 0 && (
-                      <DynamicForm
-                        schema={formSchema}
-                        ctaText={step.ctaText}
-                        successMessage={mainPage.successMessage}
-                        textSize={formTextSize}
-                        ctaBgColor={ctaBgColor}
-                        formStyle="detailed-perspective"
-                        helperText={
-                          layout?.formIntro?.trim()
-                            ? undefined
-                            : "This helps us ensure the data you receive is relevant to your situation."
-                        }
-                        postCtaText={layout?.formPostCtaText?.trim() || undefined}
-                        extraHiddenFields={
-                          isLastStep ? extraHiddenFieldsForSubmit : undefined
-                        }
-                        onNextStep={isLastStep ? undefined : handleNextStep}
-                      />
+                      <>
+                        <DynamicForm
+                          schema={formSchema}
+                          ctaText={step.ctaText}
+                          successMessage={mainPage.successMessage}
+                          textSize={formTextSize}
+                          ctaBgColor={ctaBgColor}
+                          formStyle="detailed-perspective"
+                          helperText={
+                            layout?.formIntro?.trim()
+                              ? undefined
+                              : "This helps us ensure the data you receive is relevant to your situation."
+                          }
+                          postCtaText={layout?.formPostCtaText?.trim() || undefined}
+                          extraHiddenFields={
+                            isLastStep ? extraHiddenFieldsForSubmit : undefined
+                          }
+                          onNextStep={isLastStep ? undefined : handleNextStep}
+                        />
+                        <SocialLinksBar domain={mainPage.domain} className="mt-3" />
+                      </>
                     )}
                   </div>
                   <div className="space-y-4 relative flex flex-col justify-center">
@@ -451,7 +456,7 @@ export function MultistepHeroFlow({
                     dangerouslySetInnerHTML={{ __html: formHeading }}
                   />
                 )}
-                {formSchema && formSchema.fields?.length > 0 ? (
+                    {formSchema && formSchema.fields?.length > 0 ? (
                   <DynamicForm
                     schema={formSchema}
                     ctaText={step.ctaText}
@@ -481,6 +486,7 @@ export function MultistepHeroFlow({
                     dangerouslySetInnerHTML={{ __html: layout.formIntro }}
                   />
                 )}
+                <SocialLinksBar domain={mainPage.domain} className="mt-3" />
               </div>
             )}
           </div>

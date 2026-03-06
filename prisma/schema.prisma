@@ -37,6 +37,17 @@ model Domain {
   defaultBuyerFormSchema  Json?
   defaultSellerFormSchema Json?
   isActive                Boolean  @default(true)
+  // Social media links (shown under forms)
+  linkedinUrl             String?
+  linkedinVisible         Boolean  @default(true)
+  googleUrl               String?
+  googleVisible           Boolean  @default(true)
+  facebookUrl             String?
+  facebookVisible         Boolean  @default(true)
+  instagramUrl            String?
+  instagramVisible        Boolean  @default(true)
+  zillowUrl               String?
+  zillowVisible           Boolean  @default(true)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
   pages                   LandingPage[]
