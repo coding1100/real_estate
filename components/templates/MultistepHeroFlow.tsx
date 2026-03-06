@@ -48,12 +48,14 @@ interface MultistepHeroFlowProps {
    * When a step has its own PageLayout, that layout is used instead.
    */
   layoutData?: LayoutItem[] | null;
+  utmHiddenFields?: Record<string, string | undefined>;
 }
 
 export function MultistepHeroFlow({
   mainPage,
   steps,
   layoutData,
+  utmHiddenFields,
 }: MultistepHeroFlowProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [accumulatedData, setAccumulatedData] = useState<Record<string, Record<string, unknown>>>({});
@@ -161,6 +163,17 @@ export function MultistepHeroFlow({
   };
   if (Object.keys(accumulatedData).length > 0) {
     extraHiddenFieldsForSubmit._multistepData = JSON.stringify(accumulatedData);
+  }
+  if (utmHiddenFields) {
+    if (utmHiddenFields.utm_source) {
+      extraHiddenFieldsForSubmit.utm_source = utmHiddenFields.utm_source;
+    }
+    if (utmHiddenFields.utm_medium) {
+      extraHiddenFieldsForSubmit.utm_medium = utmHiddenFields.utm_medium;
+    }
+    if (utmHiddenFields.utm_campaign) {
+      extraHiddenFieldsForSubmit.utm_campaign = utmHiddenFields.utm_campaign;
+    }
   }
 
   return (

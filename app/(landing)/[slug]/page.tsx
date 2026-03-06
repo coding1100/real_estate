@@ -19,6 +19,7 @@ type RouteParams = {
   params: Promise<{
     slug: string;
   }>;
+  searchParams?: Promise<Record<string, string | string[]>> | Record<string, string | string[]>;
 };
 
 async function getHostContextFromHeaders() {
@@ -88,8 +89,16 @@ export async function generateMetadata({
   return meta;
 }
 
-export default async function LandingPage({ params }: RouteParams) {
+export default async function LandingPage({ params, searchParams }: RouteParams) {
   const { slug } = await params;
+  const query = (await (searchParams as any)) ?? {};
+  const utm = {
+    source: Array.isArray(query.utm_source) ? query.utm_source[0] : query.utm_source,
+    medium: Array.isArray(query.utm_medium) ? query.utm_medium[0] : query.utm_medium,
+    campaign: Array.isArray(query.utm_campaign)
+      ? query.utm_campaign[0]
+      : query.utm_campaign,
+  };
   const { hostname, isPreviewHost } = await getHostContextFromHeaders();
   console.log("[landing-page] Fetching page:", slug, "hostname:", hostname);
   const page = await getLandingPage(hostname, slug, {
@@ -99,9 +108,9 @@ export default async function LandingPage({ params }: RouteParams) {
 
   const content =
     page.type === "seller" ? (
-      <SellerTemplate page={page} />
+      <SellerTemplate page={page} utm={utm} />
     ) : (
-      <BuyerTemplate page={page} />
+      <BuyerTemplate page={page} utm={utm} />
     );
 
   return (
