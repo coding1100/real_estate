@@ -2,8 +2,6 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "./prisma";
 import type { LandingPageContent } from "./types/page";
 
-const DEFAULT_DEV_HOSTNAME = "bendhomes.us";
-
 // Fixed multistep flow for market report
 const MARKET_REPORT_ENTRY_SLUG = "market-report";
 const MARKET_REPORT_STEP_SLUGS = [

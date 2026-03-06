@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "@/components/ui/Dialog";
 import { Plus } from "lucide-react";
+import { useAdminToast } from "@/components/admin/useAdminToast";
 
 interface DomainOption {
   id: string;
@@ -64,6 +65,7 @@ export function AddPageDialog({
     headline: "",
     subheadline: "",
   });
+  const { success: successToast, error: errorToast } = useAdminToast();
 
   function openDialog(template?: string) {
     setMode("template");
@@ -93,6 +95,7 @@ export function AddPageDialog({
     if (mode === "duplicate") {
       if (!duplicatePageId) {
         setError("Please select a page to duplicate.");
+        errorToast("Please select a page to duplicate.");
         return;
       }
       startTransition(async () => {
@@ -109,22 +112,29 @@ export function AddPageDialog({
           });
           const data = await res.json();
           if (!res.ok) {
-            setError(data?.error ?? "Failed to duplicate page");
+            const message =
+              data?.error ?? "Failed to duplicate page";
+            setError(message);
+            errorToast(message);
             return;
           }
           setOpen(false);
+          successToast("Page duplicated successfully.", "Page duplicated");
           router.push(`/admin/pages/${data.page.id}/edit`);
         } catch (err: unknown) {
-          setError(
-            err instanceof Error ? err.message : "Failed to duplicate page",
-          );
+          const message =
+            err instanceof Error ? err.message : "Failed to duplicate page";
+          setError(message);
+          errorToast(message);
         }
       });
       return;
     }
 
     if (!form.domainId?.trim() || !form.slug?.trim() || !form.headline?.trim()) {
-      setError("Domain, slug, and headline are required.");
+      const message = "Domain, slug, and headline are required.";
+      setError(message);
+      errorToast(message);
       return;
     }
 
@@ -143,15 +153,20 @@ export function AddPageDialog({
         });
         const data = await res.json();
         if (!res.ok) {
-          setError(data?.error ?? "Failed to create page");
+          const message =
+            data?.error ?? "Failed to create page";
+          setError(message);
+          errorToast(message);
           return;
         }
         setOpen(false);
+        successToast("Page created successfully.", "Page created");
         router.push(`/admin/pages/${data.page.id}/edit`);
       } catch (err: unknown) {
-        setError(
-          err instanceof Error ? err.message : "Failed to create page",
-        );
+        const message =
+          err instanceof Error ? err.message : "Failed to create page";
+        setError(message);
+        errorToast(message);
       }
     });
   }
