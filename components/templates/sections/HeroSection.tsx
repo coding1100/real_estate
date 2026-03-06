@@ -52,6 +52,7 @@ interface HeroSectionProps {
     showLeft: boolean;
     showForm: boolean;
   };
+  utmHiddenFields?: Record<string, string | undefined>;
 }
 
 export function HeroSection({
@@ -61,6 +62,7 @@ export function HeroSection({
   layoutData,
   heroElements,
   visibleBlocks,
+  utmHiddenFields,
 }: HeroSectionProps) {
   const formHeading = layout?.formHeading?.trim() ?? "";
   const formBgColor = layout?.formBgColor;
@@ -434,6 +436,7 @@ export function HeroSection({
                             domain: page.domain.hostname,
                             slug: page.slug,
                             type: page.type,
+                            ...(utmHiddenFields ?? {}),
                           }}
                         />
                       </div>
@@ -533,6 +536,7 @@ export function HeroSection({
                         domain: page.domain.hostname,
                         slug: page.slug,
                         type: page.type,
+                        ...(utmHiddenFields ?? {}),
                       }}
                     />
                     {layout?.formIntro?.trim() && (
