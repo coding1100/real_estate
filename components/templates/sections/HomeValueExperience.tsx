@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useRef, useEffect, FormEvent } from "react";
 import Image from "next/image";
-import { Search, Loader2 } from "lucide-react";
+import Script from "next/script";
+import { Search } from "lucide-react";
 import type { LandingPageContent } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
 import { RecaptchaScript } from "@/components/forms/Captcha";
 import { DynamicForm } from "@/components/forms/DynamicForm";
+import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
 
-type SearchState = "idle" | "loading" | "found" | "not_found" | "error";
+type SearchState = "idle" | "found" | "error";
 
 interface ZestimateResult {
   found: boolean;
@@ -47,9 +49,63 @@ export function HomeValueExperience({
   const [searchState, setSearchState] = useState<SearchState>("idle");
   const [result, setResult] = useState<ZestimateResult | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [placesLoaded, setPlacesLoaded] = useState(false);
+  const addressInputRef = useRef<HTMLInputElement | null>(null);
 
   const hasFoundProperty =
     searchState === "found" && !!result && !!result.lat && !!result.lng;
+
+  // Initialize Google Places Autocomplete on the address input when the script is ready.
+  useEffect(() => {
+    if (!placesLoaded || !addressInputRef.current) return;
+    const win = window as any;
+    if (!win.google || !win.google.maps || !win.google.maps.places) return;
+
+    const autocomplete = new win.google.maps.places.Autocomplete(
+      addressInputRef.current,
+      {
+        types: ["address"],
+        fields: ["formatted_address", "geometry"],
+      },
+    );
+
+    const listener = autocomplete.addListener("place_changed", () => {
+      const place = autocomplete.getPlace();
+      const geometry = place?.geometry;
+      const location = geometry?.location;
+
+      if (!location) {
+        setResult(null);
+        setSearchState("error");
+        setSearchError(
+          "We couldn’t find this address. Please choose a suggestion or try again.",
+        );
+        return;
+      }
+
+      const formatted =
+        place.formatted_address || addressInputRef.current?.value || "";
+      const lat = location.lat();
+      const lng = location.lng();
+
+      setAddress(formatted);
+      setResult({
+        found: true,
+        address: formatted,
+        lat,
+        lng,
+        estimate: null,
+      });
+      setSearchState("found");
+      setSearchError(null);
+    });
+
+    return () => {
+      if (listener && typeof listener.remove === "function") {
+        listener.remove();
+      }
+    };
+  }, [placesLoaded]);
 
   async function handleSearch(e: FormEvent) {
     e.preventDefault();
@@ -59,42 +115,9 @@ export function HomeValueExperience({
       setSearchError("Please enter a property address.");
       return;
     }
-    setSearchState("loading");
-    try {
-      const res = await fetch("/api/home-value/zestimate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: trimmed }),
-      });
-      if (res.status === 404) {
-        setResult(null);
-        setSearchState("not_found");
-        setSearchError(
-          "We couldn’t find this property. Please check the address and try again.",
-        );
-        return;
-      }
-      if (!res.ok) {
-        throw new Error("Failed to look up property");
-      }
-      const data = (await res.json()) as ZestimateResult;
-      if (!data.found || !data.lat || !data.lng) {
-        setResult(null);
-        setSearchState("not_found");
-        setSearchError(
-          "We couldn’t find this property. Please check the address and try again.",
-        );
-        return;
-      }
-      setResult(data);
-      setSearchState("found");
-    } catch (err) {
-      console.error(err);
-      setResult(null);
+    if (!hasFoundProperty) {
+      setSearchError("Please select an address from the suggestions above.");
       setSearchState("error");
-      setSearchError(
-        "Something went wrong while fetching your home’s details. Please try again.",
-      );
     }
   }
 
@@ -103,11 +126,10 @@ export function HomeValueExperience({
       return null;
     }
     const center = `${result.lat},${result.lng}`;
-    const url = new URL("https://www.google.com/maps/embed/v1/view");
+    const url = new URL("https://www.google.com/maps/embed/v1/place");
     url.searchParams.set("key", MAPS_KEY);
-    url.searchParams.set("center", center);
+    url.searchParams.set("q", center);
     url.searchParams.set("zoom", "15");
-    url.searchParams.set("maptype", "roadmap");
     return url.toString();
   }
 
@@ -125,6 +147,13 @@ export function HomeValueExperience({
   return (
     <div className="relative min-h-screen text-zinc-50 bg-[#d4c8c8]">
       <RecaptchaScript />
+      {MAPS_KEY && (
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places`}
+          strategy="afterInteractive"
+          onLoad={() => setPlacesLoaded(true)}
+        />
+      )}
 
       {/* Hero background image with warm gradient overlay */}
       {page.heroImageUrl && (
@@ -172,6 +201,7 @@ export function HomeValueExperience({
               </span>
               <input
                 type="text"
+                ref={addressInputRef}
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="61311 McRoberts Ln, Bend, OR 97702"
@@ -180,17 +210,9 @@ export function HomeValueExperience({
             </div>
             <button
               type="submit"
-              disabled={searchState === "loading"}
               className="inline-flex !h-[46px] items-center justify-center rounded-xl bg-[#5B4534] px-6 py-2.5 text-sm font-medium text-amber-50 shadow-md shadow-amber-900/40 transition disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {searchState === "loading" ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Searching…
-                </>
-              ) : (
-                "Next"
-              )}
+              Next
             </button>
           </form>
           {searchError && (
@@ -308,6 +330,7 @@ export function HomeValueExperience({
                     Form tab in admin.
                   </p>
                 )}
+                <SocialLinksBar domain={page.domain} />
               </div>
             </div>
           </div>

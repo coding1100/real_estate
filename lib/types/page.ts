@@ -58,6 +58,16 @@ export interface LandingPageContent {
     accentColor: string;
     ga4Id?: string | null;
     metaPixelId?: string | null;
+    linkedinUrl?: string | null;
+    linkedinVisible?: boolean | null;
+    googleUrl?: string | null;
+    googleVisible?: boolean | null;
+    facebookUrl?: string | null;
+    facebookVisible?: boolean | null;
+    instagramUrl?: string | null;
+    instagramVisible?: boolean | null;
+    zillowUrl?: string | null;
+    zillowVisible?: boolean | null;
   };
   type: LandingPageType;
   headline: string;

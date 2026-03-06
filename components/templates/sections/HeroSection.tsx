@@ -6,6 +6,7 @@ import type {
 } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
 import { DynamicForm } from "@/components/forms/DynamicForm";
+import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
 
 type FormStyle = "default" | "questionnaire" | "detailed-perspective" | "next-steps";
 
@@ -301,6 +302,7 @@ export function HeroSection({
                           </button>
                         </div>
                       )}
+                      <SocialLinksBar domain={page.domain} className="mt-2" />
                     </div>
                   ) : (
                     // Default Next steps layout: three sections across two columns
@@ -539,6 +541,7 @@ export function HeroSection({
                         ...(utmHiddenFields ?? {}),
                       }}
                     />
+                    <SocialLinksBar domain={page.domain} />
                     {layout?.formIntro?.trim() && (
                       <div
                         className={`mt-4 text-md text-zinc-500 space-y-2 font-serif ${
