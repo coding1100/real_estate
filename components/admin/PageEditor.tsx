@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import type {
   LandingPageContent,
   BlockConfig,
   HeroElementsByColumn,
+  LandingPageType,
 } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
 import { ImageUploader } from "@/components/admin/ImageUploader";
@@ -26,6 +27,13 @@ interface PageEditorProps {
 
 type Tab = "content" | "form" | "seo" | "layout";
 
+type MultistepCandidate = {
+  id: string;
+  slug: string;
+  headline: string;
+  type: LandingPageType;
+};
+
 export function PageEditor({ initialPage }: PageEditorProps) {
   const [tab, setTab] = useState<Tab>("content");
   const [page, setPage] = useState(initialPage);
@@ -44,6 +52,9 @@ export function PageEditor({ initialPage }: PageEditorProps) {
   );
   const [saving, startSaving] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const [availableSteps, setAvailableSteps] = useState<MultistepCandidate[]>([]);
+  const [stepsLoading, setStepsLoading] = useState(false);
+  const [stepsError, setStepsError] = useState<string | null>(null);
   const layoutGetBlocksRef = useRef<(() => BlockConfig[]) | null>(null);
   const layoutGetHeroElementsRef =
     useRef<(() => HeroElementsByColumn | null) | null>(null);
@@ -92,6 +103,66 @@ export function PageEditor({ initialPage }: PageEditorProps) {
         } as any;
       }
       return { ...prev, sections };
+    });
+  }
+
+  useEffect(() => {
+    if (pageMode !== "multistep") return;
+
+    let cancelled = false;
+    setStepsLoading(true);
+    setStepsError(null);
+
+    fetch(`/api/admin/pages/for-multistep?domainId=${initialPage.domainId}`, {
+      credentials: "include",
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(data?.error ?? "Failed to load pages for multistep flow.");
+        }
+        const json = (await res.json()) as { pages: MultistepCandidate[] };
+        return json.pages;
+      })
+      .then((pages) => {
+        if (cancelled) return;
+        const filtered = pages.filter((p) => p.slug !== page.slug);
+        setAvailableSteps(filtered);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const msg =
+          err instanceof Error
+            ? err.message
+            : "Failed to load pages for multistep flow.";
+        setStepsError(msg);
+        setAvailableSteps([]);
+      })
+      .finally(() => {
+        if (!cancelled) setStepsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialPage.domainId, page.slug, pageMode]);
+
+  function toggleStepSlug(slug: string, isChecked: boolean) {
+    setMultistepStepSlugs((prev) => {
+      if (!isChecked) {
+        return prev.filter((s) => s !== slug);
+      }
+      if (prev.includes(slug)) {
+        return prev;
+      }
+      const withNew = [...prev, slug];
+      const order = new Map<string, number>();
+      availableSteps.forEach((s, index) => {
+        order.set(s.slug, index);
+      });
+      return withNew.sort(
+        (a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0),
+      );
     });
   }
 
@@ -654,26 +725,105 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                       Multistep flow (step slugs)
                     </p>
                     <p className="text-xs text-zinc-500">
-                      Enter the slugs for each step, in order. The first slug controls
-                      the SEO and layout for this multistep experience.
+                      Select published pages on this domain to include in this multistep
+                      flow. Each selected page is added to the ordered step list below.
+                      The first step controls SEO and layout.
                     </p>
-                    <textarea
-                      className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                      rows={3}
-                      value={multistepStepSlugs.join("\n")}
-                      onChange={(e) =>
-                        setMultistepStepSlugs(
-                          e.target.value
-                            .split("\n")
-                            .map((s) => s.trim())
-                            .filter(Boolean),
-                        )
-                      }
-                      placeholder="market-report-1&#10;market-report-2&#10;market-report-3"
-                    />
+                    <div className="space-y-2 rounded-md border border-zinc-100 bg-zinc-50 p-3">
+                      {stepsLoading ? (
+                        <p className="text-xs text-zinc-500">Loading available pages…</p>
+                      ) : stepsError ? (
+                        <p className="text-xs text-red-600">{stepsError}</p>
+                      ) : availableSteps.length === 0 ? (
+                        <p className="text-xs text-zinc-500">
+                          No other published pages found for this domain. Publish pages
+                          first, then return here to add them as steps.
+                        </p>
+                      ) : (
+                        <>
+                          <label className="block text-xs font-medium text-zinc-700">
+                            Add step
+                          </label>
+                          <select
+                            className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                            defaultValue=""
+                            onChange={(e) => {
+                              const slug = e.target.value;
+                              if (!slug) return;
+                              toggleStepSlug(slug, true);
+                              e.target.value = "";
+                            }}
+                          >
+                            <option value="">Select a page to add…</option>
+                            {availableSteps
+                              .filter((s) => !multistepStepSlugs.includes(s.slug))
+                              .map((step) => (
+                                <option key={step.id} value={step.slug}>
+                                  {step.slug} —{" "}
+                                  {step.headline || (step.type as string)}
+                                </option>
+                              ))}
+                          </select>
+                          <p className="mt-1 text-[11px] text-zinc-500">
+                            You can add multiple steps; they will appear in the list
+                            below.
+                          </p>
+                        </>
+                      )}
+                    </div>
+                    <div className="space-y-2 rounded-md border border-zinc-100 bg-zinc-50 p-3">
+                      <p className="text-xs font-medium text-zinc-700">
+                        Current step order
+                      </p>
+                      {multistepStepSlugs.length === 0 ? (
+                        <p className="text-xs text-zinc-500">
+                          No steps selected yet. Use the selector above to add steps.
+                        </p>
+                      ) : (
+                        <ol className="space-y-1 text-xs">
+                          {multistepStepSlugs.map((slug, index) => {
+                            const meta = availableSteps.find((s) => s.slug === slug);
+                            return (
+                              <li
+                                key={slug}
+                                className="flex items-center justify-between rounded-md border border-zinc-200 bg-white px-2 py-1"
+                              >
+                                <div className="flex flex-col">
+                                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                                    Step {index + 1}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-zinc-900">
+                                      {slug}
+                                    </span>
+                                    {meta && (
+                                      <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.14em] text-zinc-600">
+                                        {meta.type}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {meta?.headline && (
+                                    <span className="line-clamp-1 text-[11px] text-zinc-500">
+                                      {meta.headline}
+                                    </span>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  className="ml-2 rounded-md border border-zinc-200 px-1.5 py-0.5 text-[11px] text-zinc-600 hover:bg-zinc-100"
+                                  onClick={() => toggleStepSlug(slug, false)}
+                                >
+                                  Remove
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ol>
+                      )}
+                    </div>
                     <p className="mt-1 text-xs text-zinc-500">
-                      One slug per line. This page becomes the entry URL; step content is
-                      loaded from these slugs.
+                      This page becomes the entry URL; step content is loaded in order
+                      from the steps listed above.
                     </p>
                   </div>
                 </>
