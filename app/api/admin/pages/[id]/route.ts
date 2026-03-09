@@ -17,6 +17,13 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
 
   const body = await req.json();
   const { id } = await ctx.params;
+  const existingPage = await prisma.landingPage.findUnique({
+    where: { id },
+    select: { domainId: true },
+  });
+  if (!existingPage) {
+    return NextResponse.json({ error: "Page not found." }, { status: 404 });
+  }
 
   // Basic validation for slug updates
   if (Object.prototype.hasOwnProperty.call(body, "slug")) {
@@ -27,9 +34,66 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
       );
     }
     body.slug = body.slug.trim();
+
+    const targetDomainId =
+      typeof body.domainId === "string" && body.domainId.trim().length > 0
+        ? body.domainId.trim()
+        : existingPage.domainId;
+
+    // Enforce slug uniqueness only within the target domain.
+    const existing = await prisma.landingPage.findFirst({
+      where: {
+        slug: body.slug,
+        domainId: targetDomainId,
+        NOT: { id },
+      },
+    });
+    if (existing) {
+      return NextResponse.json(
+        { error: "A page with this slug already exists for this domain." },
+        { status: 400 },
+      );
+    }
   }
 
   try {
+    // If we are renaming the legacy /strategy-call page and it uses the
+    // Next steps layout without an explicit profile-only flag, backfill
+    // that flag into the hero section so the layout stays stable after rename.
+    if (typeof body.slug === "string") {
+      const existing = await prisma.landingPage.findUnique({
+        where: { id },
+        select: { slug: true, sections: true },
+      });
+      if (existing && existing.slug === "strategy-call") {
+        const rawSections = existing.sections as any;
+        const sections: any[] = Array.isArray(rawSections)
+          ? rawSections
+          : [];
+        const heroIdx = sections.findIndex((s) => s && s.kind === "hero");
+        if (heroIdx !== -1) {
+          const hero = sections[heroIdx] || {};
+          const props = (hero.props || {}) as any;
+          if (
+            props.formStyle === "next-steps" &&
+            typeof props.nextStepsSecondOnly === "undefined"
+          ) {
+            const updatedHero = {
+              ...hero,
+              props: {
+                ...props,
+                nextStepsSecondOnly: true,
+              },
+            };
+            sections[heroIdx] = updatedHero;
+            if (!Object.prototype.hasOwnProperty.call(body, "sections")) {
+              body.sections = sections;
+            }
+          }
+        }
+      }
+    }
+
     // Extract layout data if provided
     const layoutData = body.layoutData;
     delete body.layoutData;
@@ -111,6 +175,7 @@ export async function DELETE(_req: NextRequest, ctx: RouteContext) {
   try {
     await prisma.$transaction([
       prisma.lead.deleteMany({ where: { pageId: id } }),
+      prisma.pageLayout.deleteMany({ where: { pageId: id } }),
       prisma.landingPage.delete({ where: { id } }),
     ]);
     return NextResponse.json({ ok: true }, { status: 200 });

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Dialog } from "@/components/ui/Dialog";
 import { Pencil, Check, X, Trash2, Plus } from "lucide-react";
+import { useAdminToast } from "@/components/admin/useAdminToast";
 
 interface DomainRow {
   id: string;
@@ -16,6 +17,16 @@ interface DomainRow {
   metaPixelId: string | null;
   logoUrl: string | null;
   rightLogoUrl: string | null;
+  linkedinUrl: string | null;
+  linkedinVisible: boolean;
+  googleUrl: string | null;
+  googleVisible: boolean;
+  facebookUrl: string | null;
+  facebookVisible: boolean;
+  instagramUrl: string | null;
+  instagramVisible: boolean;
+  zillowUrl: string | null;
+  zillowVisible: boolean;
 }
 
 interface DomainsManagerProps {
@@ -42,7 +53,18 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
     metaPixelId: null,
     logoUrl: null,
     rightLogoUrl: null,
+    linkedinUrl: null,
+    linkedinVisible: true,
+    googleUrl: null,
+    googleVisible: true,
+    facebookUrl: null,
+    facebookVisible: true,
+    instagramUrl: null,
+    instagramVisible: true,
+    zillowUrl: null,
+    zillowVisible: true,
   });
+  const { success: toastSuccess, error: toastError } = useAdminToast();
 
   function startEdit(domain: DomainRow) {
     setEditingId(domain.id);
@@ -74,6 +96,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
           method,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(domain),
+          credentials: "include",
         });
         if (!res.ok) throw new Error("Failed to save domain");
         const data = (await res.json()) as { domain: any };
@@ -98,6 +121,46 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
             data.domain.agentPhoto != null
               ? String(data.domain.agentPhoto)
               : null,
+          linkedinUrl:
+            data.domain.linkedinUrl != null
+              ? String(data.domain.linkedinUrl)
+              : null,
+          linkedinVisible:
+            typeof data.domain.linkedinVisible === "boolean"
+              ? data.domain.linkedinVisible
+              : true,
+          googleUrl:
+            data.domain.googleUrl != null
+              ? String(data.domain.googleUrl)
+              : null,
+          googleVisible:
+            typeof data.domain.googleVisible === "boolean"
+              ? data.domain.googleVisible
+              : true,
+          facebookUrl:
+            data.domain.facebookUrl != null
+              ? String(data.domain.facebookUrl)
+              : null,
+          facebookVisible:
+            typeof data.domain.facebookVisible === "boolean"
+              ? data.domain.facebookVisible
+              : true,
+          instagramUrl:
+            data.domain.instagramUrl != null
+              ? String(data.domain.instagramUrl)
+              : null,
+          instagramVisible:
+            typeof data.domain.instagramVisible === "boolean"
+              ? data.domain.instagramVisible
+              : true,
+          zillowUrl:
+            data.domain.zillowUrl != null
+              ? String(data.domain.zillowUrl)
+              : null,
+          zillowVisible:
+            typeof data.domain.zillowVisible === "boolean"
+              ? data.domain.zillowVisible
+              : true,
         };
         setDomains((prev) => {
           if (isNew) {
@@ -112,9 +175,12 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         });
         setEditingId(null);
         setDraft(null);
+        toastSuccess(isNew ? "Domain created successfully." : "Domain updated successfully.");
       } catch (e: any) {
         console.error(e);
-        setError(e.message ?? "Failed to save domain");
+        const message = e?.message ?? "Failed to save domain";
+        setError(message);
+        toastError(message);
       } finally {
         setSavingId(null);
       }
@@ -129,12 +195,16 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
       try {
         const res = await fetch(`/api/admin/domains/${id}`, {
           method: "DELETE",
+          credentials: "include",
         });
         if (!res.ok) throw new Error("Failed to delete domain");
         setDomains((prev) => prev.filter((d) => d.id !== id));
+        toastSuccess("Domain deleted successfully.");
       } catch (e: any) {
         console.error(e);
-        setError(e.message ?? "Failed to delete domain");
+        const message = e?.message ?? "Failed to delete domain";
+        setError(message);
+        toastError(message);
       } finally {
         setSavingId(null);
       }
@@ -153,6 +223,16 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
       metaPixelId: null,
       logoUrl: null,
       rightLogoUrl: null,
+      linkedinUrl: null,
+      linkedinVisible: true,
+      googleUrl: null,
+      googleVisible: true,
+      facebookUrl: null,
+      facebookVisible: true,
+      instagramUrl: null,
+      instagramVisible: true,
+      zillowUrl: null,
+      zillowVisible: true,
     });
     setAddFormError(null);
     setAddDialogOpen(true);
@@ -175,6 +255,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         const res = await fetch("/api/admin/domains", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             hostname: newDomainForm.hostname.trim(),
             displayName: newDomainForm.displayName.trim(),
@@ -185,11 +266,23 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
             metaPixelId: newDomainForm.metaPixelId?.trim() || null,
             logoUrl: newDomainForm.logoUrl || null,
             rightLogoUrl: newDomainForm.rightLogoUrl || null,
+            linkedinUrl: newDomainForm.linkedinUrl?.trim() || null,
+            linkedinVisible: newDomainForm.linkedinVisible,
+            googleUrl: newDomainForm.googleUrl?.trim() || null,
+            googleVisible: newDomainForm.googleVisible,
+            facebookUrl: newDomainForm.facebookUrl?.trim() || null,
+            facebookVisible: newDomainForm.facebookVisible,
+            instagramUrl: newDomainForm.instagramUrl?.trim() || null,
+            instagramVisible: newDomainForm.instagramVisible,
+            zillowUrl: newDomainForm.zillowUrl?.trim() || null,
+            zillowVisible: newDomainForm.zillowVisible,
           }),
         });
         const data = await res.json();
         if (!res.ok) {
-          setAddFormError(data?.error ?? "Failed to create domain");
+          const message = data?.error ?? "Failed to create domain";
+          setAddFormError(message);
+          toastError(message);
           return;
         }
         const created = data.domain as Record<string, unknown>;
@@ -204,12 +297,45 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
           metaPixelId: created.metaPixelId != null ? String(created.metaPixelId) : null,
           logoUrl: created.logoUrl != null ? String(created.logoUrl) : null,
           rightLogoUrl: created.agentPhoto != null ? String(created.agentPhoto) : null,
+          linkedinUrl:
+            created.linkedinUrl != null ? String(created.linkedinUrl) : null,
+          linkedinVisible:
+            typeof created.linkedinVisible === "boolean"
+              ? (created.linkedinVisible as boolean)
+              : true,
+          googleUrl:
+            created.googleUrl != null ? String(created.googleUrl) : null,
+          googleVisible:
+            typeof created.googleVisible === "boolean"
+              ? (created.googleVisible as boolean)
+              : true,
+          facebookUrl:
+            created.facebookUrl != null ? String(created.facebookUrl) : null,
+          facebookVisible:
+            typeof created.facebookVisible === "boolean"
+              ? (created.facebookVisible as boolean)
+              : true,
+          instagramUrl:
+            created.instagramUrl != null ? String(created.instagramUrl) : null,
+          instagramVisible:
+            typeof created.instagramVisible === "boolean"
+              ? (created.instagramVisible as boolean)
+              : true,
+          zillowUrl:
+            created.zillowUrl != null ? String(created.zillowUrl) : null,
+          zillowVisible:
+            typeof created.zillowVisible === "boolean"
+              ? (created.zillowVisible as boolean)
+              : true,
         };
         setDomains((prev) => [...prev, row].sort((a, b) => a.hostname.localeCompare(b.hostname)));
         setAddDialogOpen(false);
+        toastSuccess("Domain created successfully.");
       } catch (e: any) {
         console.error(e);
-        setAddFormError(e.message ?? "Failed to create domain");
+        const message = e?.message ?? "Failed to create domain";
+        setAddFormError(message);
+        toastError(message);
       } finally {
         setSavingId(null);
       }
@@ -407,44 +533,9 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                   {/* Top row: hostname + active + edit controls */}
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-[14px] uppercase tracking-[0.16em] text-zinc-500">
-                          Hostname
-                        </p>
-                        <div className="flex items-center gap-1 text-[14px]">
-                          {!isEditing ? (
-                            <button
-                              type="button"
-                              onClick={() => startEdit(d)}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded border border-zinc-300 text-zinc-700 hover:bg-zinc-100"
-                              aria-label="Edit hostname"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => draft && saveDomain(draft)}
-                                disabled={isPending || !draft}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-60"
-                                aria-label="Save domain"
-                              >
-                                <Check className="h-3 w-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={cancelEdit}
-                                disabled={isPending}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded border border-zinc-300 text-zinc-700 hover:bg-zinc-100 disabled:opacity-60"
-                                aria-label="Cancel edit"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
+                      <p className="text-[14px] uppercase tracking-[0.16em] text-zinc-500">
+                        Hostname
+                      </p>
                       {isEditing ? (
                         <input
                           className="w-full max-w-xs rounded-md border border-zinc-300 px-2 py-1 text-md"
@@ -472,17 +563,50 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                         />
                         Active
                       </label>
-                      <div className="flex items-center gap-1 text-[14px]">
-                        {d.id !== "new" && !isEditing && (
-                          <button
-                            type="button"
-                            onClick={() => deleteDomain(d.id)}
-                            disabled={isPending}
-                            className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-red-700 hover:bg-red-50 disabled:opacity-60"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            <span>Delete</span>
-                          </button>
+                      <div className="flex items-center gap-2 text-[14px]">
+                        {isEditing ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => draft && saveDomain(draft)}
+                              disabled={isPending || !draft}
+                              className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-zinc-900 px-2.5 py-1 text-white hover:bg-zinc-800 disabled:opacity-60"
+                            >
+                              <Check className="h-3 w-3" />
+                              <span>Save</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEdit}
+                              disabled={isPending}
+                              className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 px-2.5 py-1 text-zinc-700 hover:bg-zinc-100 disabled:opacity-60"
+                            >
+                              <X className="h-3 w-3" />
+                              <span>Cancel</span>
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => startEdit(d)}
+                              className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 px-2.5 py-1 text-zinc-700 hover:bg-zinc-100"
+                            >
+                              <Pencil className="h-3 w-3" />
+                              <span>Edit</span>
+                            </button>
+                            {d.id !== "new" && (
+                              <button
+                                type="button"
+                                onClick={() => deleteDomain(d.id)}
+                                disabled={isPending}
+                                className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-red-700 hover:bg-red-50 disabled:opacity-60"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                <span>Delete</span>
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -491,44 +615,9 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                   {/* Main editable fields */}
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <label className="block text-[14px] font-medium text-zinc-700">
-                          Display name
-                        </label>
-                        <div className="flex items-center gap-1">
-                          {!isEditing ? (
-                            <button
-                              type="button"
-                              onClick={() => startEdit(d)}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded border border-zinc-300 text-zinc-700 hover:bg-zinc-100"
-                              aria-label="Edit display name"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => draft && saveDomain(draft)}
-                                disabled={isPending || !draft}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-60"
-                                aria-label="Save domain"
-                              >
-                                <Check className="h-3 w-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={cancelEdit}
-                                disabled={isPending}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded border border-zinc-300 text-zinc-700 hover:bg-zinc-100 disabled:opacity-60"
-                                aria-label="Cancel edit"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
+                      <label className="block text-[14px] font-medium text-zinc-700">
+                        Display name
+                      </label>
                       {isEditing ? (
                         <input
                           className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
@@ -544,44 +633,11 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                         </p>
                       )}
 
-                      <div className="flex items-center justify-between gap-2">
-                        <label className="block text-[14px] font-medium text-zinc-700">
-                          Notify email
-                        </label>
-                        <div className="flex items-center gap-1">
-                          {!isEditing ? (
-                            <button
-                              type="button"
-                              onClick={() => startEdit(d)}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded border border-zinc-300 text-zinc-700 hover:bg-zinc-100"
-                              aria-label="Edit notify email"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => draft && saveDomain(draft)}
-                                disabled={isPending || !draft}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-60"
-                                aria-label="Save domain"
-                              >
-                                <Check className="h-3 w-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={cancelEdit}
-                                disabled={isPending}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded border border-zinc-300 text-zinc-700 hover:bg-zinc-100 disabled:opacity-60"
-                                aria-label="Cancel edit"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
+                     
+
+                      <label className="block text-[14px] font-medium text-zinc-700">
+                        Notify email
+                      </label>
                       {isEditing ? (
                         <input
                           className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
@@ -597,44 +653,9 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                         </p>
                       )}
 
-                      <div className="flex items-center justify-between gap-2">
-                        <label className="block text-[14px] font-medium text-zinc-700">
-                          Notify SMS
-                        </label>
-                        <div className="flex items-center gap-1">
-                          {!isEditing ? (
-                            <button
-                              type="button"
-                              onClick={() => startEdit(d)}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded border border-zinc-300 text-zinc-700 hover:bg-zinc-100"
-                              aria-label="Edit notify SMS"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => draft && saveDomain(draft)}
-                                disabled={isPending || !draft}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-60"
-                                aria-label="Save domain"
-                              >
-                                <Check className="h-3 w-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={cancelEdit}
-                                disabled={isPending}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded border border-zinc-300 text-zinc-700 hover:bg-zinc-100 disabled:opacity-60"
-                                aria-label="Cancel edit"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
+                      <label className="block text-[14px] font-medium text-zinc-700">
+                        Notify SMS
+                      </label>
                       {isEditing ? (
                         <input
                           className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
@@ -654,44 +675,9 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                     </div>
 
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <label className="block text-[14px] font-medium text-zinc-700">
-                          GA4 ID
-                        </label>
-                        <div className="flex items-center gap-1">
-                          {!isEditing ? (
-                            <button
-                              type="button"
-                              onClick={() => startEdit(d)}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded border border-zinc-300 text-zinc-700 hover:bg-zinc-100"
-                              aria-label="Edit GA4 ID"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => draft && saveDomain(draft)}
-                                disabled={isPending || !draft}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-60"
-                                aria-label="Save domain"
-                              >
-                                <Check className="h-3 w-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={cancelEdit}
-                                disabled={isPending}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded border border-zinc-300 text-zinc-700 hover:bg-zinc-100 disabled:opacity-60"
-                                aria-label="Cancel edit"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
+                      <label className="block text-[14px] font-medium text-zinc-700">
+                        GA4 ID
+                      </label>
                       {isEditing ? (
                         <input
                           className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
@@ -709,44 +695,9 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                         </p>
                       )}
 
-                      <div className="flex items-center justify-between gap-2">
-                        <label className="block text-[14px] font-medium text-zinc-700">
-                          Meta Pixel ID
-                        </label>
-                        <div className="flex items-center gap-1">
-                          {!isEditing ? (
-                            <button
-                              type="button"
-                              onClick={() => startEdit(d)}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded border border-zinc-300 text-zinc-700 hover:bg-zinc-100"
-                              aria-label="Edit Meta Pixel ID"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => draft && saveDomain(draft)}
-                                disabled={isPending || !draft}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-60"
-                                aria-label="Save domain"
-                              >
-                                <Check className="h-3 w-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={cancelEdit}
-                                disabled={isPending}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded border border-zinc-300 text-zinc-700 hover:bg-zinc-100 disabled:opacity-60"
-                                aria-label="Cancel edit"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
+                      <label className="block text-[14px] font-medium text-zinc-700">
+                        Meta Pixel ID
+                      </label>
                       {isEditing ? (
                         <input
                           className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
@@ -764,7 +715,171 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                         </p>
                       )}
                     </div>
+                     
                   </div>
+                  {/* Social profiles */}
+                  <div className="grid-cols-1">
+                  <div className="mt-4 space-y-3 border-t border-zinc-200 pt-3 grid-cols-1">
+                        <p className="text-[13px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                          Social profiles
+                        </p>
+                        <div className="grid gap-3 md:grid-cols-2">
+                          {/* LinkedIn */}
+                          <div className="space-y-1">
+                            <label className="block text-[13px] font-medium text-zinc-700">
+                              LinkedIn URL
+                            </label>
+                            <input
+                              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
+                              value={current.linkedinUrl ?? ""}
+                              disabled={!isEditing}
+                              onChange={(e) =>
+                                updateDraft({
+                                  linkedinUrl: e.target.value || null,
+                                })
+                              }
+                              placeholder="https://www.linkedin.com/in/..."
+                            />
+                            <label className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
+                              <input
+                                type="checkbox"
+                                checked={current.linkedinVisible}
+                                disabled={!isEditing}
+                                onChange={(e) =>
+                                  updateDraft({
+                                    linkedinVisible: e.target.checked,
+                                  })
+                                }
+                              />
+                              Show icon
+                            </label>
+                          </div>
+
+                          {/* Google */}
+                          <div className="space-y-1">
+                            <label className="block text-[13px] font-medium text-zinc-700">
+                              Google URL
+                            </label>
+                            <input
+                              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
+                              value={current.googleUrl ?? ""}
+                              disabled={!isEditing}
+                              onChange={(e) =>
+                                updateDraft({
+                                  googleUrl: e.target.value || null,
+                                })
+                              }
+                              placeholder="https://maps.google.com/?cid=..."
+                            />
+                            <label className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
+                              <input
+                                type="checkbox"
+                                checked={current.googleVisible}
+                                disabled={!isEditing}
+                                onChange={(e) =>
+                                  updateDraft({
+                                    googleVisible: e.target.checked,
+                                  })
+                                }
+                              />
+                              Show icon
+                            </label>
+                          </div>
+
+                          {/* Facebook */}
+                          <div className="space-y-1">
+                            <label className="block text-[13px] font-medium text-zinc-700">
+                              Facebook URL
+                            </label>
+                            <input
+                              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
+                              value={current.facebookUrl ?? ""}
+                              disabled={!isEditing}
+                              onChange={(e) =>
+                                updateDraft({
+                                  facebookUrl: e.target.value || null,
+                                })
+                              }
+                              placeholder="https://www.facebook.com/..."
+                            />
+                            <label className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
+                              <input
+                                type="checkbox"
+                                checked={current.facebookVisible}
+                                disabled={!isEditing}
+                                onChange={(e) =>
+                                  updateDraft({
+                                    facebookVisible: e.target.checked,
+                                  })
+                                }
+                              />
+                              Show icon
+                            </label>
+                          </div>
+
+                          {/* Instagram */}
+                          <div className="space-y-1">
+                            <label className="block text-[13px] font-medium text-zinc-700">
+                              Instagram URL
+                            </label>
+                            <input
+                              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
+                              value={current.instagramUrl ?? ""}
+                              disabled={!isEditing}
+                              onChange={(e) =>
+                                updateDraft({
+                                  instagramUrl: e.target.value || null,
+                                })
+                              }
+                              placeholder="https://www.instagram.com/..."
+                            />
+                            <label className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
+                              <input
+                                type="checkbox"
+                                checked={current.instagramVisible}
+                                disabled={!isEditing}
+                                onChange={(e) =>
+                                  updateDraft({
+                                    instagramVisible: e.target.checked,
+                                  })
+                                }
+                              />
+                              Show icon
+                            </label>
+                          </div>
+
+                          {/* Zillow */}
+                          <div className="space-y-1">
+                            <label className="block text-[13px] font-medium text-zinc-700">
+                              Zillow URL
+                            </label>
+                            <input
+                              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
+                              value={current.zillowUrl ?? ""}
+                              disabled={!isEditing}
+                              onChange={(e) =>
+                                updateDraft({
+                                  zillowUrl: e.target.value || null,
+                                })
+                              }
+                              placeholder="https://www.zillow.com/profile/..."
+                            />
+                            <label className="mt-1 flex items-center gap-2 text-[13px] text-zinc-700">
+                              <input
+                                type="checkbox"
+                                checked={current.zillowVisible}
+                                disabled={!isEditing}
+                                onChange={(e) =>
+                                  updateDraft({
+                                    zillowVisible: e.target.checked,
+                                  })
+                                }
+                              />
+                              Show icon
+                            </label>
+                          </div>
+                        </div>
+                      </div></div>
                 </div>
               </div>
 

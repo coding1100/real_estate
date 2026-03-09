@@ -8,6 +8,7 @@ import type { LandingPageContent } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
 import { DynamicForm } from "@/components/forms/DynamicForm";
 import { useRecaptcha, RecaptchaScript } from "@/components/forms/Captcha";
+import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
 
 interface LayoutItem {
   i: string;
@@ -472,22 +473,25 @@ export function HomeValueMultistepFlow({
                   />
                 )}
 
-                <div className="mt-4">
-                  {formSchema && formSchema.fields?.length ? (
-                    <DynamicForm
-                      schema={formSchema}
-                      ctaText={mainPage.ctaText}
-                      successMessage={mainPage.successMessage}
-                      ctaBgColor={layout?.ctaBgColor}
-                      onNextStep={handleNextStep}
-                    />
-                  ) : (
-                    <p className="text-xs text-amber-800/80">
-                      No form is configured for this page yet. Add fields in the
-                      Form tab in admin.
-                    </p>
-                  )}
-                </div>
+        <div className="mt-4">
+          {formSchema && formSchema.fields?.length ? (
+            <>
+              <DynamicForm
+                schema={formSchema}
+                ctaText={mainPage.ctaText}
+                successMessage={mainPage.successMessage}
+                ctaBgColor={layout?.ctaBgColor}
+                onNextStep={handleNextStep}
+              />
+              <SocialLinksBar domain={mainPage.domain} className="mt-3" />
+            </>
+          ) : (
+            <p className="text-xs text-amber-800/80">
+              No form is configured for this page yet. Add fields in the
+              Form tab in admin.
+            </p>
+          )}
+        </div>
               </div>
             </div>
           </div>
@@ -668,6 +672,7 @@ export function HomeValueMultistepFlow({
                           }}
                         />
                       </button>
+                      <SocialLinksBar domain={mainPage.domain} className="mt-1.5" />
                       {layout?.formFooterText?.trim() && (
                         <div
                           className="text-xs text-zinc-700 font-serif leading-relaxed text-center"
@@ -778,6 +783,7 @@ export function HomeValueMultistepFlow({
                               }}
                             />
                           </button>
+                          <SocialLinksBar domain={mainPage.domain} className="mt-1.5" />
                           {layout?.formFooterText?.trim() && (
                             <div
                               className="text-xs text-zinc-700 font-serif leading-relaxed text-center"
@@ -821,27 +827,30 @@ export function HomeValueMultistepFlow({
                         dangerouslySetInnerHTML={{ __html: layout.formIntro }}
                       />
                     )}
-                    <DynamicForm
-                      schema={formSchema}
-                      ctaText={step.ctaText}
-                      successMessage={mainPage.successMessage}
-                      textSize={formTextSize}
-                      ctaBgColor={ctaBgColor}
-                      formStyle="detailed-perspective"
-                      helperText={
-                        layout?.formIntro?.trim()
-                          ? undefined
-                          : "This helps us ensure the data you receive is relevant to your situation."
-                      }
-                      postCtaText={
-                        layout?.formPostCtaText?.trim() || undefined
-                      }
-                      extraHiddenFields={
-                        isLastStep ? extraHiddenFieldsForSubmit : undefined
-                      }
-                      onNextStep={isLastStep ? undefined : handleNextStep}
-                      skipValidationForNextStep={false}
-                    />
+                    <>
+                      <DynamicForm
+                        schema={formSchema}
+                        ctaText={step.ctaText}
+                        successMessage={mainPage.successMessage}
+                        textSize={formTextSize}
+                        ctaBgColor={ctaBgColor}
+                        formStyle="detailed-perspective"
+                        helperText={
+                          layout?.formIntro?.trim()
+                            ? undefined
+                            : "This helps us ensure the data you receive is relevant to your situation."
+                        }
+                        postCtaText={
+                          layout?.formPostCtaText?.trim() || undefined
+                        }
+                        extraHiddenFields={
+                          isLastStep ? extraHiddenFieldsForSubmit : undefined
+                        }
+                        onNextStep={isLastStep ? undefined : handleNextStep}
+                        skipValidationForNextStep={false}
+                      />
+                      <SocialLinksBar domain={mainPage.domain} className="mt-3" />
+                    </>
                   </div>
                   <div className="space-y-4 relative flex flex-col justify-center">
                     <div className="w-full px-[25px] pt-[30px] pb-[70px] break-all border border-[#cbb1a7ab] pr-[44%] flex flex-col justify-center max-[768px]:pr-4 max-[768px]:pb-4">
@@ -928,19 +937,22 @@ export function HomeValueMultistepFlow({
                   />
                 )}
                 {formSchema && formSchema.fields?.length > 0 ? (
-                  <DynamicForm
-                    schema={formSchema}
-                    ctaText={step.ctaText}
-                    successMessage={mainPage.successMessage}
-                    textSize={formTextSize}
-                    ctaBgColor={ctaBgColor}
-                    formStyle={isQuestionnaire ? "questionnaire" : "default"}
-                    extraHiddenFields={
-                      isLastStep ? extraHiddenFieldsForSubmit : undefined
-                    }
-                    onNextStep={isLastStep ? undefined : handleNextStep}
-                    skipValidationForNextStep={false}
-                  />
+                  <>
+                    <DynamicForm
+                      schema={formSchema}
+                      ctaText={step.ctaText}
+                      successMessage={mainPage.successMessage}
+                      textSize={formTextSize}
+                      ctaBgColor={ctaBgColor}
+                      formStyle={isQuestionnaire ? "questionnaire" : "default"}
+                      extraHiddenFields={
+                        isLastStep ? extraHiddenFieldsForSubmit : undefined
+                      }
+                      onNextStep={isLastStep ? undefined : handleNextStep}
+                      skipValidationForNextStep={false}
+                    />
+                    <SocialLinksBar domain={mainPage.domain} className="mt-3" />
+                  </>
                 ) : !isLastStep ? (
                   <button
                     type="button"

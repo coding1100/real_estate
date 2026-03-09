@@ -302,33 +302,33 @@ export function MultistepHeroFlow({
                           />
                         )}
                       </div>
-                      <div className="mt-3 space-y-3">
-                        <button
-                          type="button"
-                          onClick={isLastStep ? handleFinalSubmitFromNextSteps : undefined}
-                          disabled={isSubmittingFinal}
-                          className="inline-flex w-full items-center justify-center rounded-[2px] px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                          style={ctaBgColor ? { backgroundColor: ctaBgColor } : undefined}
-                        >
-                          <span
-                            dangerouslySetInnerHTML={{ __html: step.ctaText }}
-                          />
-                        </button>
-                        {isFinalSubmitted && mainPage.successMessage && (
-                          <div
-                            className="text-md text-emerald-800 font-serif text-center"
-                            dangerouslySetInnerHTML={{
-                              __html: mainPage.successMessage,
-                            }}
-                          />
-                        )}
-                        {submitError && (
-                          <p className="text-[14px] text-red-700 font-serif text-center">
-                            {submitError}
-                          </p>
-                        )}
-                        <SocialLinksBar domain={mainPage.domain} />
-                      </div>
+                    <div className="mt-3 space-y-3">
+                      <button
+                        type="button"
+                        onClick={isLastStep ? handleFinalSubmitFromNextSteps : undefined}
+                        disabled={isSubmittingFinal}
+                        className="inline-flex w-full items-center justify-center rounded-[2px] px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                        style={ctaBgColor ? { backgroundColor: ctaBgColor } : undefined}
+                      >
+                        <span
+                          dangerouslySetInnerHTML={{ __html: step.ctaText }}
+                        />
+                      </button>
+                      <SocialLinksBar domain={mainPage.domain} className="mt-1.5" />
+                      {isFinalSubmitted && mainPage.successMessage && (
+                        <div
+                          className="text-md text-emerald-800 font-serif text-center"
+                          dangerouslySetInnerHTML={{
+                            __html: mainPage.successMessage,
+                          }}
+                        />
+                      )}
+                      {submitError && (
+                        <p className="text-[14px] text-red-700 font-serif text-center">
+                          {submitError}
+                        </p>
+                      )}
+                    </div>
                     </div>
                   </div>
                 </div>
@@ -353,25 +353,27 @@ export function MultistepHeroFlow({
                       />
                     )}
                     {formSchema && formSchema.fields?.length > 0 && (
-                      <DynamicForm
-                        schema={formSchema}
-                        ctaText={step.ctaText}
-                        successMessage={mainPage.successMessage}
-                        textSize={formTextSize}
-                        ctaBgColor={ctaBgColor}
-                        formStyle="detailed-perspective"
-                        helperText={
-                          layout?.formIntro?.trim()
-                            ? undefined
-                            : "This helps us ensure the data you receive is relevant to your situation."
-                        }
-                        postCtaText={layout?.formPostCtaText?.trim() || undefined}
-                        postCtaContent={<SocialLinksBar domain={mainPage.domain} />}
-                        extraHiddenFields={
-                          isLastStep ? extraHiddenFieldsForSubmit : undefined
-                        }
-                        onNextStep={isLastStep ? undefined : handleNextStep}
-                      />
+                      <>
+                        <DynamicForm
+                          schema={formSchema}
+                          ctaText={step.ctaText}
+                          successMessage={mainPage.successMessage}
+                          textSize={formTextSize}
+                          ctaBgColor={ctaBgColor}
+                          formStyle="detailed-perspective"
+                          helperText={
+                            layout?.formIntro?.trim()
+                              ? undefined
+                              : "This helps us ensure the data you receive is relevant to your situation."
+                          }
+                          postCtaText={layout?.formPostCtaText?.trim() || undefined}
+                          extraHiddenFields={
+                            isLastStep ? extraHiddenFieldsForSubmit : undefined
+                          }
+                          onNextStep={isLastStep ? undefined : handleNextStep}
+                        />
+                        <SocialLinksBar domain={mainPage.domain} className="mt-3" />
+                      </>
                     )}
                   </div>
                   <div className="space-y-4 relative flex flex-col justify-center">
@@ -454,32 +456,31 @@ export function MultistepHeroFlow({
                     dangerouslySetInnerHTML={{ __html: formHeading }}
                   />
                 )}
-                    {formSchema && formSchema.fields?.length > 0 ? (
-                      <DynamicForm
-                        schema={formSchema}
-                        ctaText={step.ctaText}
-                        successMessage={mainPage.successMessage}
-                        textSize={formTextSize}
-                        ctaBgColor={ctaBgColor}
-                        formStyle={isQuestionnaire ? "questionnaire" : "default"}
-                        extraHiddenFields={
-                          isLastStep ? extraHiddenFieldsForSubmit : undefined
-                        }
-                        postCtaContent={<SocialLinksBar domain={mainPage.domain} />}
-                        onNextStep={isLastStep ? undefined : handleNextStep}
-                      />
-                ) : !isLastStep ? (
+                {formSchema && formSchema.fields?.length > 0 ? (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => handleNextStep({})}
-                      className="inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
-                      style={ctaBgColor ? { backgroundColor: ctaBgColor } : undefined}
-                    >
-                      <span dangerouslySetInnerHTML={{ __html: step.ctaText }} />
-                    </button>
+                    <DynamicForm
+                      schema={formSchema}
+                      ctaText={step.ctaText}
+                      successMessage={mainPage.successMessage}
+                      textSize={formTextSize}
+                      ctaBgColor={ctaBgColor}
+                      formStyle={isQuestionnaire ? "questionnaire" : "default"}
+                      extraHiddenFields={
+                        isLastStep ? extraHiddenFieldsForSubmit : undefined
+                      }
+                      onNextStep={isLastStep ? undefined : handleNextStep}
+                    />
                     <SocialLinksBar domain={mainPage.domain} className="mt-3" />
                   </>
+                ) : !isLastStep ? (
+                  <button
+                    type="button"
+                    onClick={() => handleNextStep({})}
+                    className="inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    style={ctaBgColor ? { backgroundColor: ctaBgColor } : undefined}
+                  >
+                    <span dangerouslySetInnerHTML={{ __html: step.ctaText }} />
+                  </button>
                 ) : null}
 
                 {layout?.formIntro?.trim() && (

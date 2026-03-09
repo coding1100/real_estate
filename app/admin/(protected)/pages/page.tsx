@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { SlugEditor } from "@/components/admin/SlugEditor";
-import { TypeEditor } from "@/components/admin/TypeEditor";
+import { TitleEditor } from "@/components/admin/TitleEditor";
 import { AddPageDialog } from "@/components/admin/AddPageDialog";
 import { PageRowActions } from "@/components/admin/PageRowActions";
 
@@ -44,11 +44,13 @@ export default async function AdminPagesListPage() {
           pages={pageOptions}
         />
       </div>
-      <table className="min-w-full overflow-hidden rounded-lg bg-white text-md shadow-sm">
+      <div className="max-[768px]:overflow-x-auto max-[768px]:-mx-2">
+        <table className="min-w-full rounded-lg bg-white text-md shadow-sm max-[768px]:min-w-[600px]">
         <thead className="bg-zinc-50 text-[16px] uppercase tracking-[0.15em] text-zinc-500">
           <tr>
             <th className="px-3 py-2 text-left">Domain</th>
             <th className="px-3 py-2 text-left">Slug</th>
+            <th className="px-3 py-2 text-left">Title</th>
             <th className="px-3 py-2 text-left">Type</th>
             <th className="px-3 py-2 text-left">Status</th>
             <th className="px-3 py-2 text-left">Updated</th>
@@ -74,15 +76,24 @@ export default async function AdminPagesListPage() {
                     <SlugEditor pageId={page.id} initialSlug={page.slug} />
                   )}
                 </td>
-                <td className="px-3 py-3 text-zinc-700">
+                <td className="px-3 py-3 text-zinc-700 max-w-[260px]">
                   {isMaster ? (
-                    <span className="capitalize">{page.type}</span>
+                    <span className="truncate">
+                      {(page as any).title || page.headline}
+                    </span>
                   ) : (
-                    <TypeEditor
+                    <TitleEditor
                       pageId={page.id}
-                      initialType={page.type as "buyer" | "seller"}
+                      initialTitle={
+                        ((page as any).title as string | undefined) ||
+                        page.headline ||
+                        ""
+                      }
                     />
                   )}
+                </td>
+                <td className="px-3 py-3 text-zinc-700">
+                  <span className="capitalize">{page.type}</span>
                 </td>
                 <td className="px-3 py-3 text-zinc-700">{page.status}</td>
                 <td className="px-3 py-2 text-zinc-500">
@@ -102,7 +113,7 @@ export default async function AdminPagesListPage() {
             <tr>
               <td
                 className="px-3 py-4 text-center text-zinc-500"
-                colSpan={6}
+                colSpan={7}
               >
                 No pages yet.
               </td>
@@ -110,6 +121,7 @@ export default async function AdminPagesListPage() {
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
