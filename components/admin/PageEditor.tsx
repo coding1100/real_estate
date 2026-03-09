@@ -636,13 +636,8 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                         This layout shows a two-column form with a profile card on the right. Use the rich text area for flexible profile content.
                       </p>
                       <div className="space-y-3">
-                        <ImageUploader
-                          label="Profile image"
-                          value={(heroLayout.profileImageUrl as string) ?? null}
-                          onChange={(url) =>
-                            updateHeroLayout({ profileImageUrl: url ?? undefined })
-                          }
-                        />
+                        <div className="grid gap-4 md:grid-cols-4">
+                        <div className="space-y-3 md:col-span-3">
                         <RichTextEditor
                           label="Profile content (rich text)"
                           value={(heroLayout.profileSectionHtml as string) ?? ""}
@@ -651,11 +646,27 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           }
                           placeholder="Optional: rich text for the profile block (name, title, role, phone, email, etc.). When set, this is shown instead of the fields below."
                         />
+                        </div>
+                        <div className="space-y-3 md:col-span-1">
+                        <ImageUploader
+                          label="Profile image"
+                          value={(heroLayout.profileImageUrl as string) ?? null}
+                          onChange={(url) =>
+                            updateHeroLayout({ profileImageUrl: url ?? undefined })
+                          }
+                        />
+                        </div>
+                        
+                        </div>
+                        
+                        
                       </div>
                       <div className="space-y-3 rounded-md border border-dashed border-zinc-200 bg-zinc-50 p-3">
                         <p className="text-xs font-medium text-zinc-600">
                           Additional form text (Detailed Perspective)
                         </p>
+                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-3 md:col-span-1">
                         <RichTextEditor
                           label="Text after CTA button (rich text)"
                           value={(heroLayout.formPostCtaText as string) ?? ""}
@@ -664,6 +675,8 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           }
                           placeholder="Optional text shown directly below the Complete Request button."
                         />
+                        </div>
+                        <div className="space-y-3 md:col-span-1">
                         <RichTextEditor
                           label="Text below form area overall (rich text)"
                           value={(heroLayout.formFooterText as string) ?? ""}
@@ -672,6 +685,10 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           }
                           placeholder="Optional text shown below the entire form panel (e.g. disclaimer, attribution)."
                         />
+                        </div>
+                        </div>
+                        
+                        
                       </div>
                     </div>
                   )}

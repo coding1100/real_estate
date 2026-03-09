@@ -377,15 +377,14 @@ export function MultistepHeroFlow({
                     )}
                   </div>
                   <div className="space-y-4 relative flex flex-col justify-center">
-                    <div className="w-full px-[25px] pt-[30px] pb-[70px] break-all border border-[#cbb1a7ab] pr-[44%] flex flex-col justify-center max-[768px]:pr-4 max-[768px]:pb-4">
+                    <div className="relative w-full rounded-[4px] border border-[#d7c6bc] bg-[#fff6f1] px-4 py-4 pr-[40%] flex flex-col justify-center max-[768px]:pr-4 max-[768px]:pb-4">
                       {layout?.profileImageUrl && (
-                        <div className="absolute h-[265px] w-[220px] -bottom-[0px] -right-[58px] text-transparent rounded-[2px] max-[768px]:relative max-[768px]:h-40 max-[768px]:w-full max-[768px]:bottom-auto max-[768px]:right-auto max-[768px]:mx-0 max-[768px]:mb-3">
+                        <div className="absolute h-[240px] w-[190px] -bottom-[6px] -right-[52px] overflow-hidden rounded-[4px] shadow-md max-[768px]:relative max-[768px]:h-40 max-[768px]:w-full max-[768px]:bottom-auto max-[768px]:right-auto max-[768px]:mx-0 max-[768px]:mb-3">
                           <Image
                             src={layout.profileImageUrl as string}
                             alt={(layout?.profileName as string) || "Profile"}
                             fill
                             className="object-cover max-[768px]:!w-auto"
-                            style={{ borderRadius: "2px" }}
                           />
                         </div>
                       )}
@@ -399,29 +398,29 @@ export function MultistepHeroFlow({
                       ) : (
                         <>
                           {layout?.profileName && (
-                            <h3 className="text-xl font-semibold text-zinc-800 font-serif leading-tight mb-[5px]">
+                            <h3 className="text-xl font-semibold text-zinc-800 font-serif leading-tight mb-1.5">
                               {layout.profileName as string}
                             </h3>
                           )}
                           {layout?.profileTitle && (
-                            <p className="text-sm text-zinc-700 font-serif leading-relaxed mb-[5px]">
+                            <p className="text-sm text-zinc-700 font-serif leading-relaxed mb-1">
                               {layout.profileTitle as string}
                             </p>
                           )}
                           {layout?.profileRole && (
-                            <p className="text-sm text-zinc-600 font-serif leading-relaxed mb-[5px]">
+                            <p className="text-sm text-zinc-600 font-serif leading-relaxed mb-1">
                               {layout.profileRole as string}
                             </p>
                           )}
                           <div className="space-y-1.5 pt-1">
                             {layout?.profilePhone && (
-                              <p className="text-sm text-zinc-700 font-serif flex items-center gap-2.5 leading-relaxed">
+                              <p className="text-sm text-zinc-700 font-serif flex items-center gap-2 leading-relaxed">
                                 <span className="text-zinc-500 text-base">✆</span>
                                 <span>{layout.profilePhone as string}</span>
                               </p>
                             )}
                             {layout?.profileEmail && (
-                              <p className="text-sm text-zinc-700 font-serif flex items-center gap-2.5 leading-relaxed">
+                              <p className="text-sm text-zinc-700 font-serif flex items-center gap-2 leading-relaxed">
                                 <span className="text-zinc-500 text-base">✉</span>
                                 <span className="break-all">
                                   {layout.profileEmail as string}
