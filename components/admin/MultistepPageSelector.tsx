@@ -116,7 +116,7 @@ export function MultistepPageSelector({
                       <span className="text-zinc-800">
                         {page.slug}
                         {page.headline ? (
-                          <span className="ml-1.5 text-zinc-500 truncate max-w-[200px] inline-block">
+                          <span className="ml-1.5 text-zinc-500 truncate max-w-[200px]">
                             – {page.headline}
                           </span>
                         ) : null}
