@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import type { FormSchema } from "@/lib/types/form";
@@ -21,8 +20,6 @@ interface DynamicFormProps {
   formStyle?: FormStyle;
   helperText?: string;
   postCtaText?: string;
-  /** Rendered directly under the CTA button (e.g. social links). */
-  postCtaContent?: ReactNode;
   onNextStep?: (values: Record<string, unknown>) => void;
   skipValidationForNextStep?: boolean;
 }
@@ -38,7 +35,6 @@ export function DynamicForm({
   formStyle = "default",
   helperText,
   postCtaText,
-  postCtaContent,
   onNextStep,
   skipValidationForNextStep,
 }: DynamicFormProps) {
@@ -181,7 +177,6 @@ export function DynamicForm({
             <span dangerouslySetInnerHTML={{ __html: ctaText }} />
           )}
         </button>
-        {postCtaContent && <div className="mt-3">{postCtaContent}</div>}
         {helperText && (
           <p
             className={`${isDetailedPerspective ? "mt-4 text-md" : "mt-3 text-md"} text-zinc-600 font-serif text-center leading-relaxed`}

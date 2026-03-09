@@ -196,7 +196,7 @@ export function DragDropPageLayoutEditor({
       </div>
 
       {/* Grid Layout Container */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm">
+      <div className="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm max-[768px]:overflow-x-auto">
         <GridLayout
           className="grid-layout-editor"
           layout={layout as any}
