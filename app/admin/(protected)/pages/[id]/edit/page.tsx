@@ -45,6 +45,7 @@ export default async function EditPage({ params }: EditPageProps) {
     heroImageUrl: page.heroImageUrl,
     ctaText: page.ctaText,
     successMessage: page.successMessage,
+    footerHtml: (page as any).footerHtml ?? "",
     sections: (page.sections as any) ?? [],
     formSchema: (page.formSchema as any) ?? null,
     pageLayout: pageLayout ? {

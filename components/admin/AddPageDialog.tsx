@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "@/components/ui/Dialog";
 import { Plus } from "lucide-react";
+import { useAdminToast } from "@/components/admin/useAdminToast";
 
 interface DomainOption {
   id: string;
@@ -54,6 +55,9 @@ export function AddPageDialog({
   const [duplicateSlug, setDuplicateSlug] = useState(
     pages[0]?.slug ? `${pages[0].slug}-copy` : "",
   );
+  const [duplicateType, setDuplicateType] = useState<string>(
+    pages[0]?.type ?? "buyer",
+  );
   const [form, setForm] = useState({
     domainId: domains[0]?.id ?? "",
     template: defaultTemplate,
@@ -61,12 +65,14 @@ export function AddPageDialog({
     headline: "",
     subheadline: "",
   });
+  const { success: successToast, error: errorToast } = useAdminToast();
 
   function openDialog(template?: string) {
     setMode("template");
     setDuplicatePageId(pages[0]?.id ?? "");
     setDuplicateDomainId(pages[0]?.domainId ?? domains[0]?.id ?? "");
     setDuplicateSlug(pages[0]?.slug ? `${pages[0].slug}-copy` : "");
+    setDuplicateType(pages[0]?.type ?? "buyer");
     setForm({
       domainId: domains[0]?.id ?? "",
       template: template ?? defaultTemplate,
@@ -89,6 +95,7 @@ export function AddPageDialog({
     if (mode === "duplicate") {
       if (!duplicatePageId) {
         setError("Please select a page to duplicate.");
+        errorToast("Please select a page to duplicate.");
         return;
       }
       startTransition(async () => {
@@ -100,26 +107,34 @@ export function AddPageDialog({
               pageId: duplicatePageId,
               domainId: duplicateDomainId || null,
               slug: duplicateSlug,
+                type: duplicateType,
             }),
           });
           const data = await res.json();
           if (!res.ok) {
-            setError(data?.error ?? "Failed to duplicate page");
+            const message =
+              data?.error ?? "Failed to duplicate page";
+            setError(message);
+            errorToast(message);
             return;
           }
           setOpen(false);
+          successToast("Page duplicated successfully.", "Page duplicated");
           router.push(`/admin/pages/${data.page.id}/edit`);
         } catch (err: unknown) {
-          setError(
-            err instanceof Error ? err.message : "Failed to duplicate page",
-          );
+          const message =
+            err instanceof Error ? err.message : "Failed to duplicate page";
+          setError(message);
+          errorToast(message);
         }
       });
       return;
     }
 
     if (!form.domainId?.trim() || !form.slug?.trim() || !form.headline?.trim()) {
-      setError("Domain, slug, and headline are required.");
+      const message = "Domain, slug, and headline are required.";
+      setError(message);
+      errorToast(message);
       return;
     }
 
@@ -138,15 +153,20 @@ export function AddPageDialog({
         });
         const data = await res.json();
         if (!res.ok) {
-          setError(data?.error ?? "Failed to create page");
+          const message =
+            data?.error ?? "Failed to create page";
+          setError(message);
+          errorToast(message);
           return;
         }
         setOpen(false);
+        successToast("Page created successfully.", "Page created");
         router.push(`/admin/pages/${data.page.id}/edit`);
       } catch (err: unknown) {
-        setError(
-          err instanceof Error ? err.message : "Failed to create page",
-        );
+        const message =
+          err instanceof Error ? err.message : "Failed to create page";
+        setError(message);
+        errorToast(message);
       }
     });
   }
@@ -299,6 +319,7 @@ export function AddPageDialog({
                     if (selected) {
                       setDuplicateDomainId(selected.domainId);
                       setDuplicateSlug(`${selected.slug}-copy`);
+                      setDuplicateType(selected.type);
                     }
                   }}
                   className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
@@ -310,6 +331,21 @@ export function AddPageDialog({
                       {p.domainHostname} — {p.slug} ({p.type})
                     </option>
                   ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-md font-medium text-zinc-700">
+                  Type for new page <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={duplicateType}
+                  onChange={(e) => setDuplicateType(e.target.value)}
+                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  required
+                >
+                  <option value="buyer">Buyer</option>
+                  <option value="seller">Seller</option>
                 </select>
               </div>
 
