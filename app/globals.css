@@ -167,56 +167,61 @@ ul,ol{
   }
   pre{
     margin-bottom: 40px;
+    font-size: inherit;
   }
 
-pre span > span:before {
+  /* In the TipTap editor, make empty paragraphs render as visible blank lines */
+  .ProseMirror p:empty::before {
+    content: "\00A0";
+    white-space: pre;
+  }
+
+
+
+.tag{
+  position: relative;
+  justify-content: center;
+  font-size: inherit;
+  display: flex;
+  margin: 10px 0px 20px;
+}
+.tag span{
+  position: relative;
+}
+ 
+hr{
+  width: 30%;
+  margin: auto;
+  color: inherit;
+  background: inherit;
+  pointer-events: none;
+}
+.tag span > span:before {
   content: "\2014";
   /* background-color: #eee; */
   border-radius: 0;
-  width: 23px;
+  width: 20px;
   /* height: 1px; */
   position: absolute;
   top: 50%;
-  left: -30px;
+  left: -35px !important;
   transform: translateY(-50%);
   color: inherit;
 }
-pre span > span:after {
+ .tag span > span:after {
   content: "\2014";
   /* background-color: #eee; */
   border-radius: 0;
-  width: 23px;
+  width: 20px;
   /* height: 1px; */
   position: absolute;
   top: 50%;
-  right: -30px;
+  right: -35px;
   transform: translateY(-50%);
   color: inherit;
 }
- blockquote pre span > span:before {
-  content: "\2014";
-  /* background-color: #eee; */
-  border-radius: 0;
-  width: 23px;
-  /* height: 1px; */
-  position: absolute;
-  top: 50%;
-  left: -30px;
-  transform: translateY(-50%);
-  color: inherit;
-}
- blockquote pre span > span:after {
-  content: "\2014";
-  /* background-color: #eee; */
-  border-radius: 0;
-  width: 23px;
-  /* height: 1px; */
-  position: absolute;
-  top: 50%;
-  right: -30px;
-  transform: translateY(-50%);
-  color: inherit;
-}
+
+
 dot:before
 {
   width: 10px;
