@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Node } from "@tiptap/core";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -56,6 +56,10 @@ export function RichTextEditor({
   placeholder = "",
   height = DEFAULT_EDITOR_HEIGHT,
 }: RichTextEditorProps) {
+  const [currentFontFamily, setCurrentFontFamily] = useState("default");
+  const [currentFontSize, setCurrentFontSize] = useState("14px");
+  const [currentLineHeight, setCurrentLineHeight] = useState("1.5");
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -100,6 +104,32 @@ export function RichTextEditor({
       },
     },
   });
+
+  useEffect(() => {
+    if (!editor) return;
+
+    const updateFromSelection = () => {
+      const attrs = editor.getAttributes("textStyle") as {
+        fontFamily?: string;
+        fontSize?: string;
+      };
+
+      setCurrentFontFamily(attrs.fontFamily || "default");
+      setCurrentFontSize(attrs.fontSize || "14px");
+      setCurrentLineHeight(
+        (editor.view.dom.style.lineHeight as string) || "1.5",
+      );
+    };
+
+    editor.on("selectionUpdate", updateFromSelection);
+    editor.on("transaction", updateFromSelection);
+    updateFromSelection();
+
+    return () => {
+      editor.off("selectionUpdate", updateFromSelection);
+      editor.off("transaction", updateFromSelection);
+    };
+  }, [editor]);
 
   useEffect(() => {
     if (editor && value !== editor.getHTML()) {
@@ -289,7 +319,7 @@ export function RichTextEditor({
           {/* Font family */}
           <select
             className="ml-1 rounded border border-zinc-300 bg-white px-1 py-0.5 text-xs text-zinc-700"
-            value={editor?.getAttributes("textStyle").fontFamily || "default"}
+            value={currentFontFamily}
             onChange={(e) => {
               const val = e.target.value;
               if (!editor) return;
@@ -298,6 +328,7 @@ export function RichTextEditor({
               } else {
                 editor.chain().focus().setFontFamily(val).run();
               }
+              setCurrentFontFamily(val);
             }}
           >
             <option value="default">Default font</option>
@@ -313,11 +344,12 @@ export function RichTextEditor({
           {/* Font size */}
           <select
             className="ml-1 rounded border border-zinc-300 bg-white px-1 py-0.5 text-xs text-zinc-700"
-            value={editor?.getAttributes("textStyle").fontSize || "14px"}
+            value={currentFontSize}
             onChange={(e) => {
               const val = e.target.value;
               if (!editor) return;
               editor.chain().focus().setFontSize(val).run();
+              setCurrentFontSize(val);
             }}
           >
             <option value="10px">10</option>
@@ -337,11 +369,12 @@ export function RichTextEditor({
           {/* Line height */}
           <select
             className="ml-1 rounded border border-zinc-300 bg-white px-1 py-0.5 text-xs text-zinc-700"
-            value={editor?.view.dom.style.lineHeight || "1.5"}
+            value={currentLineHeight}
             onChange={(e) => {
               const val = e.target.value;
               if (!editor) return;
               editor.view.dom.style.lineHeight = val;
+              setCurrentLineHeight(val);
             }}
           >
             <option value="1">1</option>
