@@ -51,15 +51,24 @@ export const authOptions: NextAuthOptions = {
       const nowInSeconds = Math.floor(Date.now() / 1000);
 
       if (user) {
+        // New login: attach id and start idle timer from now
         token.id = (user as any).id;
         (token as any).issuedAt = nowInSeconds;
-      } else if (!(token as any).issuedAt) {
+      }
+
+      // Ensure we have an issuedAt timestamp
+      if (!(token as any).issuedAt) {
         (token as any).issuedAt = nowInSeconds;
       }
 
       const issuedAt = (token as any).issuedAt as number;
+
+      // If idle for more than one hour, mark as expired
       if (issuedAt && nowInSeconds - issuedAt > ONE_HOUR_IN_SECONDS) {
         (token as any).expired = true;
+      } else {
+        // User is active (a request just happened), refresh idle timer
+        (token as any).issuedAt = nowInSeconds;
       }
 
       return token;

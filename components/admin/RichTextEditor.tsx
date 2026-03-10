@@ -372,6 +372,12 @@ export function RichTextEditor({
             <option value="Bricolage Grotesque, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
               Bricolage Grotesque
             </option>
+            <option value='"Alegreya Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'>
+              Alegreya Sans
+            </option>
+            <option value='"Poiret One", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'>
+              Poiret One
+            </option>
           </select>
 
           {/* Font size */}
