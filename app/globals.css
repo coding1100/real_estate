@@ -12,7 +12,7 @@
   --font-mono: var(--font-body);
   --font-serif: var(--font-heading), Georgia, serif;
 }
-
+p{min-height: 20px;}
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -169,6 +169,7 @@ ul,ol{
     margin-bottom: 40px;
     font-size: inherit;
   }
+
 
   /* In the TipTap editor, make empty paragraphs render as visible blank lines */
   .ProseMirror p:empty::before {
