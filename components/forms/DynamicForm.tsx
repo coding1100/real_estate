@@ -174,7 +174,10 @@ export function DynamicForm({
           {isPending ? (
             "Submitting..."
           ) : (
-            <span dangerouslySetInnerHTML={{ __html: ctaText }} />
+            <span
+              className="cta-text"
+              dangerouslySetInnerHTML={{ __html: ctaText }}
+            />
           )}
         </button>
         {helperText && (
