@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Node } from "@tiptap/core";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Paragraph from "@tiptap/extension-paragraph";
 import Underline from "@tiptap/extension-underline";
 import { TextStyle, FontFamily, FontSize } from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
@@ -26,6 +27,25 @@ interface RichTextEditorProps {
 }
 
 const DEFAULT_EDITOR_HEIGHT = 220;
+
+// Paragraph node that allows a `style` attribute (for line-height, text-align, etc.)
+const ParagraphWithStyle = Paragraph.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      style: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("style"),
+        renderHTML: (attributes) => {
+          if (!attributes.style) {
+            return {};
+          }
+          return { style: attributes.style };
+        },
+      },
+    };
+  },
+});
 
 // Custom block node rendered as <div class="tag">...</div>
 const TagBlock = Node.create({
@@ -66,8 +86,10 @@ export function RichTextEditor({
         heading: {
           levels: [1, 2, 3],
         },
+        paragraph: false, // we'll add our own paragraph with style support
         codeBlock: false, // we'll use separate CodeBlock extension
       }),
+      ParagraphWithStyle,
       TagBlock,
       Underline,
       TextStyle,
@@ -109,6 +131,7 @@ export function RichTextEditor({
     if (!editor) return;
 
     const updateFromSelection = () => {
+      // Inline text styles (font family / size)
       const attrs = editor.getAttributes("textStyle") as {
         fontFamily?: string;
         fontSize?: string;
@@ -116,9 +139,19 @@ export function RichTextEditor({
 
       setCurrentFontFamily(attrs.fontFamily || "default");
       setCurrentFontSize(attrs.fontSize || "14px");
-      setCurrentLineHeight(
-        (editor.view.dom.style.lineHeight as string) || "1.5",
-      );
+
+      // Paragraph-level line-height, stored as inline style on <p>
+      const paraAttrs = editor.getAttributes("paragraph") as {
+        style?: string;
+      };
+      let lh = "1.5";
+      if (paraAttrs.style) {
+        const match = paraAttrs.style.match(/line-height:\s*([^;]+);?/i);
+        if (match && match[1]) {
+          lh = match[1].trim();
+        }
+      }
+      setCurrentLineHeight(lh);
     };
 
     editor.on("selectionUpdate", updateFromSelection);
@@ -373,7 +406,33 @@ export function RichTextEditor({
             onChange={(e) => {
               const val = e.target.value;
               if (!editor) return;
-              editor.view.dom.style.lineHeight = val;
+
+              // Merge with existing paragraph style so we keep text-align, etc.
+              const paraAttrs = editor.getAttributes("paragraph") as {
+                style?: string;
+              };
+              let style = paraAttrs.style || "";
+
+              // Remove any existing line-height from the style string
+              style = style.replace(/line-height:\s*[^;]+;?/gi, "").trim();
+
+              if (style && !style.endsWith(";")) {
+                style += ";";
+              }
+
+              if (style) {
+                style += " ";
+              }
+
+              style += `line-height: ${val};`;
+
+              editor
+                .chain()
+                .focus()
+                .setParagraph()
+                .updateAttributes("paragraph", { style })
+                .run();
+
               setCurrentLineHeight(val);
             }}
           >
