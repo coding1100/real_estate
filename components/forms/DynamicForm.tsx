@@ -56,7 +56,7 @@ export function DynamicForm({
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoadRecaptcha(true);
-    }, 2500);
+    }, 3500);
     return () => clearTimeout(timer);
   }, []);
 
