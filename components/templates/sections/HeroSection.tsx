@@ -135,6 +135,7 @@ export function HeroSection({
             alt={page.headline}
             fill
             priority
+            quality={55}
             sizes="100vw"
             className="object-cover filter brightness-65 max-h-[1000px]"
           />
