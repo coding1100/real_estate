@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import type { LandingPageContent } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
@@ -63,7 +63,15 @@ export function MultistepHeroFlow({
   const [isSubmittingFinal, setIsSubmittingFinal] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isFinalSubmitted, setIsFinalSubmitted] = useState(false);
+  const [loadRecaptcha, setLoadRecaptcha] = useState(false);
   const { execute } = useRecaptcha();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoadRecaptcha(true);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!steps.length) return null;
 
@@ -122,6 +130,9 @@ export function MultistepHeroFlow({
 
   const handleFinalSubmitFromNextSteps = async () => {
     if (isSubmittingFinal) return;
+    if (!loadRecaptcha) {
+      setLoadRecaptcha(true);
+    }
     setIsSubmittingFinal(true);
     setSubmitError(null);
     try {
@@ -186,13 +197,14 @@ export function MultistepHeroFlow({
           : "relative text-white min-h-[calc(100vh_-_85px)] pt-[120px] max-[768px]:pt-20"
       }
     >
-      <RecaptchaScript />
+      {loadRecaptcha && <RecaptchaScript />}
       {!isThankYouStep && (mainPage.heroImageUrl || step.heroImageUrl) && (
         <div className="pointer-events-none inset-0 fixed top-0 left-0 right-0 bottom-0">
           <Image
             src={(step.heroImageUrl || mainPage.heroImageUrl) as string}
             alt={step.headline}
             fill
+            loading="lazy"
             priority
             sizes="100vw"
             className="object-cover filter brightness-65 max-h-[1000px]"
