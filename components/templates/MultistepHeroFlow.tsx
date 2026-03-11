@@ -84,6 +84,7 @@ export function MultistepHeroFlow({
   const isNextSteps = layout?.formStyle === "next-steps";
   const isLastStep = currentStep === steps.length - 1;
   const isFirstStep = currentStep === 0;
+  const isThankYouStep = isLastStep && isNextSteps;
 
   const textLayout = stepLayoutData?.find(
     (l) => l.i === "text-container" && !l.hidden,
@@ -178,9 +179,15 @@ export function MultistepHeroFlow({
   }
 
   return (
-    <section className="relative text-white min-h-[calc(100vh_-_85px)] pt-[120px] max-[768px]:pt-20">
+    <section
+      className={
+        isThankYouStep
+          ? "relative text-white pt-[110px] max-[768px]:pt-20 pb-8"
+          : "relative text-white min-h-[calc(100vh_-_85px)] pt-[120px] max-[768px]:pt-20"
+      }
+    >
       <RecaptchaScript />
-      {(mainPage.heroImageUrl || step.heroImageUrl) && (
+      {!isThankYouStep && (mainPage.heroImageUrl || step.heroImageUrl) && (
         <div className="pointer-events-none inset-0 fixed top-0 left-0 right-0 bottom-0">
           <Image
             src={(step.heroImageUrl || mainPage.heroImageUrl) as string}
