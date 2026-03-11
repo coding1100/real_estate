@@ -195,11 +195,18 @@ export function HomeValueExperience({
             onSubmit={handleSearch}
             className="mt-6 flex flex-col items-stretch md:flex-row md:items-center"
           >
-            <div className="relative flex-1">
+            <div className="relative flex-1 text-left">
+              <label
+                htmlFor="home-value-experience-address"
+                className="sr-only"
+              >
+                Property address
+              </label>
               <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-amber-200/80 ">
                 <Search className="h-4 w-4 stroke-[#694636]" />
               </span>
               <input
+                id="home-value-experience-address"
                 type="text"
                 ref={addressInputRef}
                 value={address}
