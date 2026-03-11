@@ -76,21 +76,21 @@ export function HomeValueMultistepFlow({
   layoutData,
   utmHiddenFields,
 }: HomeValueMultistepFlowProps) {
-  const hasHomeValueStep =
-    Array.isArray(steps) && steps.some((s) => s.slug === mainPage.slug);
-
-  // Start from the admin-configured steps. If /home-value itself is present
-  // in the step list, we treat it as a special entry step and render the
-  // dedicated Home Value UI for step 0, then use the remaining steps for
-  // subsequent pages. If /home-value is NOT present in the list, we behave
-  // like a normal multistep flow where the first configured slug controls
-  // the first visible step.
+  // Determine whether the entry page (/home-value) itself is included
+  // in the multistep steps list *and* chosen as the first step.
+  // Only in that case do we render the dedicated home-value search/map
+  // UI as step 0. If /home-value appears later in the list (or not at
+  // all), we respect the admin-configured order and do not special-case it.
   const baseSteps = Array.isArray(steps) ? steps : [];
-  const effectiveSteps = hasHomeValueStep
-    ? baseSteps.filter((s) => s.slug !== mainPage.slug)
+  const homeIndex = baseSteps.findIndex((s) => s.slug === mainPage.slug);
+  const hasHomeValueStep = homeIndex !== -1;
+  const useHomeValueAsEntry = hasHomeValueStep && homeIndex === 0;
+
+  const effectiveSteps = useHomeValueAsEntry
+    ? baseSteps.slice(1)
     : baseSteps;
 
-  const totalSteps = hasHomeValueStep
+  const totalSteps = useHomeValueAsEntry
     ? 1 + effectiveSteps.length
     : effectiveSteps.length;
   if (!totalSteps) return null;
@@ -307,10 +307,10 @@ export function HomeValueMultistepFlow({
   };
 
   // STEP 0: /home-value UI (search + map), with CTA advancing to the next step.
-  // Only used when /home-value itself is explicitly included in the multistep
-  // step list in admin. When it is not, we skip this and treat the first
-  // configured slug as the first visible step (like other multistep pages).
-  if (hasHomeValueStep && currentStep === 0) {
+  // Only used when /home-value itself is explicitly included as the *first*
+  // step in the multistep list in admin. Otherwise we skip this and treat the
+  // first configured slug as the first visible step (like other multistep pages).
+  if (useHomeValueAsEntry && currentStep === 0) {
     const heroSections = Array.isArray(mainPage.sections)
       ? mainPage.sections
       : [];
@@ -521,9 +521,9 @@ export function HomeValueMultistepFlow({
   }
 
   // Steps: generic multistep hero flow, reusing the existing layout patterns.
-  // When hasHomeValueStep is true, currentStep 1 maps to effectiveSteps[0];
+  // When useHomeValueAsEntry is true, currentStep 1 maps to effectiveSteps[0];
   // when false, currentStep 0 maps to effectiveSteps[0] (no special entry step).
-  const innerIndex = hasHomeValueStep ? currentStep - 1 : currentStep;
+  const innerIndex = useHomeValueAsEntry ? currentStep - 1 : currentStep;
   const step = effectiveSteps[innerIndex];
 
   const stepLayoutData =
