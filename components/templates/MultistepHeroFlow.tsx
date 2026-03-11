@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import type { LandingPageContent } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
@@ -63,15 +63,7 @@ export function MultistepHeroFlow({
   const [isSubmittingFinal, setIsSubmittingFinal] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isFinalSubmitted, setIsFinalSubmitted] = useState(false);
-  const [loadRecaptcha, setLoadRecaptcha] = useState(false);
   const { execute } = useRecaptcha();
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoadRecaptcha(true);
-    }, 3500);
-    return () => clearTimeout(timer);
-  }, []);
 
   if (!steps.length) return null;
 
@@ -130,9 +122,6 @@ export function MultistepHeroFlow({
 
   const handleFinalSubmitFromNextSteps = async () => {
     if (isSubmittingFinal) return;
-    if (!loadRecaptcha) {
-      setLoadRecaptcha(true);
-    }
     setIsSubmittingFinal(true);
     setSubmitError(null);
     try {
@@ -197,14 +186,13 @@ export function MultistepHeroFlow({
           : "relative text-white min-h-[calc(100vh_-_85px)] pt-[120px] max-[768px]:pt-20"
       }
     >
-      {loadRecaptcha && <RecaptchaScript />}
+      <RecaptchaScript />
       {!isThankYouStep && (mainPage.heroImageUrl || step.heroImageUrl) && (
         <div className="pointer-events-none inset-0 fixed top-0 left-0 right-0 bottom-0">
           <Image
             src={(step.heroImageUrl || mainPage.heroImageUrl) as string}
             alt={step.headline}
             fill
-            loading="lazy"
             priority
             sizes="100vw"
             className="object-cover filter brightness-65 max-h-[1000px]"
@@ -396,9 +384,9 @@ export function MultistepHeroFlow({
                     )}
                   </div>
                   <div className="space-y-4 relative flex flex-col justify-center">
-                    <div className="relative w-full rounded-[4px] border border-[#d7c6bc] bg-[#fff6f1] px-4 py-4 pr-[40%] flex flex-col justify-center max-[768px]:pr-4 max-[768px]:pb-4">
+                    <div className="relative w-full rounded-[4px] border border-[#d7c6bc] px-4 py-4 pr-[40%] flex flex-col justify-center max-[768px]:pr-4 max-[768px]:pb-4">
                       {layout?.profileImageUrl && (
-                        <div className="absolute h-[240px] w-[190px] -bottom-[6px] -right-[52px] overflow-hidden rounded-[4px] shadow-md max-[768px]:relative max-[768px]:h-40 max-[768px]:w-full max-[768px]:bottom-auto max-[768px]:right-auto max-[768px]:mx-0 max-[768px]:mb-3">
+                        <div className="absolute h-[240px] w-[190px] -bottom-[6px] -right-[52px] overflow-hidden rounded-[4px] max-[768px]:relative max-[768px]:h-40 max-[768px]:w-full max-[768px]:bottom-auto max-[768px]:right-auto max-[768px]:mx-0 max-[768px]:mb-3">
                           <Image
                             src={layout.profileImageUrl as string}
                             alt={(layout?.profileName as string) || "Profile"}
