@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, ChevronDown } from "lucide-react";
+import { X, ChevronDown, GripVertical } from "lucide-react";
 
 interface PageOption {
   id: string;
@@ -27,6 +27,8 @@ export function MultistepPageSelector({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -77,6 +79,15 @@ export function MultistepPageSelector({
     onChange(selectedSlugs.filter((s) => s !== slug));
   };
 
+  const handleReorder = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0) return;
+    if (from >= selectedSlugs.length || to >= selectedSlugs.length) return;
+    const next = [...selectedSlugs];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    onChange(next);
+  };
+
   if (loading) {
     return (
       <div className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-4 text-sm text-zinc-500">
@@ -106,10 +117,57 @@ export function MultistepPageSelector({
               return (
                 <li
                   key={slug}
-                  className="flex items-center justify-between rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
+                  className={`flex items-center justify-between rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm transition-colors transition-transform ${
+                    dragIndex === idx
+                      ? "ring-2 ring-zinc-400 bg-zinc-50 scale-[0.99]"
+                      : dragOverIndex === idx
+                        ? "bg-zinc-100"
+                        : "hover:bg-zinc-50"
+                  }`}
+                  draggable={!disabled}
+                  onDragStart={(e) => {
+                    if (disabled) return;
+                    setDragIndex(idx);
+                    // Use a transparent drag image so the list itself feels like it's moving
+                    if (e.dataTransfer) {
+                      const img = new Image();
+                      img.src =
+                        "data:image/gif;base64,R0lGODlhAQABAIABAP///wAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+                      e.dataTransfer.setDragImage(img, 0, 0);
+                    }
+                  }}
+                  onDragOver={(e) => {
+                    if (disabled) return;
+                    e.preventDefault();
+                    if (dragOverIndex !== idx) {
+                      setDragOverIndex(idx);
+                    }
+                  }}
+                  onDrop={(e) => {
+                    if (disabled) return;
+                    e.preventDefault();
+                    if (dragIndex === null) return;
+                    handleReorder(dragIndex, idx);
+                    setDragIndex(null);
+                    setDragOverIndex(null);
+                  }}
+                  onDragLeave={() => {
+                    if (dragOverIndex === idx) {
+                      setDragOverIndex(null);
+                    }
+                  }}
+                  onDragEnd={() => {
+                    setDragIndex(null);
+                    setDragOverIndex(null);
+                  }}
                 >
                   <span className="flex items-center gap-2">
-                    <span className="text-zinc-400 font-mono text-xs w-5">
+                    {!disabled && (
+                      <span className="text-zinc-400 cursor-grab active:cursor-grabbing">
+                        <GripVertical className="h-3.5 w-3.5" />
+                      </span>
+                    )}
+                    <span className="text-zinc-400 font-mono text-xs w-5 text-right">
                       {idx + 1}.
                     </span>
                     {page ? (
