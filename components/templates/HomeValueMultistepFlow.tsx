@@ -102,6 +102,7 @@ export function HomeValueMultistepFlow({
   const [isSubmittingFinal, setIsSubmittingFinal] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isFinalSubmitted, setIsFinalSubmitted] = useState(false);
+  const [loadRecaptcha, setLoadRecaptcha] = useState(false);
   const { execute } = useRecaptcha();
 
   // Step 0 – /home-value search + map UI state
@@ -166,6 +167,14 @@ export function HomeValueMultistepFlow({
       }
     };
   }, [placesLoaded]);
+
+  // Delay-load reCAPTCHA script by ~2.5s to avoid impacting initial CWV
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoadRecaptcha(true);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
 
   async function handleSearch(e: FormEvent) {
     e.preventDefault();
@@ -244,6 +253,9 @@ export function HomeValueMultistepFlow({
 
   const handleFinalSubmitFromNextSteps = async () => {
     if (isSubmittingFinal) return;
+    if (!loadRecaptcha) {
+      setLoadRecaptcha(true);
+    }
     setIsSubmittingFinal(true);
     setSubmitError(null);
     try {
@@ -325,7 +337,7 @@ export function HomeValueMultistepFlow({
 
     return (
       <div className="relative min-h-screen text-zinc-50 bg-[#d4c8c8]">
-        <RecaptchaScript />
+        {loadRecaptcha && <RecaptchaScript />}
         {MAPS_KEY && (
           <Script
             src={`https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places`}
@@ -571,7 +583,7 @@ export function HomeValueMultistepFlow({
 
   return (
     <section className="relative text-white min-h-[calc(100vh_-_85px)] pt-[120px] max-[768px]:pt-20">
-      <RecaptchaScript />
+      {loadRecaptcha && <RecaptchaScript />}
       {(mainPage.heroImageUrl || step.heroImageUrl) && (
         <div className="pointer-events-none inset-0 fixed top-0 left-0 right-0 bottom-0">
           <Image
