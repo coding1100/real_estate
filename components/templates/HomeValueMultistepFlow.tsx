@@ -341,6 +341,7 @@ export function HomeValueMultistepFlow({
               alt={mainPage.headline}
               fill
               priority
+              quality={55}
               sizes="100vw"
               className="object-cover !max-h-[800px]"
             />
