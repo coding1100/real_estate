@@ -396,9 +396,9 @@ export function MultistepHeroFlow({
                     )}
                   </div>
                   <div className="space-y-4 relative flex flex-col justify-center">
-                    <div className="relative w-full rounded-[4px] border border-[#d7c6bc] bg-[#fff6f1] px-4 py-4 pr-[40%] flex flex-col justify-center max-[768px]:pr-4 max-[768px]:pb-4">
+                    <div className="relative w-full rounded-[4px] border border-[#d7c6bc] px-4 py-4 pr-[40%] flex flex-col justify-center max-[768px]:pr-4 max-[768px]:pb-4">
                       {layout?.profileImageUrl && (
-                        <div className="absolute h-[240px] w-[190px] -bottom-[6px] -right-[52px] overflow-hidden rounded-[4px] shadow-md max-[768px]:relative max-[768px]:h-40 max-[768px]:w-full max-[768px]:bottom-auto max-[768px]:right-auto max-[768px]:mx-0 max-[768px]:mb-3">
+                        <div className="absolute h-[240px] w-[190px] -bottom-[6px] -right-[52px] overflow-hidden rounded-[4px] max-[768px]:relative max-[768px]:h-40 max-[768px]:w-full max-[768px]:bottom-auto max-[768px]:right-auto max-[768px]:mx-0 max-[768px]:mb-3">
                           <Image
                             src={layout.profileImageUrl as string}
                             alt={(layout?.profileName as string) || "Profile"}
