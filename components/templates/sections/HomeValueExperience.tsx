@@ -51,6 +51,7 @@ export function HomeValueExperience({
   const [searchError, setSearchError] = useState<string | null>(null);
   const [placesLoaded, setPlacesLoaded] = useState(false);
   const addressInputRef = useRef<HTMLInputElement | null>(null);
+  const [loadRecaptcha, setLoadRecaptcha] = useState(false);
 
   const hasFoundProperty =
     searchState === "found" && !!result && !!result.lat && !!result.lng;
@@ -107,6 +108,14 @@ export function HomeValueExperience({
     };
   }, [placesLoaded]);
 
+  // Delay-load reCAPTCHA script by ~2.5s to keep it out of FCP/LCP window
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoadRecaptcha(true);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
   async function handleSearch(e: FormEvent) {
     e.preventDefault();
     setSearchError(null);
@@ -146,7 +155,7 @@ export function HomeValueExperience({
 
   return (
     <div className="relative min-h-screen text-zinc-50 bg-[#d4c8c8]">
-      <RecaptchaScript />
+      {loadRecaptcha && <RecaptchaScript />}
       {MAPS_KEY && (
         <Script
           src={`https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places`}
