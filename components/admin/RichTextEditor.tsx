@@ -136,6 +136,13 @@ export function RichTextEditor({
         '<div class="tag"><span$1>$2</span></div>',
       );
 
+      // Ensure every tag span carries the Bricolage Grotesque font-family,
+      // so tag styling is consistent whether text was existing or newly typed.
+      html = html.replace(
+        /<div class="tag">\s*<span((?!font-family)[^>]*)>/gi,
+        `<div class="tag"><span style="font-family: ${tagFontFamily};"$1>`,
+      );
+
       lastEmittedHtml.current = html;
       onChange(html);
     },
@@ -562,9 +569,11 @@ export function RichTextEditor({
                 chain.toggleNode("tagBlock", "paragraph").run();
               } else {
                 // When creating a tag, also apply the Bricolage Grotesque font
+                // to the current selection / stored marks so existing or newly
+                // typed text uses the correct font.
                 chain
-                  .setFontFamily(tagFontFamily)
                   .toggleNode("tagBlock", "paragraph")
+                  .setFontFamily(tagFontFamily)
                   .run();
                 setCurrentFontFamily(tagFontFamily);
               }
