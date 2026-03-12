@@ -4,16 +4,12 @@ import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 
-const ONE_HOUR_IN_SECONDS = 60 * 60;
-
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
-    maxAge: ONE_HOUR_IN_SECONDS,
   },
-  jwt: {
-    maxAge: ONE_HOUR_IN_SECONDS,
-  },
+  // Let NextAuth handle JWT/session lifetime with its defaults. We no longer
+  // enforce a custom 1-hour idle expiration in code.
   pages: {
     signIn: "/admin/login",
   },
@@ -48,40 +44,15 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
-      const nowInSeconds = Math.floor(Date.now() / 1000);
-
       if (user) {
-        // New login: attach id and start idle timer from now
         token.id = (user as any).id;
-        (token as any).issuedAt = nowInSeconds;
       }
-
-      // Ensure we have an issuedAt timestamp
-      if (!(token as any).issuedAt) {
-        (token as any).issuedAt = nowInSeconds;
-      }
-
-      const issuedAt = (token as any).issuedAt as number;
-
-      // If idle for more than one hour, mark as expired
-      if (issuedAt && nowInSeconds - issuedAt > ONE_HOUR_IN_SECONDS) {
-        (token as any).expired = true;
-      } else {
-        // User is active (a request just happened), refresh idle timer
-        (token as any).issuedAt = nowInSeconds;
-      }
-
       return token;
     },
     async session({ session, token }) {
       if (session.user && (token as any).id) {
         (session.user as any).id = (token as any).id;
       }
-
-      if ((token as any).expired) {
-        (session as any).expired = true;
-      }
-
       return session;
     },
   },
@@ -89,9 +60,6 @@ export const authOptions: NextAuthOptions = {
 
 export async function getServerAuthSession() {
   const session = await getServerSession(authOptions);
-  if (session && (session as any).expired) {
-    return null;
-  }
   return session;
 }
 
