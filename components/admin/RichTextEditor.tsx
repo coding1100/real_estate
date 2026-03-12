@@ -137,10 +137,27 @@ export function RichTextEditor({
       );
 
       // Ensure every tag span carries the Bricolage Grotesque font-family,
-      // so tag styling is consistent whether text was existing or newly typed.
+      // while preserving any existing inline styles such as color, size, etc.
       html = html.replace(
-        /<div class="tag">\s*<span((?!font-family)[^>]*)>/gi,
-        `<div class="tag"><span style="font-family: ${tagFontFamily};"$1>`,
+        /<div class="tag">\s*<span([^>]*)>/gi,
+        (full, attrs: string) => {
+          const hasStyle = /\sstyle=("|')([^"']*)\1/i.test(attrs);
+          const cleanedAttrs = attrs.replace(/\sstyle=("|')([^"']*)\1/i, "");
+          if (hasStyle) {
+            const styleMatch = attrs.match(/\sstyle=("|')([^"']*)\1/i);
+            const existingStyle = styleMatch ? styleMatch[2] : "";
+            const mergedStyle =
+              existingStyle.indexOf("font-family") !== -1
+                ? existingStyle
+                : `${existingStyle}${
+                    existingStyle.trim().endsWith(";") || existingStyle.trim() === ""
+                      ? ""
+                      : ";"
+                  } font-family: ${tagFontFamily};`;
+            return `<div class="tag"><span style="${mergedStyle}"${cleanedAttrs}>`;
+          }
+          return `<div class="tag"><span style="font-family: ${tagFontFamily};"${attrs}>`;
+        },
       );
 
       lastEmittedHtml.current = html;
