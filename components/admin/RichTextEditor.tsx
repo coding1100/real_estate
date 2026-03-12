@@ -211,7 +211,7 @@ export function RichTextEditor({
       return;
     }
     if (value !== editor.getHTML()) {
-      editor.commands.setContent(value || "", false);
+      editor.commands.setContent(value || "");
     }
   }, [editor, value]);
 
