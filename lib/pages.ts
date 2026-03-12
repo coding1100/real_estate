@@ -112,54 +112,60 @@ export async function getLandingPage(
   const fetchSlug =
     requestedSlug === EXEC_REL_ENTRY_SLUG ? EXEC_REL_STEP_SLUGS[0] : requestedSlug;
 
-  let page = await prisma.landingPage.findFirst({
-    where: {
-      slug: fetchSlug,
-      status: "published",
-      domain: {
-        hostname,
-        isActive: true,
-      },
-    },
-    include: { domain: true },
-  });
-
-  if (!page && options?.allowFallbackToAnyDomain) {
-    // First, try to find a published page with this slug on any active domain.
+  let page: PageRow | null = null;
+  try {
     page = await prisma.landingPage.findFirst({
       where: {
         slug: fetchSlug,
         status: "published",
-        domain: { isActive: true },
+        domain: {
+          hostname,
+          isActive: true,
+        },
       },
       include: { domain: true },
     });
+  } catch (err) {
+    console.error("[getLandingPage] Primary query failed", err);
+    page = null;
+  }
 
-    // If still not found, fall back to any status on any active domain.
-    // This allows preview hosts (localhost / *.vercel.app) to render draft pages
-    // for editing and live preview, while production custom domains still only
-    // see published content (since allowFallbackToAnyDomain is false there).
-    if (!page) {
+  if (!page && options?.allowFallbackToAnyDomain) {
+    try {
+      // First, try to find a published page with this slug on any active domain.
       page = await prisma.landingPage.findFirst({
         where: {
           slug: fetchSlug,
+          status: "published",
           domain: { isActive: true },
         },
         include: { domain: true },
       });
-    }
 
-    // As an additional safety for executive relocation in preview environments:
-    // if we're requesting the entry slug but only the entry page exists (and not
-    // the canonical first-step slug), fall back to the entry slug row itself.
-    if (!page && requestedSlug === EXEC_REL_ENTRY_SLUG) {
-      page = await prisma.landingPage.findFirst({
-        where: {
-          slug: EXEC_REL_ENTRY_SLUG,
-          domain: { isActive: true },
-        },
-        include: { domain: true },
-      });
+      // If still not found, fall back to any status on any active domain.
+      if (!page) {
+        page = await prisma.landingPage.findFirst({
+          where: {
+            slug: fetchSlug,
+            domain: { isActive: true },
+          },
+          include: { domain: true },
+        });
+      }
+
+      // Additional safety for executive relocation in preview environments.
+      if (!page && requestedSlug === EXEC_REL_ENTRY_SLUG) {
+        page = await prisma.landingPage.findFirst({
+          where: {
+            slug: EXEC_REL_ENTRY_SLUG,
+            domain: { isActive: true },
+          },
+          include: { domain: true },
+        });
+      }
+    } catch (err) {
+      console.error("[getLandingPage] Fallback query failed", err);
+      page = null;
     }
   }
 
