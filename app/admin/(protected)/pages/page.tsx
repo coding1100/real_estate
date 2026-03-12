@@ -6,7 +6,7 @@ import { AddPageDialog } from "@/components/admin/AddPageDialog";
 import { PageRowActions } from "@/components/admin/PageRowActions";
 
 export default async function AdminPagesListPage() {
-  const [pages, domains, templates] = await Promise.all([
+  const [pages, domains] = await Promise.all([
     prisma.landingPage.findMany({
       include: { domain: true },
       orderBy: { createdAt: "desc" },
@@ -16,11 +16,26 @@ export default async function AdminPagesListPage() {
       orderBy: { hostname: "asc" },
       select: { id: true, hostname: true },
     }),
-    prisma.masterTemplate.findMany({
+  ]);
+
+  // Load master templates separately so that if the table is missing
+  // or misconfigured in the current database (e.g. Supabase schema
+  // not migrated yet), the admin pages list still renders.
+  let templates: { id: string; type: string; name: string }[] = [];
+  try {
+    templates = await prisma.masterTemplate.findMany({
       orderBy: { type: "asc" },
       select: { id: true, type: true, name: true },
-    }),
-  ]);
+    });
+  } catch (err) {
+    console.error(
+      "[AdminPagesListPage] Failed to load masterTemplate rows. " +
+        "This usually means the MasterTemplate table has not been created " +
+        "in the current database schema.",
+      err,
+    );
+    templates = [];
+  }
 
   type PageWithDomain = (typeof pages)[number];
   const pageOptions = pages.map((p) => ({
