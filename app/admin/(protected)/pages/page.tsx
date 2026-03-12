@@ -61,21 +61,28 @@ export default async function AdminPagesListPage() {
       </div>
       <div className="max-[768px]:overflow-x-auto max-[768px]:-mx-2">
         <table className="min-w-full rounded-lg bg-white text-md shadow-sm max-[768px]:min-w-[600px]">
-        <thead className="bg-zinc-50 text-[16px] uppercase tracking-[0.15em] text-zinc-500">
-          <tr>
-            <th className="px-3 py-2 text-left">Domain</th>
-            <th className="px-3 py-2 text-left">Slug</th>
-            <th className="px-3 py-2 text-left">Title</th>
-            <th className="px-3 py-2 text-left">Type</th>
-            <th className="px-3 py-2 text-left">Status</th>
-            <th className="px-3 py-2 text-left">Updated</th>
-            <th className="px-3 py-2 text-right">Actions</th>
-          </tr>
-        </thead>
+          <thead className="bg-zinc-50 text-[16px] uppercase tracking-[0.15em] text-zinc-500">
+            <tr>
+              <th className="px-3 py-2 text-left">Domain</th>
+              <th className="px-3 py-2 text-left">Slug</th>
+              <th className="px-3 py-2 text-left">Title</th>
+              <th className="px-3 py-2 text-left">Type</th>
+              <th className="px-3 py-2 text-left">Mode</th>
+              <th className="px-3 py-2 text-left">Status</th>
+              <th className="px-3 py-2 text-left">Updated</th>
+              <th className="px-3 py-2 text-right">Actions</th>
+            </tr>
+          </thead>
         <tbody>
           {pages.map((page: PageWithDomain) => {
             const isMaster =
               page.slug === "master-seller" || page.slug === "master-buyer";
+            const multistep = (page as any).multistepStepSlugs as
+              | string[]
+              | null
+              | undefined;
+            const isMultistep =
+              Array.isArray(multistep) && multistep.length > 0;
             return (
               <tr
                 key={page.id}
@@ -109,6 +116,17 @@ export default async function AdminPagesListPage() {
                 </td>
                 <td className="px-3 py-3 text-zinc-700">
                   <span className="capitalize">{page.type}</span>
+                </td>
+                <td className="px-3 py-3 text-zinc-700">
+                  <span
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                      isMultistep
+                        ? "bg-amber-50 text-amber-800 ring-1 ring-amber-200"
+                        : "bg-zinc-100 text-zinc-700 ring-1 ring-zinc-200"
+                    }`}
+                  >
+                    {isMultistep ? "Multistep" : "Single"}
+                  </span>
                 </td>
                 <td className="px-3 py-3 text-zinc-700">{page.status}</td>
                 <td className="px-3 py-2 text-zinc-500">
