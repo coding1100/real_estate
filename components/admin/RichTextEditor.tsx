@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Node } from "@tiptap/core";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -47,7 +47,7 @@ const ParagraphWithStyle = Paragraph.extend({
   },
 });
 
-// Custom block node rendered as <div class="tag">...</div>
+// Custom block node rendered as <div class="tag"><span>...</span></div>
 const TagBlock = Node.create({
   name: "tagBlock",
   group: "block",
@@ -63,7 +63,7 @@ const TagBlock = Node.create({
       ...(HTMLAttributes || {}),
       class: ["tag", (HTMLAttributes as any)?.class].filter(Boolean).join(" "),
     };
-    // Wrap inner content in a span inside the tag div:
+    // Wrap inner content in a single span inside the tag div:
     // <div class="tag"><span>...</span></div>
     return ["div", attrs, ["span", 0]];
   },
@@ -76,9 +76,14 @@ export function RichTextEditor({
   placeholder = "",
   height = DEFAULT_EDITOR_HEIGHT,
 }: RichTextEditorProps) {
-  const [currentFontFamily, setCurrentFontFamily] = useState("default");
+  const defaultRoboto =
+    'Roboto, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  const tagFontFamily =
+    "Bricolage Grotesque, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  const [currentFontFamily, setCurrentFontFamily] = useState(defaultRoboto);
   const [currentFontSize, setCurrentFontSize] = useState("14px");
   const [currentLineHeight, setCurrentLineHeight] = useState("1.5");
+  const lastEmittedHtml = useRef<string | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -97,6 +102,8 @@ export function RichTextEditor({
       FontSize,
       Color,
       TextAlign.configure({
+        // Align headings and individual paragraphs only (not whole blockquotes),
+        // so each paragraph keeps its own alignment even inside a blockquote.
         types: ["heading", "paragraph"],
       }),
       Strike,
@@ -117,12 +124,36 @@ export function RichTextEditor({
       // Normalize completely empty paragraphs to <p>&nbsp;</p>
       let html = editor.getHTML();
       html = html.replace(/<p>\s*<\/p>/g, "<p>&nbsp;</p>");
+
+      // Normalize tag blocks so there is always exactly one <span> inside
+      // <div class="tag">...</div>, even if pasted content had nested spans.
+      // Example input:
+      //   <div class="tag"><span><span ...>Text</span></span></div>
+      // becomes:
+      //   <div class="tag"><span ...>Text</span></div>
+      html = html.replace(
+        /<div class="tag">\s*<span>\s*<span([^>]*)>([\s\S]*?)<\/span>\s*<\/span>\s*<\/div>/gi,
+        '<div class="tag"><span$1>$2</span></div>',
+      );
+
+      lastEmittedHtml.current = html;
       onChange(html);
     },
     editorProps: {
       attributes: {
         class:
           "prose prose-sm max-w-none focus:outline-none p-3 min-h-[140px]",
+        style: `font-family: ${defaultRoboto};`,
+      },
+      transformPastedHTML(html) {
+        // Strip editor-specific attributes that can break editing behavior,
+        // but keep normal inline styles so each element can carry its own
+        // font, size, color, alignment, etc. onto the frontend.
+        return html
+          .replace(/\scontenteditable="[^"]*"/gi, "")
+          .replace(/\scontenteditable='[^']*'/gi, "")
+          .replace(/\sdata-[a-z0-9_-]+="[^"]*"/gi, "")
+          .replace(/\sdata-[a-z0-9_-]+='[^']*'/gi, "");
       },
     },
   });
@@ -137,7 +168,7 @@ export function RichTextEditor({
         fontSize?: string;
       };
 
-      setCurrentFontFamily(attrs.fontFamily || "default");
+      setCurrentFontFamily(attrs.fontFamily || defaultRoboto);
       setCurrentFontSize(attrs.fontSize || "14px");
 
       // Paragraph-level line-height, stored as inline style on <p>
@@ -165,8 +196,15 @@ export function RichTextEditor({
   }, [editor]);
 
   useEffect(() => {
-    if (editor && value !== editor.getHTML()) {
-      editor.commands.setContent(value || "");
+    if (!editor) return;
+    // Only update editor content when the external `value` prop changed
+    // from outside the editor (e.g. server data load, reset), not when
+    // the change was just emitted by this editor instance.
+    if (value === lastEmittedHtml.current) {
+      return;
+    }
+    if (value !== editor.getHTML()) {
+      editor.commands.setContent(value || "", false);
     }
   }, [editor, value]);
 
@@ -476,19 +514,6 @@ export function RichTextEditor({
             1. List
           </button>
 
-          {/* Task list */}
-          <button
-            type="button"
-            onClick={() => editor?.chain().focus().toggleTaskList().run()}
-            className={`px-1.5 py-0.5 rounded ${
-              editor?.isActive("taskList")
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-700 hover:bg-zinc-200"
-            }`}
-          >
-            ☑
-          </button>
-
           {/* Indent / Outdent for list items */}
           <button
             type="button"
@@ -529,11 +554,20 @@ export function RichTextEditor({
               if (!editor) return;
               // Avoid runtime error if for some reason the node is missing
               if (!editor.schema.nodes["tagBlock"]) return;
-              editor
-                .chain()
-                .focus()
-                .toggleNode("tagBlock", "paragraph")
-                .run();
+              const isActive = editor.isActive("tagBlock");
+              const chain = editor.chain().focus();
+
+              if (isActive) {
+                // Just remove the tag block, leave font family as-is
+                chain.toggleNode("tagBlock", "paragraph").run();
+              } else {
+                // When creating a tag, also apply the Bricolage Grotesque font
+                chain
+                  .setFontFamily(tagFontFamily)
+                  .toggleNode("tagBlock", "paragraph")
+                  .run();
+                setCurrentFontFamily(tagFontFamily);
+              }
             }}
             className={`px-1.5 py-0.5 rounded ${
               editor?.isActive("tagBlock")
@@ -542,97 +576,6 @@ export function RichTextEditor({
             }`}
           >
             Tag
-          </button>
-
-          {/* Code & code block */}
-          <button
-            type="button"
-            onClick={() => editor?.chain().focus().toggleCode().run()}
-            className={`px-1.5 py-0.5 rounded font-mono text-[11px] ${
-              editor?.isActive("code")
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-700 hover:bg-zinc-200"
-            }`}
-          >
-            {"</>"}
-          </button>
-          <button
-            type="button"
-            onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
-            className={`px-1.5 py-0.5 rounded font-mono text-[11px] ${
-              editor?.isActive("codeBlock")
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-700 hover:bg-zinc-200"
-            }`}
-          >
-            {"{}"}
-          </button>
-
-          {/* Horizontal rule */}
-          <button
-            type="button"
-            onClick={() => editor?.chain().focus().setHorizontalRule().run()}
-            className="px-1.5 py-0.5 rounded text-zinc-700 hover:bg-zinc-200"
-          >
-            ―
-          </button>
-
-          {/* Subscript / Superscript */}
-          <button
-            type="button"
-            onClick={() =>
-              editor?.chain().focus().toggleSubscript().run()
-            }
-            className={`px-1.5 py-0.5 rounded text-[11px] ${
-              editor?.isActive("subscript")
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-700 hover:bg-zinc-200"
-            }`}
-          >
-            x<sub>2</sub>
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              editor?.chain().focus().toggleSuperscript().run()
-            }
-            className={`px-1.5 py-0.5 rounded text-[11px] ${
-              editor?.isActive("superscript")
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-700 hover:bg-zinc-200"
-            }`}
-          >
-            x<sup>2</sup>
-          </button>
-
-          {/* Link */}
-          <button
-            type="button"
-            onClick={() => {
-              if (!editor) return;
-              const previousUrl = editor.getAttributes("link").href as
-                | string
-                | undefined;
-              const url = window.prompt("URL", previousUrl ?? "");
-              if (url === null) return;
-              if (url === "") {
-                editor.chain().focus().unsetLink().run();
-                return;
-              }
-              editor
-                .chain()
-                .focus()
-                .extendMarkRange("link")
-                .setLink({ href: url })
-                .run();
-            }}
-            className={`px-1.5 py-0.5 rounded ${
-              editor?.isActive("link")
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-700 hover:bg-zinc-200"
-            }`}
-          >
-            🔗
           </button>
 
           {/* Clear formatting */}

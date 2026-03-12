@@ -249,17 +249,23 @@ export function PageEditor({ initialPage }: PageEditorProps) {
             {status === "published" ? "Published" : "Draft"}
           </span>
           <div className="flex items-center gap-2 text-sm">
-            {status === "published" && (
-              <a
-                href={`/${page.slug}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-1.5 font-medium text-zinc-800 shadow-sm hover:bg-zinc-50"
-              >
-                <Eye className="h-3.5 w-3.5" />
-                View page
-              </a>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                if (status === "published") {
+                  window.open(`/${page.slug}`, "_blank", "noopener,noreferrer");
+                } else {
+                  errorToast(
+                    "In order to view this page on the live URL, please publish it first.",
+                    "Publish required",
+                  );
+                }
+              }}
+              className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-1.5 font-medium text-zinc-800 shadow-sm hover:bg-zinc-50"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              View page
+            </button>
             <button
               type="button"
               onClick={() => save()}

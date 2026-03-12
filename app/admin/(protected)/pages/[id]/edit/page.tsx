@@ -11,10 +11,16 @@ type EditPageProps = {
 export default async function EditPage({ params }: EditPageProps) {
   const { id } = await params;
 
-  const page = await prisma.landingPage.findUnique({
-    where: { id },
-    include: { domain: true },
-  });
+  let page;
+  try {
+    page = await prisma.landingPage.findUnique({
+      where: { id },
+      include: { domain: true },
+    });
+  } catch (err) {
+    console.error("[EditPage] Failed to load landingPage", err);
+    page = null;
+  }
 
   if (!page || !page.domain) {
     notFound();
