@@ -169,6 +169,17 @@ ul,ol{
     font-size: inherit;
   }
 
+  /* Ensure inline text-align styles from TipTap always win */
+  .ProseMirror [style*="text-align: center"] {
+    text-align: center !important;
+  }
+  .ProseMirror [style*="text-align: right"] {
+    text-align: right !important;
+  }
+  .ProseMirror [style*="text-align: justify"] {
+    text-align: justify !important;
+  }
+
 
   /* In the TipTap editor, make empty paragraphs render as visible blank lines */
   .ProseMirror p:empty::before {
@@ -196,7 +207,8 @@ hr{
   background: inherit;
   pointer-events: none;
 }
-.tag span > span:before {
+
+.tag span > span::after {
   content: "\2014";
   /* background-color: #eee; */
   border-radius: 0;
@@ -208,7 +220,7 @@ hr{
   transform: translateY(-50%);
   color: inherit;
 }
- .tag span > span:after {
+ .tag span > span::before {
   content: "\2014";
   /* background-color: #eee; */
   border-radius: 0;
@@ -220,7 +232,30 @@ hr{
   transform: translateY(-50%);
   color: inherit;
 }
-
+.custom .tag span::after {
+  content: "\2014";
+  /* background-color: #eee; */
+  border-radius: 0;
+  width: 20px;
+  /* height: 1px; */
+  position: absolute;
+  top: 50%;
+  left: -35px !important;
+  transform: translateY(-50%);
+  color: inherit;
+}
+.custom .tag span::before {
+  content: "\2014";
+  /* background-color: #eee; */
+  border-radius: 0;
+  width: 20px;
+  /* height: 1px; */
+  position: absolute;
+  top: 50%;
+  right: -35px;
+  transform: translateY(-50%);
+  color: inherit;
+}
 
 dot:before
 {
