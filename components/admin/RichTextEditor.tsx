@@ -24,6 +24,7 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   height?: number;
+  fontOptions?: { label: string; cssFamily: string }[];
 }
 
 const DEFAULT_EDITOR_HEIGHT = 220;
@@ -75,12 +76,13 @@ export function RichTextEditor({
   onChange,
   placeholder = "",
   height = DEFAULT_EDITOR_HEIGHT,
+  fontOptions,
 }: RichTextEditorProps) {
   const defaultRoboto =
     'Roboto, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   const tagFontFamily =
     "Bricolage Grotesque, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-  const [currentFontFamily, setCurrentFontFamily] = useState(defaultRoboto);
+  const [currentFontFamily, setCurrentFontFamily] = useState("default");
   const [currentFontSize, setCurrentFontSize] = useState("14px");
   const [currentLineHeight, setCurrentLineHeight] = useState("1.5");
   const lastEmittedHtml = useRef<string | null>(null);
@@ -192,7 +194,17 @@ export function RichTextEditor({
         fontSize?: string;
       };
 
-      setCurrentFontFamily(attrs.fontFamily || defaultRoboto);
+      const activeFont = attrs.fontFamily || "";
+      if (
+        activeFont &&
+        (fontOptions || []).some((f) => f.cssFamily === activeFont)
+      ) {
+        setCurrentFontFamily(activeFont);
+      } else if (activeFont === tagFontFamily) {
+        setCurrentFontFamily(tagFontFamily);
+      } else {
+        setCurrentFontFamily("default");
+      }
       setCurrentFontSize(attrs.fontSize || "14px");
 
       // Paragraph-level line-height, stored as inline style on <p>
@@ -241,11 +253,13 @@ export function RichTextEditor({
           {label}
         </label>
       )}
-      <div className="overflow-hidden rounded-md border border-zinc-300 bg-white text-sm shadow-sm">
+      <div className="overflow-hidden rounded-md border border-zinc-300 bg-white text-sm shadow-sm blk-set">
         <div className="tiptap-toolbar flex flex-wrap items-center gap-1 border-b border-zinc-200 bg-zinc-50 px-3 py-1.5">
           {/* Undo / Redo */}
           <button
             type="button"
+            title="Undo"
+            aria-label="Undo"
             onClick={() => editor?.chain().focus().undo().run()}
             disabled={!editor?.can().undo()}
             className="px-1.5 py-0.5 rounded text-zinc-700 hover:bg-zinc-200 disabled:opacity-40"
@@ -254,6 +268,8 @@ export function RichTextEditor({
           </button>
           <button
             type="button"
+            title="Redo"
+            aria-label="Redo"
             onClick={() => editor?.chain().focus().redo().run()}
             disabled={!editor?.can().redo()}
             className="px-1.5 py-0.5 rounded text-zinc-700 hover:bg-zinc-200 disabled:opacity-40"
@@ -263,6 +279,8 @@ export function RichTextEditor({
 
           {/* Heading levels */}
           <select
+            title="Heading level"
+            aria-label="Heading level"
             className="ml-1 rounded border border-zinc-300 bg-white px-1 py-0.5 text-xs text-zinc-700"
             value={
               editor?.isActive("heading", { level: 1 })
@@ -293,6 +311,8 @@ export function RichTextEditor({
           {/* Basic marks */}
           <button
             type="button"
+            title="Bold"
+            aria-label="Bold"
             onClick={() => editor?.chain().focus().toggleBold().run()}
             className={`px-1.5 py-0.5 rounded ${
               editor?.isActive("bold")
@@ -304,6 +324,8 @@ export function RichTextEditor({
           </button>
           <button
             type="button"
+            title="Italic"
+            aria-label="Italic"
             onClick={() => editor?.chain().focus().toggleItalic().run()}
             className={`px-1.5 py-0.5 rounded italic ${
               editor?.isActive("italic")
@@ -315,6 +337,8 @@ export function RichTextEditor({
           </button>
           <button
             type="button"
+            title="Underline"
+            aria-label="Underline"
             onClick={() => editor?.chain().focus().toggleUnderline().run()}
             className={`px-1.5 py-0.5 rounded underline ${
               editor?.isActive("underline")
@@ -327,6 +351,8 @@ export function RichTextEditor({
 
           <button
             type="button"
+            title="Strikethrough"
+            aria-label="Strikethrough"
             onClick={() => editor?.chain().focus().toggleStrike().run()}
             className={`px-1.5 py-0.5 rounded line-through ${
               editor?.isActive("strike")
@@ -340,6 +366,8 @@ export function RichTextEditor({
           {/* Text color */}
           <input
             type="color"
+            title="Text color"
+            aria-label="Text color"
             className="ml-1 h-5 w-5 cursor-pointer rounded border border-zinc-300 bg-white"
             value={
               (editor?.getAttributes("textStyle").color as string) || "#000000"
@@ -356,6 +384,8 @@ export function RichTextEditor({
           {/* Highlight */}
           <button
             type="button"
+            title="Highlight"
+            aria-label="Highlight"
             onClick={() =>
               editor?.chain().focus().toggleHighlight().run()
             }
@@ -372,6 +402,8 @@ export function RichTextEditor({
           <div className="ml-1 inline-flex rounded border border-zinc-300 bg-white">
             <button
               type="button"
+              title="Align left"
+              aria-label="Align left"
               onClick={() =>
                 editor?.chain().focus().setTextAlign("left").run()
               }
@@ -385,6 +417,8 @@ export function RichTextEditor({
             </button>
             <button
               type="button"
+              title="Align center"
+              aria-label="Align center"
               onClick={() =>
                 editor?.chain().focus().setTextAlign("center").run()
               }
@@ -398,6 +432,8 @@ export function RichTextEditor({
             </button>
             <button
               type="button"
+              title="Align right"
+              aria-label="Align right"
               onClick={() =>
                 editor?.chain().focus().setTextAlign("right").run()
               }
@@ -413,6 +449,8 @@ export function RichTextEditor({
 
           {/* Font family */}
           <select
+            title="Font family"
+            aria-label="Font family"
             className="ml-1 rounded border border-zinc-300 bg-white px-1 py-0.5 text-xs text-zinc-700"
             value={currentFontFamily}
             onChange={(e) => {
@@ -427,23 +465,17 @@ export function RichTextEditor({
             }}
           >
             <option value="default">Default font</option>
-            <option value="Playfair Display, serif">Playfair Display</option>
-            <option value='Roboto, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'>
-              Roboto
-            </option>
-            <option value="Bricolage Grotesque, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
-              Bricolage Grotesque
-            </option>
-            <option value='"Alegreya Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'>
-              Alegreya Sans
-            </option>
-            <option value='"Poiret One", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'>
-              Poiret One
-            </option>
+            {(fontOptions || []).map((font) => (
+              <option key={font.label} value={font.cssFamily}>
+                {font.label}
+              </option>
+            ))}
           </select>
 
           {/* Font size */}
           <select
+            title="Font size"
+            aria-label="Font size"
             className="ml-1 rounded border border-zinc-300 bg-white px-1 py-0.5 text-xs text-zinc-700"
             value={currentFontSize}
             onChange={(e) => {
@@ -469,6 +501,8 @@ export function RichTextEditor({
 
           {/* Line height */}
           <select
+            title="Line height"
+            aria-label="Line height"
             className="ml-1 rounded border border-zinc-300 bg-white px-1 py-0.5 text-xs text-zinc-700"
             value={currentLineHeight}
             onChange={(e) => {
@@ -517,6 +551,8 @@ export function RichTextEditor({
           {/* Lists */}
           <button
             type="button"
+            title="Bulleted list"
+            aria-label="Bulleted list"
             onClick={() => editor?.chain().focus().toggleBulletList().run()}
             className={`px-1.5 py-0.5 rounded ${
               editor?.isActive("bulletList")
@@ -528,6 +564,8 @@ export function RichTextEditor({
           </button>
           <button
             type="button"
+            title="Numbered list"
+            aria-label="Numbered list"
             onClick={() => editor?.chain().focus().toggleOrderedList().run()}
             className={`px-1.5 py-0.5 rounded ${
               editor?.isActive("orderedList")
@@ -541,6 +579,8 @@ export function RichTextEditor({
           {/* Indent / Outdent for list items */}
           <button
             type="button"
+            title="Indent list item"
+            aria-label="Indent list item"
             onClick={() =>
               editor?.chain().focus().sinkListItem("listItem").run()
             }
@@ -550,6 +590,8 @@ export function RichTextEditor({
           </button>
           <button
             type="button"
+            title="Outdent list item"
+            aria-label="Outdent list item"
             onClick={() =>
               editor?.chain().focus().liftListItem("listItem").run()
             }
@@ -561,6 +603,8 @@ export function RichTextEditor({
           {/* Block quote */}
           <button
             type="button"
+            title="Blockquote"
+            aria-label="Blockquote"
             onClick={() => editor?.chain().focus().toggleBlockquote().run()}
             className={`px-1.5 py-0.5 rounded ${
               editor?.isActive("blockquote")
@@ -574,6 +618,8 @@ export function RichTextEditor({
           {/* Tag block: wrap selection in <div class="tag"> */}
           <button
             type="button"
+            title="Tag block"
+            aria-label="Tag block"
             onClick={() => {
               if (!editor) return;
               // Avoid runtime error if for some reason the node is missing
@@ -607,6 +653,8 @@ export function RichTextEditor({
           {/* Clear formatting */}
           <button
             type="button"
+            title="Clear formatting"
+            aria-label="Clear formatting"
             onClick={() =>
               editor
                 ?.chain()

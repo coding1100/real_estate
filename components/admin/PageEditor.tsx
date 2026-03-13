@@ -24,11 +24,12 @@ interface PageEditorProps {
     status?: string;
     multistepStepSlugs?: string[] | null;
   };
+  editorFonts?: { label: string; cssFamily: string }[];
 }
 
 type Tab = "content" | "form" | "seo" | "layout";
 
-export function PageEditor({ initialPage }: PageEditorProps) {
+export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
   const [tab, setTab] = useState<Tab>("content");
   const [page, setPage] = useState(initialPage);
   const [status, setStatus] = useState<string>(initialPage.status ?? "draft");
@@ -44,6 +45,9 @@ export function PageEditor({ initialPage }: PageEditorProps) {
   const [formSchema, setFormSchema] = useState<FormSchema | null>(
     (initialPage.formSchema as any) ?? { fields: [] },
   );
+  const [socialOverrides, setSocialOverrides] = useState<
+    LandingPageContent["socialOverrides"]
+  >((initialPage as any).socialOverrides ?? null);
   const [saving, startSaving] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">(
@@ -56,14 +60,14 @@ export function PageEditor({ initialPage }: PageEditorProps) {
   const { success: successToast, error: errorToast } = useAdminToast();
 
   const heroSections = Array.isArray(page.sections) ? page.sections : [];
-  const heroSection =
-    heroSections.find((s) => s.kind === "hero") || null;
+  const heroSection = heroSections.find((s) => s.kind === "hero") || null;
   const heroLayout = (heroSection?.props as any) || {};
 
-  const isHomeValueFamily =
-    page.slug === "home-value" ||
-    !!(heroLayout as any).heroLowerStripHtml ||
-    !!(heroLayout as any).formFooterText;
+  // Treat the dedicated /home-value entry page and any pages generated from it
+  // (e.g. /home-value(questionnaire), /home-value(thankyou), etc.) as part of
+  // the Home Value family. Other pages should not show the specialized
+  // home-value-only fields like the lower strip or form/map footer.
+  const isHomeValueFamily = page.slug === "home-value" || page.slug.startsWith("home-value");
 
   const layoutData = page.pageLayout?.layoutData as any[] | undefined;
   const savedLayout =
@@ -143,6 +147,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
         sections,
         blocks,
         formSchema,
+        socialOverrides,
         seoTitle: page.seo.title,
         seoDescription: page.seo.description,
         canonicalUrl: page.seo.canonicalUrl,
@@ -195,6 +200,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
         sections,
         blocks,
         formSchema,
+        socialOverrides,
         ...(body.layoutData
           ? {
             pageLayout: {
@@ -218,7 +224,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
         ) as HTMLIFrameElement | null;
         if (iframe) {
           // Add timestamp to force fresh fetch
-          iframe.src = `/${page.slug}?t=${Date.now()}`;
+          iframe.src = `/${page.slug}?preview=1&t=${Date.now()}`;
         }
       }, 100);
     });
@@ -405,6 +411,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                             }
                             placeholder="Main hero copy block (domain label, headline, supporting text). Leave empty to use the defaults."
                             height={330}
+                            fontOptions={editorFonts}
                           />
                         </div>
                         {/* RIGHT SECTION */}
@@ -479,6 +486,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                             }
                             placeholder="Request the Market Brief"
                             height={286}
+                            fontOptions={editorFonts}
                           />
                         </div>
                       </div>
@@ -519,13 +527,12 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           }
                           placeholder="Explain what the visitor receives after submitting the form."
                           height={286}
+                          fontOptions={editorFonts}
                         />
                       </div>
                     </div>
 
-                    {((page.slug === "home-value") ||
-                      !!heroLayout.heroLowerStripHtml ||
-                      !!heroLayout.formFooterText) && (
+                    {isHomeValueFamily && (
                       <div className="mt-4 space-y-4 border-t border-dashed border-zinc-200 pt-3">
                         <div className="space-y-2">
                           <p className="text-xs font-medium text-zinc-600">
@@ -540,6 +547,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                               })
                             }
                             placeholder="Short line of text shown in the colored strip between the hero and the map."
+                            fontOptions={editorFonts}
                           />
                         </div>
                         <div className="space-y-2">
@@ -553,6 +561,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                               updateHeroLayout({ formFooterText: html as string })
                             }
                             placeholder="Optional footer text shown below the form or map (e.g. disclaimer, attribution, confidentiality)."
+                            fontOptions={editorFonts}
                           />
                         </div>
                       </div>
@@ -574,6 +583,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           onChange={(html) => update("ctaText", html as any)}
                           placeholder="Button label, e.g. Request the Market Brief"
                           height={286}
+                          fontOptions={editorFonts}
                         />
                         <div>
                           <label className="mb-1 block text-sm font-medium text-zinc-700">
@@ -630,6 +640,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                       value={(page as any).footerHtml ?? ""}
                       onChange={(html) => update("footerHtml", html as any)}
                       placeholder="Optional footer text (e.g. brokerage disclaimers, licensing, copyright)."
+                      fontOptions={editorFonts}
                     />
                   </div>
 
@@ -651,6 +662,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                             updateHeroLayout({ profileSectionHtml: html as string })
                           }
                           placeholder="Optional: rich text for the profile block (name, title, role, phone, email, etc.). When set, this is shown instead of the fields below."
+                          fontOptions={editorFonts}
                         />
                         </div>
                         <div className="space-y-3 md:col-span-1">
@@ -807,10 +819,107 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                 individual step pages instead of here.
               </div>
             ) : (
+              <div className="space-y-4">
+                <div className="rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                    Social media icons for this page
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Override or hide social icons for this landing page only. When left
+                    blank, icons fall back to the domain-level settings.
+                  </p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    {[
+                      {
+                        key: "linkedin" as const,
+                        label: "LinkedIn URL",
+                        visibleKey: "linkedinVisible" as const,
+                        urlKey: "linkedinUrl" as const,
+                      },
+                      {
+                        key: "google" as const,
+                        label: "Google Business URL",
+                        visibleKey: "googleVisible" as const,
+                        urlKey: "googleUrl" as const,
+                      },
+                      {
+                        key: "facebook" as const,
+                        label: "Facebook URL",
+                        visibleKey: "facebookVisible" as const,
+                        urlKey: "facebookUrl" as const,
+                      },
+                      {
+                        key: "instagram" as const,
+                        label: "Instagram URL",
+                        visibleKey: "instagramVisible" as const,
+                        urlKey: "instagramUrl" as const,
+                      },
+                      {
+                        key: "zillow" as const,
+                        label: "Zillow URL",
+                        visibleKey: "zillowVisible" as const,
+                        urlKey: "zillowUrl" as const,
+                      },
+                    ].map((item) => {
+                      const current = socialOverrides ?? {};
+                      const url = (current as any)[item.urlKey] ?? "";
+                      const visible = (current as any)[item.visibleKey];
+                      const effectiveVisible =
+                        typeof visible === "boolean" ? visible : true;
+                      return (
+                        <div key={item.key} className="space-y-1">
+                          <label className="flex flex-col gap-1 text-xs font-medium text-zinc-700">
+                            <span>{item.label}</span>
+                            <input
+                              type="text"
+                              value={url}
+                              onChange={(e) => {
+                                const next = {
+                                  ...(socialOverrides ?? {}),
+                                  [item.urlKey]:
+                                    e.target.value.trim().length > 0
+                                      ? e.target.value
+                                      : null,
+                                } as any;
+                                setSocialOverrides(next);
+                                setPage((prev) => ({
+                                  ...prev,
+                                  socialOverrides: next,
+                                }));
+                              }}
+                              className="mt-0.5 rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                              placeholder="https://..."
+                            />
+                          </label>
+                          <label className="mt-1 flex items-center gap-1 text-xs text-zinc-600">
+                            <input
+                              type="checkbox"
+                              checked={effectiveVisible}
+                              onChange={(e) => {
+                                const next = {
+                                  ...(socialOverrides ?? {}),
+                                  [item.visibleKey]: e.target.checked,
+                                } as any;
+                                setSocialOverrides(next);
+                                setPage((prev) => ({
+                                  ...prev,
+                                  socialOverrides: next,
+                                }));
+                              }}
+                            />
+                            <span>Show this icon on this page</span>
+                          </label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               <FormEditor
                 value={formSchema}
                 onChange={(schema) => setFormSchema(schema)}
+                editorFonts={editorFonts}
               />
+              </div>
             )
           )}
           {tab === "layout" && (
@@ -863,9 +972,9 @@ export function PageEditor({ initialPage }: PageEditorProps) {
             )
           )}
         </div>
-        <div className="h-[588px] overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm md:h-[784px]">
+        <div className="h-[588px] overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm md:h-[784px] adj01 mb-[50px]">
           <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50 px-3 py-2">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-600">
+            <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-600 ">
               Live preview
             </p>
             <div className="flex items-center gap-2">
@@ -900,11 +1009,11 @@ export function PageEditor({ initialPage }: PageEditorProps) {
             <iframe
               id="page-preview"
               title="Live preview"
-              src={`/${page.slug}`}
+              src={`/${page.slug}?preview=1`}
               className={
                 previewDevice === "mobile"
                   ? "h-full w-[380px] max-w-full border-0 rounded-[1.25rem] shadow-md"
-                  : "h-full w-full border-0"
+                  : "w-full border-0 h-[calc(100%_-_80px)]"
               }
             />
           </div>

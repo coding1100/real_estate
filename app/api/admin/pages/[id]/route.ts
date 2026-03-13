@@ -17,10 +17,44 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
 
   const body = await req.json();
   const { id } = await ctx.params;
-  const existingPage = await prisma.landingPage.findUnique({
-    where: { id },
-    select: { domainId: true },
-  });
+  let existingPage;
+  try {
+    existingPage = await prisma.landingPage.findUnique({
+      where: { id },
+      select: { domainId: true },
+    });
+  } catch (error: unknown) {
+    const code =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      typeof (error as { code?: unknown }).code === "string"
+        ? ((error as { code: string }).code)
+        : null;
+
+    if (code === "ETIMEDOUT") {
+      console.error(
+        "[pages] prisma.landingPage.findUnique timed out while loading page for PATCH",
+        { id, error },
+      );
+      return NextResponse.json(
+        {
+          error:
+            "The database request timed out while loading this page. Please try again in a moment.",
+        },
+        { status: 503 },
+      );
+    }
+
+    console.error(
+      "[pages] prisma.landingPage.findUnique failed while loading page for PATCH",
+      { id, error },
+    );
+    return NextResponse.json(
+      { error: "Failed to load page from the database." },
+      { status: 500 },
+    );
+  }
   if (!existingPage) {
     return NextResponse.json({ error: "Page not found." }, { status: 404 });
   }
@@ -98,6 +132,34 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     const layoutData = body.layoutData;
     delete body.layoutData;
 
+    // Persist per-page social icon overrides into the hero section props
+    if (Object.prototype.hasOwnProperty.call(body, "socialOverrides")) {
+      const socialOverrides = body.socialOverrides;
+      try {
+        const existing = await prisma.landingPage.findUnique({
+          where: { id },
+          select: { sections: true },
+        });
+        const rawSections = (body.sections ?? existing?.sections) as any;
+        const sections: any[] = Array.isArray(rawSections) ? [...rawSections] : [];
+        const heroIdx = sections.findIndex((s) => s && s.kind === "hero");
+        if (heroIdx !== -1) {
+          const hero = sections[heroIdx] || {};
+          sections[heroIdx] = {
+            ...hero,
+            props: {
+              ...(hero.props || {}),
+              socialOverrides,
+            },
+          };
+          body.sections = sections;
+        }
+      } catch {
+        // ignore failures; fall back to saving without social overrides
+      }
+      delete body.socialOverrides;
+    }
+
     console.log("[PATCH] Updating page:", id);
     console.log("[PATCH] Body keys:", Object.keys(body));
     console.log("[PATCH] Headline:", body.headline);
@@ -137,11 +199,33 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
           where: { id: page.domainId },
         });
         if (domain) {
-          console.log("[revalidate] Also invalidating domain path:", `/${domain.hostname}/${page.slug}`);
+          console.log(
+            "[revalidate] Also invalidating domain path:",
+            `/${domain.hostname}/${page.slug}`,
+          );
           revalidatePath(`/${domain.hostname}/${page.slug}`);
         }
-      } catch (e) {
-        // ignore domain lookup errors
+      } catch (error: unknown) {
+        const code =
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          typeof (error as { code?: unknown }).code === "string"
+            ? ((error as { code: string }).code)
+            : null;
+
+        if (code === "ETIMEDOUT") {
+          console.error(
+            "[revalidate] prisma.domain.findUnique timed out while loading domain for cache invalidation",
+            { domainId: page.domainId, slug: page.slug, error },
+          );
+        } else {
+          console.error(
+            "[revalidate] prisma.domain.findUnique failed while loading domain for cache invalidation",
+            { domainId: page.domainId, slug: page.slug, error },
+          );
+        }
+        // Do not fail the PATCH response if cache invalidation for the domain path fails.
       }
     }
     console.log("[revalidate] Cache invalidation complete");

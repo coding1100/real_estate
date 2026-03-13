@@ -32,11 +32,14 @@ async function getHostContextFromHeaders() {
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: RouteParams): Promise<Metadata> {
   const { slug } = await params;
+  const query = (await (searchParams as any)) ?? {};
   const { hostname, isPreviewHost } = await getHostContextFromHeaders();
   const page = await getLandingPage(hostname, slug, {
     allowFallbackToAnyDomain: isPreviewHost,
+    includeDraft: isPreviewHost || query.preview === "1" || query.preview === "true",
   });
 
   const title = page.seo.title || page.headline;
@@ -103,6 +106,7 @@ export default async function LandingPage({ params, searchParams }: RouteParams)
   console.log("[landing-page] Fetching page:", slug, "hostname:", hostname);
   const page = await getLandingPage(hostname, slug, {
     allowFallbackToAnyDomain: isPreviewHost,
+    includeDraft: isPreviewHost || query.preview === "1" || query.preview === "true",
   });
   console.log("[landing-page] Got page:", page.slug, "headline:", page.headline);
 

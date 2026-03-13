@@ -17,26 +17,59 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const pages = await prisma.landingPage.findMany({
-    where: {
-      domainId,
-      status: "published",
-    },
-    select: {
-      id: true,
-      slug: true,
-      headline: true,
-      type: true,
-    },
-    orderBy: { slug: "asc" },
-  });
+  try {
+    const pages = await prisma.landingPage.findMany({
+      where: {
+        domainId,
+        status: "published",
+      },
+      select: {
+        id: true,
+        slug: true,
+        headline: true,
+        type: true,
+      },
+      orderBy: { slug: "asc" },
+    });
 
-  return NextResponse.json({
-    pages: pages.map((p) => ({
-      id: p.id,
-      slug: p.slug,
-      headline: p.headline ?? "",
-      type: p.type,
-    })),
-  });
+    return NextResponse.json({
+      pages: pages.map((p) => ({
+        id: p.id,
+        slug: p.slug,
+        headline: p.headline ?? "",
+        type: p.type,
+      })),
+    });
+  } catch (error: unknown) {
+    const code =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      typeof (error as { code?: unknown }).code === "string"
+        ? ((error as { code: string }).code)
+        : null;
+
+    if (code === "ETIMEDOUT") {
+      console.error(
+        "[for-multistep] prisma.landingPage.findMany timed out while loading pages for domainId",
+        { domainId, error },
+      );
+      return NextResponse.json(
+        {
+          error:
+            "The database request timed out while loading pages for this domain. Please try again in a moment.",
+        },
+        { status: 503 },
+      );
+    }
+
+    console.error(
+      "[for-multistep] prisma.landingPage.findMany failed while loading pages for domainId",
+      { domainId, error },
+    );
+    return NextResponse.json(
+      { error: "Failed to load pages for this domain." },
+      { status: 500 },
+    );
+  }
 }

@@ -176,6 +176,8 @@ model AdminUiSettings {
   toastErrorBody    String   @default("Please try again.")
   toastAlertTitle   String   @default("Attention")
   toastAlertBody    String   @default("Please review this information.")
+  /// Optional configuration for editor fonts (array of { label, cssFamily } objects)
+  editorFonts       Json?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }

@@ -51,6 +51,16 @@ function pageToContent(
       }
     }
   }
+
+  // Derive per-page social overrides from hero section props, if present
+  let socialOverrides: any = null;
+  if (Array.isArray(sections)) {
+    const hero = sections.find((s) => s && s.kind === "hero");
+    if (hero && (hero as any).props && (hero as any).props.socialOverrides) {
+      socialOverrides = (hero as any).props.socialOverrides;
+    }
+  }
+
   return {
     id: page.id,
     slug: page.slug,
@@ -64,6 +74,7 @@ function pageToContent(
     footerHtml: (page as any).footerHtml ?? null,
     sections,
     formSchema: (page.formSchema as any) ?? null,
+    socialOverrides,
     domain: {
       hostname: page.domain.hostname,
       displayName: page.domain.displayName,
@@ -103,7 +114,7 @@ function pageToContent(
 export async function getLandingPage(
   hostname: string,
   slug: string,
-  options?: { allowFallbackToAnyDomain?: boolean },
+  options?: { allowFallbackToAnyDomain?: boolean; includeDraft?: boolean },
 ): Promise<LandingPageContent> {
   const requestedSlug = slug;
 
@@ -112,12 +123,14 @@ export async function getLandingPage(
   const fetchSlug =
     requestedSlug === EXEC_REL_ENTRY_SLUG ? EXEC_REL_STEP_SLUGS[0] : requestedSlug;
 
+  const includeDraft = options?.includeDraft === true;
+
   let page: PageRow | null = null;
   try {
     page = await prisma.landingPage.findFirst({
       where: {
         slug: fetchSlug,
-        status: "published",
+        ...(includeDraft ? {} : { status: "published" }),
         domain: {
           hostname,
           isActive: true,
@@ -136,7 +149,7 @@ export async function getLandingPage(
       page = await prisma.landingPage.findFirst({
         where: {
           slug: fetchSlug,
-          status: "published",
+          ...(includeDraft ? {} : { status: "published" }),
           domain: { isActive: true },
         },
         include: { domain: true },
@@ -199,7 +212,7 @@ export async function getLandingPage(
         where: {
           slug: { in: stepSlugList as any },
           domainId: page.domainId,
-          status: "published",
+          ...(includeDraft ? {} : { status: "published" }),
         },
         select: { slug: true },
       });

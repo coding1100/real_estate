@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageEditor } from "@/components/admin/PageEditor";
+import {
+  getAdminUiSettings,
+  getEnabledEditorFonts,
+} from "@/lib/uiSettings";
 
 type EditPageProps = {
   params: Promise<{
@@ -38,6 +42,17 @@ export default async function EditPage({ params }: EditPageProps) {
     // or execute prisma/sql/page_layout.sql
   }
 
+  const sections = (page.sections as any) ?? [];
+
+  // Derive per-page social overrides from hero section props, if present
+  let socialOverrides: any = null;
+  if (Array.isArray(sections)) {
+    const hero = sections.find((s) => s && s.kind === "hero");
+    if (hero && (hero as any).props && (hero as any).props.socialOverrides) {
+      socialOverrides = (hero as any).props.socialOverrides;
+    }
+  }
+
   const pageContent = {
     dbId: page.id,
     domainId: page.domainId,
@@ -52,8 +67,9 @@ export default async function EditPage({ params }: EditPageProps) {
     ctaText: page.ctaText,
     successMessage: page.successMessage,
     footerHtml: (page as any).footerHtml ?? "",
-    sections: (page.sections as any) ?? [],
+    sections,
     formSchema: (page.formSchema as any) ?? null,
+    socialOverrides,
     pageLayout: pageLayout ? {
       id: pageLayout.id,
       layoutData: pageLayout.layoutData,
@@ -79,8 +95,13 @@ export default async function EditPage({ params }: EditPageProps) {
     },
   };
 
+  const { editorFonts } = await getAdminUiSettings();
+
   return (
-    <PageEditor initialPage={pageContent} />
+    <PageEditor
+      initialPage={pageContent}
+      editorFonts={getEnabledEditorFonts(editorFonts)}
+    />
   );
 }
 

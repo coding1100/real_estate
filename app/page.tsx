@@ -130,6 +130,12 @@ export default async function Home() {
   const rawHostname = await getRequestHostnameFromHeaders();
   const hostname = resolveTenantHostname(rawHostname);
 
+  // For the main platform hostname (including localhost during development),
+  // send root requests ("/") to the master seller template preview.
+  if (isPlatformHostname(hostname)) {
+    redirect("/master-seller");
+  }
+
   if (!isPlatformHostname(hostname)) {
     const tenantRootSlug = await resolveTenantRootSlug(
       hostname,
