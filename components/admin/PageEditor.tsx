@@ -863,9 +863,9 @@ export function PageEditor({ initialPage }: PageEditorProps) {
             )
           )}
         </div>
-        <div className="h-[588px] overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm md:h-[784px]">
+        <div className="h-[588px] overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm md:h-[784px] adj01 mb-[50px]">
           <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50 px-3 py-2">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-600">
+            <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-600 ">
               Live preview
             </p>
             <div className="flex items-center gap-2">
@@ -904,7 +904,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
               className={
                 previewDevice === "mobile"
                   ? "h-full w-[380px] max-w-full border-0 rounded-[1.25rem] shadow-md"
-                  : "h-full w-full border-0"
+                  : "w-full border-0 h-[calc(100%_-_80px)]"
               }
             />
           </div>
