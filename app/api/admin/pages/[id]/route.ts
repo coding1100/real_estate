@@ -165,11 +165,33 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
           where: { id: page.domainId },
         });
         if (domain) {
-          console.log("[revalidate] Also invalidating domain path:", `/${domain.hostname}/${page.slug}`);
+          console.log(
+            "[revalidate] Also invalidating domain path:",
+            `/${domain.hostname}/${page.slug}`,
+          );
           revalidatePath(`/${domain.hostname}/${page.slug}`);
         }
-      } catch (e) {
-        // ignore domain lookup errors
+      } catch (error: unknown) {
+        const code =
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          typeof (error as { code?: unknown }).code === "string"
+            ? ((error as { code: string }).code)
+            : null;
+
+        if (code === "ETIMEDOUT") {
+          console.error(
+            "[revalidate] prisma.domain.findUnique timed out while loading domain for cache invalidation",
+            { domainId: page.domainId, slug: page.slug, error },
+          );
+        } else {
+          console.error(
+            "[revalidate] prisma.domain.findUnique failed while loading domain for cache invalidation",
+            { domainId: page.domainId, slug: page.slug, error },
+          );
+        }
+        // Do not fail the PATCH response if cache invalidation for the domain path fails.
       }
     }
     console.log("[revalidate] Cache invalidation complete");
