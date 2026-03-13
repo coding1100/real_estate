@@ -24,6 +24,7 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   height?: number;
+  fontOptions?: { label: string; cssFamily: string }[];
 }
 
 const DEFAULT_EDITOR_HEIGHT = 220;
@@ -75,12 +76,13 @@ export function RichTextEditor({
   onChange,
   placeholder = "",
   height = DEFAULT_EDITOR_HEIGHT,
+  fontOptions,
 }: RichTextEditorProps) {
   const defaultRoboto =
     'Roboto, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   const tagFontFamily =
     "Bricolage Grotesque, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-  const [currentFontFamily, setCurrentFontFamily] = useState(defaultRoboto);
+  const [currentFontFamily, setCurrentFontFamily] = useState("default");
   const [currentFontSize, setCurrentFontSize] = useState("14px");
   const [currentLineHeight, setCurrentLineHeight] = useState("1.5");
   const lastEmittedHtml = useRef<string | null>(null);
@@ -192,7 +194,17 @@ export function RichTextEditor({
         fontSize?: string;
       };
 
-      setCurrentFontFamily(attrs.fontFamily || defaultRoboto);
+      const activeFont = attrs.fontFamily || "";
+      if (
+        activeFont &&
+        (fontOptions || []).some((f) => f.cssFamily === activeFont)
+      ) {
+        setCurrentFontFamily(activeFont);
+      } else if (activeFont === tagFontFamily) {
+        setCurrentFontFamily(tagFontFamily);
+      } else {
+        setCurrentFontFamily("default");
+      }
       setCurrentFontSize(attrs.fontSize || "14px");
 
       // Paragraph-level line-height, stored as inline style on <p>
@@ -453,19 +465,11 @@ export function RichTextEditor({
             }}
           >
             <option value="default">Default font</option>
-            <option value="Playfair Display, serif">Playfair Display</option>
-            <option value='Roboto, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'>
-              Roboto
-            </option>
-            <option value="Bricolage Grotesque, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
-              Bricolage Grotesque
-            </option>
-            <option value='"Alegreya Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'>
-              Alegreya Sans
-            </option>
-            <option value='"Poiret One", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'>
-              Poiret One
-            </option>
+            {(fontOptions || []).map((font) => (
+              <option key={font.label} value={font.cssFamily}>
+                {font.label}
+              </option>
+            ))}
           </select>
 
           {/* Font size */}

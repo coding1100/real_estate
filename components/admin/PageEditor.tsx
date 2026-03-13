@@ -24,11 +24,12 @@ interface PageEditorProps {
     status?: string;
     multistepStepSlugs?: string[] | null;
   };
+  editorFonts?: { label: string; cssFamily: string }[];
 }
 
 type Tab = "content" | "form" | "seo" | "layout";
 
-export function PageEditor({ initialPage }: PageEditorProps) {
+export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
   const [tab, setTab] = useState<Tab>("content");
   const [page, setPage] = useState(initialPage);
   const [status, setStatus] = useState<string>(initialPage.status ?? "draft");
@@ -410,6 +411,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                             }
                             placeholder="Main hero copy block (domain label, headline, supporting text). Leave empty to use the defaults."
                             height={330}
+                            fontOptions={editorFonts}
                           />
                         </div>
                         {/* RIGHT SECTION */}
@@ -484,6 +486,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                             }
                             placeholder="Request the Market Brief"
                             height={286}
+                            fontOptions={editorFonts}
                           />
                         </div>
                       </div>
@@ -524,6 +527,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           }
                           placeholder="Explain what the visitor receives after submitting the form."
                           height={286}
+                          fontOptions={editorFonts}
                         />
                       </div>
                     </div>
@@ -543,6 +547,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                               })
                             }
                             placeholder="Short line of text shown in the colored strip between the hero and the map."
+                            fontOptions={editorFonts}
                           />
                         </div>
                         <div className="space-y-2">
@@ -556,6 +561,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                               updateHeroLayout({ formFooterText: html as string })
                             }
                             placeholder="Optional footer text shown below the form or map (e.g. disclaimer, attribution, confidentiality)."
+                            fontOptions={editorFonts}
                           />
                         </div>
                       </div>
@@ -577,6 +583,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                           onChange={(html) => update("ctaText", html as any)}
                           placeholder="Button label, e.g. Request the Market Brief"
                           height={286}
+                          fontOptions={editorFonts}
                         />
                         <div>
                           <label className="mb-1 block text-sm font-medium text-zinc-700">
@@ -633,6 +640,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                       value={(page as any).footerHtml ?? ""}
                       onChange={(html) => update("footerHtml", html as any)}
                       placeholder="Optional footer text (e.g. brokerage disclaimers, licensing, copyright)."
+                      fontOptions={editorFonts}
                     />
                   </div>
 
@@ -654,6 +662,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                             updateHeroLayout({ profileSectionHtml: html as string })
                           }
                           placeholder="Optional: rich text for the profile block (name, title, role, phone, email, etc.). When set, this is shown instead of the fields below."
+                          fontOptions={editorFonts}
                         />
                         </div>
                         <div className="space-y-3 md:col-span-1">
@@ -905,10 +914,11 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                     })}
                   </div>
                 </div>
-                <FormEditor
-                  value={formSchema}
-                  onChange={(schema) => setFormSchema(schema)}
-                />
+              <FormEditor
+                value={formSchema}
+                onChange={(schema) => setFormSchema(schema)}
+                editorFonts={editorFonts}
+              />
               </div>
             )
           )}
