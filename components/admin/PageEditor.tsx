@@ -218,7 +218,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
         ) as HTMLIFrameElement | null;
         if (iframe) {
           // Add timestamp to force fresh fetch
-          iframe.src = `/${page.slug}?t=${Date.now()}`;
+          iframe.src = `/${page.slug}?preview=1&t=${Date.now()}`;
         }
       }, 100);
     });
@@ -900,7 +900,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
             <iframe
               id="page-preview"
               title="Live preview"
-              src={`/${page.slug}`}
+              src={`/${page.slug}?preview=1`}
               className={
                 previewDevice === "mobile"
                   ? "h-full w-[380px] max-w-full border-0 rounded-[1.25rem] shadow-md"
