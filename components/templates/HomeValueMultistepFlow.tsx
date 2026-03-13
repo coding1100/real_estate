@@ -9,6 +9,7 @@ import type { FormSchema } from "@/lib/types/form";
 import { DynamicForm } from "@/components/forms/DynamicForm";
 import { useRecaptcha, RecaptchaScript } from "@/components/forms/Captcha";
 import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
+import { useToast } from "@/components/ui/use-toast";
 
 interface LayoutItem {
   i: string;
@@ -76,21 +77,38 @@ export function HomeValueMultistepFlow({
   layoutData,
   utmHiddenFields,
 }: HomeValueMultistepFlowProps) {
-  // Determine whether the entry page (/home-value) itself is included
-  // in the multistep steps list *and* chosen as the first step.
-  // Only in that case do we render the dedicated home-value search/map
-  // UI as step 0. If /home-value appears later in the list (or not at
-  // all), we respect the admin-configured order and do not special-case it.
-  const baseSteps = Array.isArray(steps) ? steps : [];
-  const homeIndex = baseSteps.findIndex((s) => s.slug === mainPage.slug);
-  const hasHomeValueStep = homeIndex !== -1;
-  const useHomeValueAsEntry = hasHomeValueStep && homeIndex === 0;
+  // Normalize steps list and drop any step whose slug matches the entry page
+  // slug. This prevents an extra \"copy\" of the entry page from appearing
+  // as an in-between step after the entry.
+  const baseSteps = (Array.isArray(steps) ? steps : []).filter(
+    (s) => (s.slug ?? "") !== (mainPage.slug ?? ""),
+  );
 
-  const effectiveSteps = useHomeValueAsEntry
-    ? baseSteps.slice(1)
-    : baseSteps;
+  // Detect whether this entry page uses the special Home Value layout
+  // (search bar + map + lower strip + right-hand form). For any such
+  // page, we want the multistep entry (step 0) to look exactly like
+  // the single-step UI.
+  const entrySections = Array.isArray(mainPage.sections)
+    ? mainPage.sections
+    : [];
+  const entryHeroSection = entrySections.find((s) => s.kind === "hero") as
+    | { props?: any }
+    | undefined;
+  const entryLayoutProps = (entryHeroSection?.props || {}) as {
+    heroLowerStripHtml?: string;
+    formFooterText?: string;
+  };
+  const isHomeValueStyleEntry =
+    typeof mainPage.slug === "string" &&
+    mainPage.slug.startsWith("home-value") &&
+    (!!entryLayoutProps.heroLowerStripHtml ||
+      !!entryLayoutProps.formFooterText);
 
-  const totalSteps = useHomeValueAsEntry
+  const useHomeValueEntryLayout = isHomeValueStyleEntry;
+
+  const effectiveSteps = baseSteps;
+
+  const totalSteps = useHomeValueEntryLayout
     ? 1 + effectiveSteps.length
     : effectiveSteps.length;
   if (!totalSteps) return null;
@@ -104,6 +122,7 @@ export function HomeValueMultistepFlow({
   const [isFinalSubmitted, setIsFinalSubmitted] = useState(false);
   const [loadRecaptcha, setLoadRecaptcha] = useState(false);
   const { execute } = useRecaptcha();
+  const { toast } = useToast();
 
   // Step 0 – /home-value search + map UI state
   const [address, setAddress] = useState("");
@@ -294,23 +313,44 @@ export function HomeValueMultistepFlow({
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        setSubmitError("Unable to submit your request. Please try again.");
+        const msg = "Unable to submit your request. Please try again.";
+        setSubmitError(msg);
+        toast({
+          title: "Submission failed",
+          description: msg,
+          variant: "destructive",
+        });
       } else {
         setIsFinalSubmitted(true);
         setSubmitError(null);
+        const plainSuccess =
+          (mainPage.successMessage &&
+            mainPage.successMessage.replace(/<[^>]+>/g, "").trim()) ||
+          "Thank you! We'll be in touch shortly.";
+        toast({
+          title: "Success",
+          description: plainSuccess,
+          variant: "default",
+        });
       }
     } catch {
-      setSubmitError("Unable to submit your request. Please try again.");
+      const msg = "Unable to submit your request. Please try again.";
+      setSubmitError(msg);
+      toast({
+        title: "Submission failed",
+        description: msg,
+        variant: "destructive",
+      });
     } finally {
       setIsSubmittingFinal(false);
     }
   };
 
-  // STEP 0: /home-value UI (search + map), with CTA advancing to the next step.
-  // Only used when /home-value itself is explicitly included as the *first*
-  // step in the multistep list in admin. Otherwise we skip this and treat the
-  // first configured slug as the first visible step (like other multistep pages).
-  if (useHomeValueAsEntry && currentStep === 0) {
+  // STEP 0: Home Value-style entry UI (search + map), with CTA advancing to the next step.
+  // Used for any entry page that uses the Home Value layout family (including
+  // /home-value and pages derived from it). This keeps the multistep entry UI
+  // visually identical to the single-step version.
+  if (useHomeValueEntryLayout && currentStep === 0) {
     const heroSections = Array.isArray(mainPage.sections)
       ? mainPage.sections
       : [];
@@ -524,9 +564,9 @@ export function HomeValueMultistepFlow({
   }
 
   // Steps: generic multistep hero flow, reusing the existing layout patterns.
-  // When useHomeValueAsEntry is true, currentStep 1 maps to effectiveSteps[0];
+  // When useHomeValueEntryLayout is true, currentStep 1 maps to effectiveSteps[0];
   // when false, currentStep 0 maps to effectiveSteps[0] (no special entry step).
-  const innerIndex = useHomeValueAsEntry ? currentStep - 1 : currentStep;
+  const innerIndex = useHomeValueEntryLayout ? currentStep - 1 : currentStep;
   const step = effectiveSteps[innerIndex];
 
   const stepLayoutData =
@@ -713,11 +753,7 @@ export function HomeValueMultistepFlow({
                           {submitError}
                         </p>
                       )}
-                      {isFinalSubmitted && (
-                        <div className="text-xs text-green-700 text-center">
-                          Thank you! We&apos;ll be in touch shortly.
-                        </div>
-                      )}
+                      
                     </div>
                   </div>
                 ) : (
@@ -828,11 +864,7 @@ export function HomeValueMultistepFlow({
                               {submitError}
                             </p>
                           )}
-                          {isFinalSubmitted && (
-                            <div className="text-xs text-green-700 text-center">
-                              Thank you! We&apos;ll be in touch shortly.
-                            </div>
-                          )}
+                          
                         </div>
                       </div>
                     </div>

@@ -63,11 +63,27 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
   const heroSection = heroSections.find((s) => s.kind === "hero") || null;
   const heroLayout = (heroSection?.props as any) || {};
 
-  // Treat the dedicated /home-value entry page and any pages generated from it
-  // (e.g. /home-value(questionnaire), /home-value(thankyou), etc.) as part of
-  // the Home Value family. Other pages should not show the specialized
-  // home-value-only fields like the lower strip or form/map footer.
-  const isHomeValueFamily = page.slug === "home-value" || page.slug.startsWith("home-value");
+  // Treat the dedicated /home-value entry page and any pages derived from it
+  // (e.g. /home-value-copy, /home-value-qualify) as part of the Home Value family.
+  // Also treat multistep entries whose first step is "home-value" (e.g. duplicated
+  // page with a custom slug). These pages must not show the Layout tab.
+  const normalizedSlug = (page.slug ?? "")
+    .trim()
+    .replace(/^\//, "")
+    .toLowerCase();
+  const slugIsHomeValueFamily =
+    normalizedSlug === "home-value" || normalizedSlug.startsWith("home-value");
+  const firstStepIsHomeValue =
+    Array.isArray(multistepStepSlugs) &&
+    typeof multistepStepSlugs[0] === "string" &&
+    multistepStepSlugs[0].toLowerCase() === "home-value";
+  // Explicit exceptions: these slugs are independent funnels and should
+  // behave like normal pages even though they contain 'home-value' in the slug.
+  const isHomeValueException =
+    normalizedSlug === "home-value(questionnaire)" ||
+    normalizedSlug === "home-value(thankyou-strategy-call)";
+  const isHomeValueFamily =
+    !isHomeValueException && (slugIsHomeValueFamily || firstStepIsHomeValue);
 
   const layoutData = page.pageLayout?.layoutData as any[] | undefined;
   const savedLayout =

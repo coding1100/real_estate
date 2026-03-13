@@ -7,6 +7,7 @@ import type { FormSchema } from "@/lib/types/form";
 import { DynamicForm } from "@/components/forms/DynamicForm";
 import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
 import { useRecaptcha, RecaptchaScript } from "@/components/forms/Captcha";
+import { useToast } from "@/components/ui/use-toast";
 
 interface LayoutItem {
   i: string;
@@ -64,6 +65,7 @@ export function MultistepHeroFlow({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isFinalSubmitted, setIsFinalSubmitted] = useState(false);
   const { execute } = useRecaptcha();
+  const { toast } = useToast();
 
   if (!steps.length) return null;
 
@@ -146,13 +148,34 @@ export function MultistepHeroFlow({
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        setSubmitError("Unable to submit your request. Please try again.");
+        const msg = "Unable to submit your request. Please try again.";
+        setSubmitError(msg);
+        toast({
+          title: "Submission failed",
+          description: msg,
+          variant: "destructive",
+        });
       } else {
         setIsFinalSubmitted(true);
         setSubmitError(null);
+        const plainSuccess =
+          (mainPage.successMessage &&
+            mainPage.successMessage.replace(/<[^>]+>/g, "").trim()) ||
+          "Thank you! We'll be in touch shortly.";
+        toast({
+          title: "Success",
+          description: plainSuccess,
+          variant: "default",
+        });
       }
     } catch {
-      setSubmitError("Unable to submit your request. Please try again.");
+      const msg = "Unable to submit your request. Please try again.";
+      setSubmitError(msg);
+      toast({
+        title: "Submission failed",
+        description: msg,
+        variant: "destructive",
+      });
     } finally {
       setIsSubmittingFinal(false);
     }
