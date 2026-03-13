@@ -484,16 +484,7 @@ export function HomeValueMultistepFlow({
                   </h2>
                 )}
 
-                {hasFormIntro && (
-                  <div
-                    className="mt-1 text-xs text-amber-800/80"
-                    dangerouslySetInnerHTML={{
-                      __html: layout!.formIntro as string,
-                    }}
-                  />
-                )}
-
-        <div className="mt-4">
+                <div className="mt-4">
           {formSchema && formSchema.fields?.length ? (
             <>
               <DynamicForm
@@ -508,6 +499,14 @@ export function HomeValueMultistepFlow({
                 overrides={mainPage.socialOverrides ?? null}
                 className="mt-3"
               />
+              {hasFormIntro && (
+                <div
+                  className="mt-2 text-xs text-amber-800/80"
+                  dangerouslySetInnerHTML={{
+                    __html: layout!.formIntro as string,
+                  }}
+                />
+              )}
             </>
           ) : (
             <p className="text-xs text-amber-800/80">
@@ -889,7 +888,7 @@ export function HomeValueMultistepFlow({
                     </>
                   </div>
                   <div className="space-y-4 relative flex flex-col justify-center">
-                    <div className="w-full px-[25px] pt-[30px] pb-[70px] break-all border border-[#cbb1a7ab] pr-[44%] flex flex-col justify-center max-[768px]:pr-4 max-[768px]:pb-4">
+                    <div className="w-full px-[25px] pt-[30px] pb-[70px] break-all relative border border-[#cbb1a7ab] pr-[44%] flex flex-col justify-center max-[768px]:pr-4 max-[768px]:pb-4">
                       {layout?.profileImageUrl && (
                         <div className="absolute h-[265px] w-[220px] -bottom-[0px] -right-[54px] text-transparent rounded-[2px] max-[768px]:relative max-[768px]:h-40 max-[768px]:w-full max-[768px]:bottom-auto max-[768px]:right-auto max-[768px]:mx-0 max-[768px]:mb-3">
                           <Image

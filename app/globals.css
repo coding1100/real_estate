@@ -12,7 +12,9 @@
   --font-mono: var(--font-body);
   --font-serif: var(--font-heading), Georgia, serif;
 }
-p{min-height: 20px;}
+p{
+  min-height: 20px;
+}
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
