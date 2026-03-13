@@ -12,7 +12,9 @@
   --font-mono: var(--font-body);
   --font-serif: var(--font-heading), Georgia, serif;
 }
-p{min-height: 20px;}
+p{
+  min-height: 20px;
+}
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -313,6 +315,10 @@ pre span{
     transform-origin: top left;
   }
 }
+.blk-set blockquote {
+  background: #6b5c56b3;
+}
+
 .detailed-perspective-radio-list li{
   background: #fefaf7f2;
   height: 56px;

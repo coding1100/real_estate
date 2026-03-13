@@ -49,21 +49,52 @@ export function MultistepPageSelector({
       setLoading(false);
       return;
     }
-    setLoading(true);
-    setError(null);
-    fetch(`/api/admin/pages/for-multistep?domainId=${encodeURIComponent(domainId)}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch pages");
-        return res.json();
-      })
-      .then((data) => {
-        setPages(data.pages ?? []);
-      })
-      .catch((err) => {
-        setError(err.message ?? "Failed to load pages");
-        setPages([]);
-      })
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    const load = async (attempt: number) => {
+      if (cancelled) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(
+          `/api/admin/pages/for-multistep?domainId=${encodeURIComponent(
+            domainId,
+          )}`,
+        );
+        const data = await res
+          .json()
+          .catch(() => ({ error: "Failed to parse response" }));
+        if (!res.ok) {
+          const message =
+            (data && typeof data.error === "string" && data.error) ||
+            "Failed to fetch pages";
+          throw new Error(message);
+        }
+        if (!cancelled) {
+          setPages(data.pages ?? []);
+        }
+      } catch (err: any) {
+        if (attempt < 2) {
+          // Simple retry once after a short delay for transient issues like timeouts.
+          setTimeout(() => load(attempt + 1), 400);
+          return;
+        }
+        if (!cancelled) {
+          setError(err?.message ?? "Failed to load pages");
+          setPages([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    load(1);
+
+    return () => {
+      cancelled = true;
+    };
   }, [domainId]);
 
   const slugToPage = new Map(pages.map((p) => [p.slug, p]));

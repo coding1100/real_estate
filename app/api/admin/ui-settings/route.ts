@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getAdminUiSettings,
   updateAdminUiSettings,
+  EditorFontOption,
+  DEFAULT_EDITOR_FONTS,
 } from "@/lib/uiSettings";
 
 export async function GET() {
@@ -26,9 +28,11 @@ export async function PATCH(req: NextRequest) {
     toastErrorBody: string;
     toastAlertTitle: string;
     toastAlertBody: string;
+    editorFonts: EditorFontOption[];
   }>;
 
-  const allowed: Record<string, string | number | undefined> = {};
+  const allowed: Record<string, string | number | EditorFontOption[] | undefined> =
+    {};
   if (typeof body.toastSuccessBg === "string") {
     allowed.toastSuccessBg = body.toastSuccessBg;
   }
@@ -77,6 +81,45 @@ export async function PATCH(req: NextRequest) {
   }
   if (typeof body.toastAlertBody === "string") {
     allowed.toastAlertBody = body.toastAlertBody;
+  }
+
+  if (Array.isArray(body.editorFonts)) {
+    const fromBody = body.editorFonts as Array<{
+      label?: string;
+      cssFamily?: string;
+      enabled?: boolean;
+      importUrl?: string;
+    }>;
+    const sanitized: EditorFontOption[] = [];
+    for (const item of fromBody) {
+      if (
+        item &&
+        typeof item.label === "string" &&
+        item.label.trim().length > 0
+      ) {
+        const label = item.label.trim();
+        const cssFamilyRaw =
+          typeof item.cssFamily === "string" ? item.cssFamily.trim() : "";
+        const cssFamily =
+          cssFamilyRaw.length > 0
+            ? cssFamilyRaw
+            : `"${label}", system-ui, sans-serif`;
+
+        sanitized.push({
+          label,
+          cssFamily,
+          enabled: item.enabled !== false,
+          importUrl:
+            typeof item.importUrl === "string" &&
+            item.importUrl.trim().length > 0
+              ? item.importUrl.trim()
+              : undefined,
+        });
+      }
+    }
+    // Store exactly what the client sends (after trimming/validation).
+    // Built-in fonts are guaranteed/merged when reading settings.
+    allowed.editorFonts = sanitized;
   }
 
   const { settings, theme } = await updateAdminUiSettings(allowed);

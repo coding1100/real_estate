@@ -321,7 +321,11 @@ export function MultistepHeroFlow({
                           dangerouslySetInnerHTML={{ __html: step.ctaText }}
                         />
                       </button>
-                      <SocialLinksBar domain={mainPage.domain} className="mt-1.5" />
+                      <SocialLinksBar
+                        base={mainPage.domain}
+                        overrides={mainPage.socialOverrides ?? null}
+                        className="mt-1.5"
+                      />
                       {isFinalSubmitted && mainPage.successMessage && (
                         <div
                           className="text-md text-emerald-800 font-serif text-center"
@@ -379,7 +383,11 @@ export function MultistepHeroFlow({
                           }
                           onNextStep={isLastStep ? undefined : handleNextStep}
                         />
-                        <SocialLinksBar domain={mainPage.domain} className="mt-3" />
+                        <SocialLinksBar
+                          base={mainPage.domain}
+                          overrides={mainPage.socialOverrides ?? null}
+                          className="mt-3"
+                        />
                       </>
                     )}
                   </div>
@@ -476,7 +484,11 @@ export function MultistepHeroFlow({
                       }
                       onNextStep={isLastStep ? undefined : handleNextStep}
                     />
-                    <SocialLinksBar domain={mainPage.domain} className="mt-3" />
+                    <SocialLinksBar
+                      base={mainPage.domain}
+                      overrides={mainPage.socialOverrides ?? null}
+                      className="mt-3"
+                    />
                   </>
                 ) : !isLastStep ? (
                   <button

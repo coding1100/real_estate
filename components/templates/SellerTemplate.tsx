@@ -108,6 +108,16 @@ export function SellerTemplate({ page, utm }: SellerTemplateProps) {
         }
       : undefined;
 
+  const rawFooterHtml = page.footerHtml ?? "";
+  const footerTextContent = rawFooterHtml
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "") // zero-width and BOM
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const showFooter = footerTextContent.length > 0;
+
   return (
     <div className="min-h-screen bg-zinc-50 custom">
       {hasLayoutHeader ? (
@@ -166,7 +176,7 @@ export function SellerTemplate({ page, utm }: SellerTemplateProps) {
           />
         )}
       </main>
-      {page.footerHtml && page.footerHtml.trim().length > 0 && (
+      {showFooter && (
         <footer className="mt-10 border-t border-zinc-200 bg-[#f7f3f0] relative z-50">
           <div className="mx-auto max-w-6xl px-3 py-3 md:px-3">
             <div
@@ -176,15 +186,7 @@ export function SellerTemplate({ page, utm }: SellerTemplateProps) {
           </div>
         </footer>
       )}
-      {hasLayoutFooter && (
-        <footer className="hidden fixed bottom-0 left-0 right-0 z-50 max-h-[100px] border-t border-zinc-200 bg-white overflow-hidden">
-          <div className="mx-auto flex max-w-6xl items-center justify-center px-4 py-3 max-[768px]:px-3 max-[768px]:py-2">
-            <span className="text-md text-zinc-600 max-[768px]:text-sm truncate">
-              {page.domain.displayName}
-            </span>
-          </div>
-        </footer>
-      )}
+      
     </div>
   );
 }

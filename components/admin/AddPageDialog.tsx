@@ -279,7 +279,7 @@ export function AddPageDialog({
 
               <div className="space-y-2">
                 <label className="block text-md font-medium text-zinc-700">
-                  Headline <span className="text-red-500">*</span>
+                  Title <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -293,7 +293,7 @@ export function AddPageDialog({
 
               <div className="space-y-2">
                 <label className="block text-md font-medium text-zinc-700">
-                  Subheadline
+                Meta Description
                 </label>
                 <textarea
                   value={form.subheadline}

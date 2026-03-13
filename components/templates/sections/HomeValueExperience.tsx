@@ -303,15 +303,6 @@ export function HomeValueExperience({
                 </h2>
               )}
 
-              {hasFormIntro && (
-                <div
-                  className="mt-1 text-xs text-amber-800/80"
-                  dangerouslySetInnerHTML={{
-                    __html: layout!.formIntro as string,
-                  }}
-                />
-              )}
-
               <div className="mt-4">
                 {formSchema && formSchema.fields?.length ? (
                   <DynamicForm
@@ -346,7 +337,18 @@ export function HomeValueExperience({
                     Form tab in admin.
                   </p>
                 )}
-                <SocialLinksBar domain={page.domain} />
+                <SocialLinksBar
+                  base={page.domain}
+                  overrides={page.socialOverrides ?? null}
+                />
+                {hasFormIntro && (
+                  <div
+                    className="mt-2 text-xs text-zinc-800"
+                    dangerouslySetInnerHTML={{
+                      __html: layout!.formIntro as string,
+                    }}
+                  />
+                )}
               </div>
             </div>
           </div>

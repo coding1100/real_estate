@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import type { EditorFontOption } from "@/lib/editorFonts";
+import { DEFAULT_EDITOR_FONTS } from "@/lib/editorFonts";
 
 const SINGLETON_ID = "singleton";
 
@@ -37,7 +39,17 @@ export interface AdminUiSettings {
   toastErrorBody: string;
   toastAlertTitle: string;
   toastAlertBody: string;
+  editorFonts?: EditorFontOption[] | null;
 }
+
+// Re-export from client-safe module so server code can still import from here
+export type { EditorFontOption } from "@/lib/editorFonts";
+export {
+  DEFAULT_EDITOR_FONTS,
+  BUILT_IN_EDITOR_FONT_LABELS,
+  isBuiltInEditorFont,
+  getEnabledEditorFonts,
+} from "@/lib/editorFonts";
 
 export const DEFAULT_THEME: ToastTheme = {
   successBg: "#ecfdf3",
@@ -60,6 +72,7 @@ export const DEFAULT_THEME: ToastTheme = {
 export async function getAdminUiSettings(): Promise<{
   settings: AdminUiSettings;
   theme: ToastTheme;
+  editorFonts: EditorFontOption[];
 }> {
   try {
     const settings = await prisma.adminUiSettings.upsert({
@@ -82,6 +95,7 @@ export async function getAdminUiSettings(): Promise<{
         toastErrorBody: DEFAULT_THEME.errorBody,
         toastAlertTitle: DEFAULT_THEME.alertTitle,
         toastAlertBody: DEFAULT_THEME.alertBody,
+        editorFonts: DEFAULT_EDITOR_FONTS as any,
       },
     });
 
@@ -104,7 +118,37 @@ export async function getAdminUiSettings(): Promise<{
       alertBody: settings.toastAlertBody || DEFAULT_THEME.alertBody,
     };
 
-    return { settings, theme };
+    const savedFonts = (settings.editorFonts as EditorFontOption[] | null) ?? [];
+    const savedByLabel = new Map(
+      savedFonts.map((f) => [
+        f.label,
+        { ...f, enabled: f.enabled !== false },
+      ]),
+    );
+    const merged: EditorFontOption[] = DEFAULT_EDITOR_FONTS.map((d) => {
+      const s = savedByLabel.get(d.label);
+      if (s) {
+        // Use any saved properties (like cssFamily and enabled),
+        // but keep the default label as the key.
+        savedByLabel.delete(d.label);
+        return {
+          ...d,
+          ...s,
+          enabled: s.enabled !== false,
+        };
+      }
+      // Default fonts that were never customized are enabled by default.
+      return { ...d, enabled: true };
+    });
+    // Any remaining saved fonts are purely custom (non-built-in) fonts.
+    savedByLabel.forEach((f) => merged.push(f));
+    const editorFonts = merged;
+
+    return {
+      settings: settings as AdminUiSettings,
+      theme,
+      editorFonts,
+    };
   } catch (err: any) {
     if (err?.code === "P2021" || /AdminUiSettings/.test(String(err?.message))) {
       const settings: AdminUiSettings = {
@@ -124,8 +168,13 @@ export async function getAdminUiSettings(): Promise<{
         toastErrorBody: DEFAULT_THEME.errorBody,
         toastAlertTitle: DEFAULT_THEME.alertTitle,
         toastAlertBody: DEFAULT_THEME.alertBody,
+        editorFonts: DEFAULT_EDITOR_FONTS as any,
       };
-      return { settings, theme: DEFAULT_THEME };
+      return {
+        settings,
+        theme: DEFAULT_THEME,
+        editorFonts: DEFAULT_EDITOR_FONTS.map((f) => ({ ...f, enabled: true })) as any,
+      };
     }
     throw err;
   }
@@ -149,6 +198,7 @@ export async function updateAdminUiSettings(
     | "toastErrorBody"
     | "toastAlertTitle"
     | "toastAlertBody"
+    | "editorFonts"
   >>,
 ): Promise<{ settings: AdminUiSettings; theme: ToastTheme }> {
   try {
@@ -200,6 +250,9 @@ export async function updateAdminUiSettings(
         ...(patch.toastAlertBody != null && {
           toastAlertBody: patch.toastAlertBody,
         }),
+        ...(patch.editorFonts != null && {
+          editorFonts: patch.editorFonts as any,
+        }),
       },
       create: {
         id: SINGLETON_ID,
@@ -222,6 +275,7 @@ export async function updateAdminUiSettings(
         toastAlertTitle:
           patch.toastAlertTitle ?? DEFAULT_THEME.alertTitle,
         toastAlertBody: patch.toastAlertBody ?? DEFAULT_THEME.alertBody,
+        editorFonts: (patch.editorFonts as any) ?? (DEFAULT_EDITOR_FONTS as any),
       },
     });
 
@@ -244,7 +298,7 @@ export async function updateAdminUiSettings(
       alertBody: settings.toastAlertBody || DEFAULT_THEME.alertBody,
     };
 
-    return { settings, theme };
+    return { settings: settings as AdminUiSettings, theme };
   } catch (err: any) {
     if (err?.code === "P2021" || /AdminUiSettings/.test(String(err?.message))) {
       const settings: AdminUiSettings = {

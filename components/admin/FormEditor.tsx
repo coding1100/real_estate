@@ -7,9 +7,10 @@ import { RichTextEditor } from "@/components/admin/RichTextEditor";
 interface FormEditorProps {
   value: FormSchema | null;
   onChange: (schema: FormSchema) => void;
+  editorFonts?: { label: string; cssFamily: string }[];
 }
 
-export function FormEditor({ value, onChange }: FormEditorProps) {
+export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
   const [error, setError] = useState<string | null>(null);
   const schema: FormSchema =
     value && Array.isArray((value as any).fields)
@@ -217,6 +218,7 @@ export function FormEditor({ value, onChange }: FormEditorProps) {
                   });
                 }}
                 placeholder="Question or field label"
+                fontOptions={editorFonts}
               />
               <div className="flex flex-wrap gap-2 items-center">
                 <select
