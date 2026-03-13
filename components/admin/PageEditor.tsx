@@ -44,6 +44,9 @@ export function PageEditor({ initialPage }: PageEditorProps) {
   const [formSchema, setFormSchema] = useState<FormSchema | null>(
     (initialPage.formSchema as any) ?? { fields: [] },
   );
+  const [socialOverrides, setSocialOverrides] = useState<
+    LandingPageContent["socialOverrides"]
+  >((initialPage as any).socialOverrides ?? null);
   const [saving, startSaving] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">(
@@ -143,6 +146,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
         sections,
         blocks,
         formSchema,
+        socialOverrides,
         seoTitle: page.seo.title,
         seoDescription: page.seo.description,
         canonicalUrl: page.seo.canonicalUrl,
@@ -195,6 +199,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
         sections,
         blocks,
         formSchema,
+        socialOverrides,
         ...(body.layoutData
           ? {
             pageLayout: {
@@ -807,10 +812,106 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                 individual step pages instead of here.
               </div>
             ) : (
-              <FormEditor
-                value={formSchema}
-                onChange={(schema) => setFormSchema(schema)}
-              />
+              <div className="space-y-4">
+                <div className="rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                    Social media icons for this page
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Override or hide social icons for this landing page only. When left
+                    blank, icons fall back to the domain-level settings.
+                  </p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    {[
+                      {
+                        key: "linkedin" as const,
+                        label: "LinkedIn URL",
+                        visibleKey: "linkedinVisible" as const,
+                        urlKey: "linkedinUrl" as const,
+                      },
+                      {
+                        key: "google" as const,
+                        label: "Google Business URL",
+                        visibleKey: "googleVisible" as const,
+                        urlKey: "googleUrl" as const,
+                      },
+                      {
+                        key: "facebook" as const,
+                        label: "Facebook URL",
+                        visibleKey: "facebookVisible" as const,
+                        urlKey: "facebookUrl" as const,
+                      },
+                      {
+                        key: "instagram" as const,
+                        label: "Instagram URL",
+                        visibleKey: "instagramVisible" as const,
+                        urlKey: "instagramUrl" as const,
+                      },
+                      {
+                        key: "zillow" as const,
+                        label: "Zillow URL",
+                        visibleKey: "zillowVisible" as const,
+                        urlKey: "zillowUrl" as const,
+                      },
+                    ].map((item) => {
+                      const current = socialOverrides ?? {};
+                      const url = (current as any)[item.urlKey] ?? "";
+                      const visible = (current as any)[item.visibleKey];
+                      const effectiveVisible =
+                        typeof visible === "boolean" ? visible : true;
+                      return (
+                        <div key={item.key} className="space-y-1">
+                          <label className="flex flex-col gap-1 text-xs font-medium text-zinc-700">
+                            <span>{item.label}</span>
+                            <input
+                              type="text"
+                              value={url}
+                              onChange={(e) => {
+                                const next = {
+                                  ...(socialOverrides ?? {}),
+                                  [item.urlKey]:
+                                    e.target.value.trim().length > 0
+                                      ? e.target.value
+                                      : null,
+                                } as any;
+                                setSocialOverrides(next);
+                                setPage((prev) => ({
+                                  ...prev,
+                                  socialOverrides: next,
+                                }));
+                              }}
+                              className="mt-0.5 rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                              placeholder="https://..."
+                            />
+                          </label>
+                          <label className="mt-1 flex items-center gap-1 text-xs text-zinc-600">
+                            <input
+                              type="checkbox"
+                              checked={effectiveVisible}
+                              onChange={(e) => {
+                                const next = {
+                                  ...(socialOverrides ?? {}),
+                                  [item.visibleKey]: e.target.checked,
+                                } as any;
+                                setSocialOverrides(next);
+                                setPage((prev) => ({
+                                  ...prev,
+                                  socialOverrides: next,
+                                }));
+                              }}
+                            />
+                            <span>Show this icon on this page</span>
+                          </label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <FormEditor
+                  value={formSchema}
+                  onChange={(schema) => setFormSchema(schema)}
+                />
+              </div>
             )
           )}
           {tab === "layout" && (

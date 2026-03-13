@@ -98,6 +98,34 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     const layoutData = body.layoutData;
     delete body.layoutData;
 
+    // Persist per-page social icon overrides into the hero section props
+    if (Object.prototype.hasOwnProperty.call(body, "socialOverrides")) {
+      const socialOverrides = body.socialOverrides;
+      try {
+        const existing = await prisma.landingPage.findUnique({
+          where: { id },
+          select: { sections: true },
+        });
+        const rawSections = (body.sections ?? existing?.sections) as any;
+        const sections: any[] = Array.isArray(rawSections) ? [...rawSections] : [];
+        const heroIdx = sections.findIndex((s) => s && s.kind === "hero");
+        if (heroIdx !== -1) {
+          const hero = sections[heroIdx] || {};
+          sections[heroIdx] = {
+            ...hero,
+            props: {
+              ...(hero.props || {}),
+              socialOverrides,
+            },
+          };
+          body.sections = sections;
+        }
+      } catch {
+        // ignore failures; fall back to saving without social overrides
+      }
+      delete body.socialOverrides;
+    }
+
     console.log("[PATCH] Updating page:", id);
     console.log("[PATCH] Body keys:", Object.keys(body));
     console.log("[PATCH] Headline:", body.headline);

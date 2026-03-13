@@ -1,6 +1,6 @@
 import * as React from "react";
 
-type DomainSocial = {
+type SocialLinksSource = {
   linkedinUrl?: string | null;
   linkedinVisible?: boolean | null;
   googleUrl?: string | null;
@@ -14,7 +14,8 @@ type DomainSocial = {
 };
 
 interface SocialLinksBarProps {
-  domain: DomainSocial;
+  base: SocialLinksSource;
+  overrides?: SocialLinksSource | null;
   className?: string;
 }
 
@@ -31,14 +32,15 @@ function toAbsoluteUrl(url: string): string {
 }
 
 export const SocialLinksBar: React.FC<SocialLinksBarProps> = ({
-  domain,
+  base,
+  overrides,
   className,
 }) => {
   const items = [
     {
       key: "linkedin",
-      url: domain.linkedinUrl,
-      visible: domain.linkedinVisible,
+      url: overrides?.linkedinUrl ?? base.linkedinUrl,
+      visible: overrides?.linkedinVisible ?? base.linkedinVisible,
       label: "LinkedIn",
       icon: (
         <svg
@@ -57,8 +59,8 @@ export const SocialLinksBar: React.FC<SocialLinksBarProps> = ({
     },
     {
       key: "google",
-      url: domain.googleUrl,
-      visible: domain.googleVisible,
+      url: overrides?.googleUrl ?? base.googleUrl,
+      visible: overrides?.googleVisible ?? base.googleVisible,
       label: "Google",
       icon: (
         <svg
@@ -89,8 +91,8 @@ export const SocialLinksBar: React.FC<SocialLinksBarProps> = ({
     },
     {
       key: "facebook",
-      url: domain.facebookUrl,
-      visible: domain.facebookVisible,
+      url: overrides?.facebookUrl ?? base.facebookUrl,
+      visible: overrides?.facebookVisible ?? base.facebookVisible,
       label: "Facebook",
       icon: (
         <svg
@@ -109,8 +111,8 @@ export const SocialLinksBar: React.FC<SocialLinksBarProps> = ({
     },
     {
       key: "instagram",
-      url: domain.instagramUrl,
-      visible: domain.instagramVisible,
+      url: overrides?.instagramUrl ?? base.instagramUrl,
+      visible: overrides?.instagramVisible ?? base.instagramVisible,
       label: "Instagram",
       icon: (
         <svg
@@ -141,8 +143,8 @@ export const SocialLinksBar: React.FC<SocialLinksBarProps> = ({
     },
     {
       key: "zillow",
-      url: domain.zillowUrl,
-      visible: domain.zillowVisible,
+      url: overrides?.zillowUrl ?? base.zillowUrl,
+      visible: overrides?.zillowVisible ?? base.zillowVisible,
       label: "Zillow",
       icon: (
         <svg

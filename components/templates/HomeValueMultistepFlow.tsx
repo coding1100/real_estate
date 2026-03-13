@@ -503,7 +503,11 @@ export function HomeValueMultistepFlow({
                 ctaBgColor={layout?.ctaBgColor}
                 onNextStep={handleNextStep}
               />
-              <SocialLinksBar domain={mainPage.domain} className="mt-3" />
+              <SocialLinksBar
+                base={mainPage.domain}
+                overrides={mainPage.socialOverrides ?? null}
+                className="mt-3"
+              />
             </>
           ) : (
             <p className="text-xs text-amber-800/80">
@@ -692,7 +696,11 @@ export function HomeValueMultistepFlow({
                           }}
                         />
                       </button>
-                      <SocialLinksBar domain={mainPage.domain} className="mt-1.5" />
+                      <SocialLinksBar
+                        base={mainPage.domain}
+                        overrides={mainPage.socialOverrides ?? null}
+                        className="mt-1.5"
+                      />
                       {layout?.formFooterText?.trim() && (
                         <div
                           className="text-xs text-zinc-700 font-serif leading-relaxed text-center"
@@ -803,7 +811,11 @@ export function HomeValueMultistepFlow({
                               }}
                             />
                           </button>
-                          <SocialLinksBar domain={mainPage.domain} className="mt-1.5" />
+                          <SocialLinksBar
+                            base={mainPage.domain}
+                            overrides={mainPage.socialOverrides ?? null}
+                            className="mt-1.5"
+                          />
                           {layout?.formFooterText?.trim() && (
                             <div
                               className="text-xs text-zinc-700 font-serif leading-relaxed text-center"
@@ -869,7 +881,11 @@ export function HomeValueMultistepFlow({
                         onNextStep={isLastStep ? undefined : handleNextStep}
                         skipValidationForNextStep={false}
                       />
-                      <SocialLinksBar domain={mainPage.domain} className="mt-3" />
+                      <SocialLinksBar
+                        base={mainPage.domain}
+                        overrides={mainPage.socialOverrides ?? null}
+                        className="mt-3"
+                      />
                     </>
                   </div>
                   <div className="space-y-4 relative flex flex-col justify-center">
@@ -971,7 +987,11 @@ export function HomeValueMultistepFlow({
                       onNextStep={isLastStep ? undefined : handleNextStep}
                       skipValidationForNextStep={false}
                     />
-                    <SocialLinksBar domain={mainPage.domain} className="mt-3" />
+                    <SocialLinksBar
+                      base={mainPage.domain}
+                      overrides={mainPage.socialOverrides ?? null}
+                      className="mt-3"
+                    />
                   </>
                 ) : !isLastStep ? (
                   <button
