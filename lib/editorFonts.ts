@@ -6,6 +6,8 @@
 export interface EditorFontOption {
   label: string;
   cssFamily: string;
+  /** Optional Google Fonts or CSS import URL to load this font dynamically. */
+  importUrl?: string;
   /** When false, font is excluded from editor dropdown. Default true. */
   enabled?: boolean;
 }
