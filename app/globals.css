@@ -313,6 +313,10 @@ pre span{
     transform-origin: top left;
   }
 }
+.blk-set blockquote {
+  background: #6b5c56b3;
+}
+
 .detailed-perspective-radio-list li{
   background: #fefaf7f2;
   height: 56px;

@@ -241,7 +241,7 @@ export function RichTextEditor({
           {label}
         </label>
       )}
-      <div className="overflow-hidden rounded-md border border-zinc-300 bg-white text-sm shadow-sm">
+      <div className="overflow-hidden rounded-md border border-zinc-300 bg-white text-sm shadow-sm blk-set">
         <div className="tiptap-toolbar flex flex-wrap items-center gap-1 border-b border-zinc-200 bg-zinc-50 px-3 py-1.5">
           {/* Undo / Redo */}
           <button
