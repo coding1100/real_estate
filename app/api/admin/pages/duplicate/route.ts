@@ -74,10 +74,27 @@ export async function POST(req: NextRequest) {
   }
 
   const domainIdToUse = targetDomainId ?? original.domainId;
-  const slugToUse =
+  const baseSlug =
     targetSlug && targetSlug.length > 0
       ? targetSlug
       : `${original.slug}-copy`;
+
+  // Ensure slug is unique for (domainId, slug) pair by appending
+  // an incrementing suffix when needed: -copy, -copy-2, -copy-3, ...
+  let slugToUse = baseSlug;
+  for (let i = 2; i <= 50; i++) {
+    const existing = await prisma.landingPage.findFirst({
+      where: {
+        domainId: domainIdToUse,
+        slug: slugToUse,
+      },
+      select: { id: true },
+    });
+    if (!existing) {
+      break;
+    }
+    slugToUse = `${baseSlug}-${i}`;
+  }
 
   const {
     id: _id,
