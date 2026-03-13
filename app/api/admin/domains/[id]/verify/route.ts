@@ -20,7 +20,41 @@ export async function POST(_req: NextRequest, ctx: RouteContext) {
   }
 
   const { id } = await ctx.params;
-  const domain = await prisma.domain.findUnique({ where: { id } });
+  let domain;
+  try {
+    domain = await prisma.domain.findUnique({ where: { id } });
+  } catch (error: unknown) {
+    const code =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      typeof (error as { code?: unknown }).code === "string"
+        ? ((error as { code: string }).code)
+        : null;
+
+    if (code === "ETIMEDOUT") {
+      console.error(
+        "[domains/verify] prisma.domain.findUnique timed out while loading domain",
+        { id, error },
+      );
+      return NextResponse.json(
+        {
+          error:
+            "The database request timed out while loading this domain. Please try again in a moment.",
+        },
+        { status: 503 },
+      );
+    }
+
+    console.error(
+      "[domains/verify] prisma.domain.findUnique failed while loading domain",
+      { id, error },
+    );
+    return NextResponse.json(
+      { error: "Failed to load domain from the database." },
+      { status: 500 },
+    );
+  }
   if (!domain) {
     return NextResponse.json({ error: "Domain not found" }, { status: 404 });
   }

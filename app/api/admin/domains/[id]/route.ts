@@ -58,7 +58,41 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
 
   const body = await req.json();
   const { id } = await ctx.params;
-  const existing = await prisma.domain.findUnique({ where: { id } });
+  let existing;
+  try {
+    existing = await prisma.domain.findUnique({ where: { id } });
+  } catch (error: unknown) {
+    const code =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      typeof (error as { code?: unknown }).code === "string"
+        ? ((error as { code: string }).code)
+        : null;
+
+    if (code === "ETIMEDOUT") {
+      console.error(
+        "[domains] prisma.domain.findUnique timed out while loading domain for PATCH",
+        { id, error },
+      );
+      return NextResponse.json(
+        {
+          error:
+            "The database request timed out while loading this domain. Please try again in a moment.",
+        },
+        { status: 503 },
+      );
+    }
+
+    console.error(
+      "[domains] prisma.domain.findUnique failed while loading domain for PATCH",
+      { id, error },
+    );
+    return NextResponse.json(
+      { error: "Failed to load domain from the database." },
+      { status: 500 },
+    );
+  }
   if (!existing) {
     return NextResponse.json({ error: "Domain not found" }, { status: 404 });
   }
