@@ -303,7 +303,11 @@ export function HeroSection({
                           </button>
                         </div>
                       )}
-                      <SocialLinksBar domain={page.domain} className="mt-2" />
+                      <SocialLinksBar
+                        base={page.domain}
+                        overrides={page.socialOverrides ?? null}
+                        className="mt-2"
+                      />
                     </div>
                   ) : (
                     // Default Next steps layout: three sections across two columns
@@ -396,7 +400,11 @@ export function HeroSection({
                                 />
                               </button>
                             </div>
-                            <SocialLinksBar domain={page.domain} className="mt-3" />
+                            <SocialLinksBar
+                              base={page.domain}
+                              overrides={page.socialOverrides ?? null}
+                              className="mt-3"
+                            />
                           </div>
                         </div>
                       </div>
@@ -545,7 +553,10 @@ export function HeroSection({
                         ...(utmHiddenFields ?? {}),
                       }}
                     />
-                    <SocialLinksBar domain={page.domain} />
+                    <SocialLinksBar
+                      base={page.domain}
+                      overrides={page.socialOverrides ?? null}
+                    />
                     {layout?.formIntro?.trim() && (
                       <div
                         className={`mt-4 text-md text-zinc-500 space-y-2 font-serif ${

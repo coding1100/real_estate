@@ -81,6 +81,19 @@ export interface LandingPageContent {
   formSchema?: FormSchema | null;
   pageLayout?: any | null;
   multistepSteps?: LandingPageContent[];
+  // Optional per-page social icon overrides; falls back to domain settings when undefined
+  socialOverrides?: {
+    linkedinUrl?: string | null;
+    linkedinVisible?: boolean | null;
+    googleUrl?: string | null;
+    googleVisible?: boolean | null;
+    facebookUrl?: string | null;
+    facebookVisible?: boolean | null;
+    instagramUrl?: string | null;
+    instagramVisible?: boolean | null;
+    zillowUrl?: string | null;
+    zillowVisible?: boolean | null;
+  } | null;
   seo: {
     title?: string | null;
     description?: string | null;

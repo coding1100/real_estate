@@ -346,7 +346,10 @@ export function HomeValueExperience({
                     Form tab in admin.
                   </p>
                 )}
-                <SocialLinksBar domain={page.domain} />
+                <SocialLinksBar
+                  base={page.domain}
+                  overrides={page.socialOverrides ?? null}
+                />
               </div>
             </div>
           </div>

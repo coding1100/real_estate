@@ -51,6 +51,16 @@ function pageToContent(
       }
     }
   }
+
+  // Derive per-page social overrides from hero section props, if present
+  let socialOverrides: any = null;
+  if (Array.isArray(sections)) {
+    const hero = sections.find((s) => s && s.kind === "hero");
+    if (hero && (hero as any).props && (hero as any).props.socialOverrides) {
+      socialOverrides = (hero as any).props.socialOverrides;
+    }
+  }
+
   return {
     id: page.id,
     slug: page.slug,
@@ -64,6 +74,7 @@ function pageToContent(
     footerHtml: (page as any).footerHtml ?? null,
     sections,
     formSchema: (page.formSchema as any) ?? null,
+    socialOverrides,
     domain: {
       hostname: page.domain.hostname,
       displayName: page.domain.displayName,
