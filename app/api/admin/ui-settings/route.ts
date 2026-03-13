@@ -88,20 +88,32 @@ export async function PATCH(req: NextRequest) {
       label?: string;
       cssFamily?: string;
       enabled?: boolean;
+      importUrl?: string;
     }>;
     const sanitized: EditorFontOption[] = [];
     for (const item of fromBody) {
       if (
         item &&
         typeof item.label === "string" &&
-        item.label.trim().length > 0 &&
-        typeof item.cssFamily === "string" &&
-        item.cssFamily.trim().length > 0
+        item.label.trim().length > 0
       ) {
+        const label = item.label.trim();
+        const cssFamilyRaw =
+          typeof item.cssFamily === "string" ? item.cssFamily.trim() : "";
+        const cssFamily =
+          cssFamilyRaw.length > 0
+            ? cssFamilyRaw
+            : `"${label}", system-ui, sans-serif`;
+
         sanitized.push({
-          label: item.label.trim(),
-          cssFamily: item.cssFamily.trim(),
+          label,
+          cssFamily,
           enabled: item.enabled !== false,
+          importUrl:
+            typeof item.importUrl === "string" &&
+            item.importUrl.trim().length > 0
+              ? item.importUrl.trim()
+              : undefined,
         });
       }
     }

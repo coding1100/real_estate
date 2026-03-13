@@ -56,6 +56,11 @@ export function EditorFontSettingsForm({
               label: f.label,
               cssFamily: f.cssFamily,
               enabled: f.enabled !== false,
+              importUrl:
+                typeof (f as any).importUrl === "string" &&
+                (f as any).importUrl.trim().length > 0
+                  ? (f as any).importUrl.trim()
+                  : undefined,
             })),
           }),
         });
@@ -66,11 +71,29 @@ export function EditorFontSettingsForm({
           );
         }
         success("Editor fonts updated.");
+        // Reload to ensure RootLayout re-runs and new font imports are applied globally.
+        if (typeof window !== "undefined") {
+          window.location.reload();
+        }
       } catch (err) {
         console.error(err);
         error("Failed to update editor font settings.");
       }
     });
+  };
+
+  const extractFamilyFromUrl = (url: string): string | null => {
+    try {
+      const u = new URL(url);
+      const familyParam = u.searchParams.get("family");
+      if (!familyParam) return null;
+      // family=Limelight or family=Playfair+Display:ital,wght@0,400;1,700
+      const base = familyParam.split(":")[0]; // before axis part
+      const name = base.replace(/\+/g, " ");
+      return name || null;
+    } catch {
+      return null;
+    }
   };
 
   const renderRow = (font: EditorFontOption, index: number) => {
@@ -134,6 +157,32 @@ export function EditorFontSettingsForm({
                   : "border-zinc-300 text-zinc-900"
               }`}
               placeholder="CSS font-family"
+            />
+          </div>
+          <div className="min-w-0 flex-1 space-y-1 md:basis-[30%]">
+            <input
+              type="text"
+              value={font.importUrl ?? ""}
+              onChange={(e) => {
+                const raw = e.target.value;
+                const patch: Partial<EditorFontOption> = {
+                  importUrl: raw,
+                };
+                const family = extractFamilyFromUrl(raw);
+                if (family) {
+                  const currentCss = font.cssFamily?.trim() ?? "";
+                  const autoDefault = `"${font.label}", system-ui, sans-serif`;
+                  if (!currentCss || currentCss === autoDefault) {
+                    patch.cssFamily = `"${family}", system-ui, sans-serif`;
+                  }
+                  if (!font.label || font.label === "New font") {
+                    patch.label = family;
+                  }
+                }
+                updateFont(index, patch);
+              }}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-0"
+              placeholder="Google Fonts CSS URL (e.g. https://fonts.googleapis.com/css2?family=Limelight&display=swap)"
             />
           </div>
         </div>
