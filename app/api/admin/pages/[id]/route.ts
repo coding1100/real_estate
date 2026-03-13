@@ -17,10 +17,44 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
 
   const body = await req.json();
   const { id } = await ctx.params;
-  const existingPage = await prisma.landingPage.findUnique({
-    where: { id },
-    select: { domainId: true },
-  });
+  let existingPage;
+  try {
+    existingPage = await prisma.landingPage.findUnique({
+      where: { id },
+      select: { domainId: true },
+    });
+  } catch (error: unknown) {
+    const code =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      typeof (error as { code?: unknown }).code === "string"
+        ? ((error as { code: string }).code)
+        : null;
+
+    if (code === "ETIMEDOUT") {
+      console.error(
+        "[pages] prisma.landingPage.findUnique timed out while loading page for PATCH",
+        { id, error },
+      );
+      return NextResponse.json(
+        {
+          error:
+            "The database request timed out while loading this page. Please try again in a moment.",
+        },
+        { status: 503 },
+      );
+    }
+
+    console.error(
+      "[pages] prisma.landingPage.findUnique failed while loading page for PATCH",
+      { id, error },
+    );
+    return NextResponse.json(
+      { error: "Failed to load page from the database." },
+      { status: 500 },
+    );
+  }
   if (!existingPage) {
     return NextResponse.json({ error: "Page not found." }, { status: 404 });
   }

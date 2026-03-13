@@ -92,11 +92,13 @@ export function BuyerTemplate({ page, utm }: BuyerTemplateProps) {
     (l) => l.i === "footer-bar" && l.hidden !== true,
   );
 
-  // Detect Home Value-style pages (those that use the lower strip / map footer fields),
-  // except for the dedicated /home-value-qualify step. These should use the specialized
-  // HomeValueExperience / HomeValueMultistepFlow layouts, even for buyer type.
+  // Detect Home Value-style pages (those that use the lower strip / map footer fields)
+  // ONLY for the home-value funnel slugs, and not for unrelated pages like
+  // /market-report(thankyou). This keeps the specialized HomeValueExperience /
+  // HomeValueMultistepFlow layout scoped to the home-value family.
   const isHomeValuePage =
     page.slug !== "home-value-qualify" &&
+    page.slug.startsWith("home-value") &&
     (!!(heroConfig as any).heroLowerStripHtml ||
       !!(heroConfig as any).formFooterText);
 

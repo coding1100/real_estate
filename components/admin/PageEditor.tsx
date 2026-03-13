@@ -59,14 +59,14 @@ export function PageEditor({ initialPage }: PageEditorProps) {
   const { success: successToast, error: errorToast } = useAdminToast();
 
   const heroSections = Array.isArray(page.sections) ? page.sections : [];
-  const heroSection =
-    heroSections.find((s) => s.kind === "hero") || null;
+  const heroSection = heroSections.find((s) => s.kind === "hero") || null;
   const heroLayout = (heroSection?.props as any) || {};
 
-  const isHomeValueFamily =
-    page.slug === "home-value" ||
-    !!(heroLayout as any).heroLowerStripHtml ||
-    !!(heroLayout as any).formFooterText;
+  // Treat the dedicated /home-value entry page and any pages generated from it
+  // (e.g. /home-value(questionnaire), /home-value(thankyou), etc.) as part of
+  // the Home Value family. Other pages should not show the specialized
+  // home-value-only fields like the lower strip or form/map footer.
+  const isHomeValueFamily = page.slug === "home-value" || page.slug.startsWith("home-value");
 
   const layoutData = page.pageLayout?.layoutData as any[] | undefined;
   const savedLayout =
@@ -528,9 +528,7 @@ export function PageEditor({ initialPage }: PageEditorProps) {
                       </div>
                     </div>
 
-                    {((page.slug === "home-value") ||
-                      !!heroLayout.heroLowerStripHtml ||
-                      !!heroLayout.formFooterText) && (
+                    {isHomeValueFamily && (
                       <div className="mt-4 space-y-4 border-t border-dashed border-zinc-200 pt-3">
                         <div className="space-y-2">
                           <p className="text-xs font-medium text-zinc-600">
