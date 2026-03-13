@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageEditor } from "@/components/admin/PageEditor";
+import {
+  getAdminUiSettings,
+  getEnabledEditorFonts,
+} from "@/lib/uiSettings";
 
 type EditPageProps = {
   params: Promise<{
@@ -91,8 +95,13 @@ export default async function EditPage({ params }: EditPageProps) {
     },
   };
 
+  const { editorFonts } = await getAdminUiSettings();
+
   return (
-    <PageEditor initialPage={pageContent} />
+    <PageEditor
+      initialPage={pageContent}
+      editorFonts={getEnabledEditorFonts(editorFonts)}
+    />
   );
 }
 
