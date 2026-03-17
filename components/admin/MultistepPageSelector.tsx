@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { X, ChevronDown, GripVertical } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { X, ChevronDown, GripVertical, Search } from "lucide-react";
 
 interface PageOption {
   id: string;
@@ -29,6 +29,7 @@ export function MultistepPageSelector({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -100,6 +101,18 @@ export function MultistepPageSelector({
   const slugToPage = new Map(pages.map((p) => [p.slug, p]));
   const selectedSlugs = value;
   const availableToAdd = pages.filter((p) => !selectedSlugs.includes(p.slug));
+
+  const filteredAvailable = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return availableToAdd;
+    return availableToAdd.filter((p) => {
+      const headline = p.headline || "";
+      return (
+        p.slug.toLowerCase().includes(q) ||
+        headline.toLowerCase().includes(q)
+      );
+    });
+  }, [availableToAdd, search]);
 
   const handleAdd = (slug: string) => {
     if (selectedSlugs.includes(slug)) return;
@@ -254,23 +267,48 @@ export function MultistepPageSelector({
             />
           </button>
           {dropdownOpen && availableToAdd.length > 0 && (
-            <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-auto rounded-md border border-zinc-200 bg-white py-1 shadow-lg">
-              {availableToAdd.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => {
-                    handleAdd(p.slug);
-                    setDropdownOpen(false);
-                  }}
-                  className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-50"
-                >
-                  <span className="font-mono text-zinc-600">{p.slug}</span>
-                  {p.headline ? (
-                    <span className="truncate text-zinc-500">– {p.headline}</span>
-                  ) : null}
-                </button>
-              ))}
+            <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-56 overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg">
+              <div className="border-b border-zinc-200 px-2 py-1.5">
+                <div className="relative">
+                  <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-zinc-400">
+                    <Search className="h-3.5 w-3.5" />
+                  </span>
+                  <input
+                    type="search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Filter pages…"
+                    className="w-full rounded-md border border-zinc-200 bg-white pl-7 pr-2 py-1 text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  />
+                </div>
+              </div>
+              <div className="max-h-40 overflow-auto py-1">
+                {filteredAvailable.length === 0 ? (
+                  <p className="px-3 py-2 text-xs text-zinc-500">
+                    No pages match your search.
+                  </p>
+                ) : (
+                  filteredAvailable.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        handleAdd(p.slug);
+                        setDropdownOpen(false);
+                        setSearch("");
+                      }}
+                      className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-50"
+                    >
+                      <span className="font-mono text-zinc-600">{p.slug}</span>
+                      {p.headline ? (
+                        <span className="truncate text-zinc-500">
+                          – {p.headline}
+                        </span>
+                      ) : null}
+                    </button>
+                  ))
+                )}
+              </div>
             </div>
           )}
         </div>

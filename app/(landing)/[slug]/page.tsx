@@ -84,6 +84,11 @@ export async function generateMetadata({
       description,
       images: page.seo.ogImageUrl ? [page.seo.ogImageUrl] : [],
     },
+    icons: page.domain.faviconUrl
+      ? {
+          icon: [{ url: page.domain.faviconUrl }],
+        }
+      : undefined,
     robots: page.seo.noIndex
       ? { index: false, follow: false }
       : { index: true, follow: true },

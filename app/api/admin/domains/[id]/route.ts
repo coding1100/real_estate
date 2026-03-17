@@ -157,6 +157,9 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
         logoUrl: Object.prototype.hasOwnProperty.call(body, "logoUrl")
           ? body.logoUrl
           : existing.logoUrl,
+        faviconUrl: Object.prototype.hasOwnProperty.call(body, "faviconUrl")
+          ? body.faviconUrl
+          : existing.faviconUrl,
         agentPhoto: Object.prototype.hasOwnProperty.call(body, "rightLogoUrl")
           ? body.rightLogoUrl
           : existing.agentPhoto,
