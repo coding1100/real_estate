@@ -17,6 +17,7 @@ interface DomainRow {
   metaPixelId: string | null;
   logoUrl: string | null;
   rightLogoUrl: string | null;
+  faviconUrl: string | null;
   linkedinUrl: string | null;
   linkedinVisible: boolean;
   googleUrl: string | null;
@@ -53,6 +54,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
     metaPixelId: null,
     logoUrl: null,
     rightLogoUrl: null,
+  faviconUrl: null,
     linkedinUrl: null,
     linkedinVisible: true,
     googleUrl: null,
@@ -120,6 +122,10 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
           rightLogoUrl:
             data.domain.agentPhoto != null
               ? String(data.domain.agentPhoto)
+              : null,
+          faviconUrl:
+            data.domain.faviconUrl != null
+              ? String(data.domain.faviconUrl)
               : null,
           linkedinUrl:
             data.domain.linkedinUrl != null
@@ -223,6 +229,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
       metaPixelId: null,
       logoUrl: null,
       rightLogoUrl: null,
+      faviconUrl: null,
       linkedinUrl: null,
       linkedinVisible: true,
       googleUrl: null,
@@ -266,6 +273,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
             metaPixelId: newDomainForm.metaPixelId?.trim() || null,
             logoUrl: newDomainForm.logoUrl || null,
             rightLogoUrl: newDomainForm.rightLogoUrl || null,
+            faviconUrl: newDomainForm.faviconUrl || null,
             linkedinUrl: newDomainForm.linkedinUrl?.trim() || null,
             linkedinVisible: newDomainForm.linkedinVisible,
             googleUrl: newDomainForm.googleUrl?.trim() || null,
@@ -297,6 +305,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
           metaPixelId: created.metaPixelId != null ? String(created.metaPixelId) : null,
           logoUrl: created.logoUrl != null ? String(created.logoUrl) : null,
           rightLogoUrl: created.agentPhoto != null ? String(created.agentPhoto) : null,
+          faviconUrl: created.faviconUrl != null ? String(created.faviconUrl) : null,
           linkedinUrl:
             created.linkedinUrl != null ? String(created.linkedinUrl) : null,
           linkedinVisible:
@@ -492,6 +501,21 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                 }
               />
             </div>
+          </div>
+          <div className="mt-4 space-y-2">
+            <label className="block text-md font-medium text-zinc-700">
+              Favicon
+              <span className="ml-1 text-xs font-normal text-zinc-500">
+                (shown in browser tab; keep it square, ideally ≤ 24×24px)
+              </span>
+            </label>
+            <ImageUploader
+              label=""
+              value={newDomainForm.faviconUrl}
+              onChange={(url) =>
+                updateNewDomainForm({ faviconUrl: url ?? null })
+              }
+            />
           </div>
           <div className="flex justify-end gap-2 border-t border-zinc-100 pt-4">
             <button
@@ -721,8 +745,8 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                 </div>
               </div>
 
-              {/* Logos row */}
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
+              {/* Logos + favicon row */}
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <p className="text-[14px] font-medium uppercase tracking-[0.12em] text-zinc-600">
                     Logo (left)
@@ -767,6 +791,42 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                       }
                     }}
                   />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[14px] font-medium uppercase tracking-[0.12em] text-zinc-600">
+                    Favicon
+                  </p>
+                  <ImageUploader
+                    label="Favicon"
+                    value={current.faviconUrl}
+                    allowedTypes={[
+                      "image/x-icon",
+                      "image/vnd.microsoft.icon",
+                    ]}
+                    accept=".ico,image/x-icon,image/vnd.microsoft.icon"
+                    typeErrorMessage="Please upload a .ico favicon file."
+                    previewClassName="relative w-[50px] h-[50px] overflow-hidden rounded-md flex p-[4px] border border-[#eee] rounded-[2px]"
+                    onChange={(url) => {
+                      const next = url ?? null;
+                      if (isEditing) {
+                        updateDraft({ faviconUrl: next });
+                      } else {
+                        const updated: DomainRow = {
+                          ...d,
+                          faviconUrl: next,
+                        };
+                        setDomains((prev) =>
+                          prev.map((dom) => (dom.id === d.id ? updated : dom)),
+                        );
+                        void saveDomain(updated);
+                      }
+                    }}
+                  />
+                  <p className="text-[11px] text-zinc-500">
+                    <p>Upload Ico file for fav icon.</p> 
+                    <p>Upload recommended file max 24px by 24px larger images will be
+                    downscaled by browsers.</p>
+                  </p>
                 </div>
               </div>
             </div>

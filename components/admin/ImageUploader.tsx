@@ -6,9 +6,35 @@ interface ImageUploaderProps {
   label?: string;
   value?: string | null;
   onChange: (url: string | null) => void;
+  /**
+   * Optional list of allowed MIME types. When omitted, defaults to
+   * standard image formats (JPG, PNG, WEBP, SVG).
+   */
+  allowedTypes?: string[];
+  /**
+   * Optional override for the input accept attribute. When omitted,
+   * defaults to "image/*".
+   */
+  accept?: string;
+  /**
+   * Optional custom error message when the file type is invalid.
+   */
+  typeErrorMessage?: string;
+  /**
+   * Optional Tailwind classes for the preview container.
+   */
+  previewClassName?: string;
 }
 
-export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
+export function ImageUploader({
+  label,
+  value,
+  onChange,
+  allowedTypes,
+  accept,
+  typeErrorMessage,
+  previewClassName,
+}: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,10 +45,19 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
 
     // Basic client-side validation for image uploads
     const MAX_BYTES = 25 * 1024 * 1024; // 25MB
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
+    const defaultAllowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/svg+xml",
+    ];
+    const typesToUse = allowedTypes && allowedTypes.length > 0 ? allowedTypes : defaultAllowedTypes;
 
-    if (!allowedTypes.includes(file.type)) {
-      setError("Please upload a JPG, PNG, WEBP, or SVG image.");
+    if (!typesToUse.includes(file.type)) {
+      setError(
+        typeErrorMessage ||
+          "Please upload a JPG, PNG, WEBP, or SVG image.",
+      );
       e.target.value = "";
       return;
     }
@@ -61,7 +96,12 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
         <p className="text-md font-medium text-zinc-700">{label}</p>
       )}
       {value && (
-        <div className="relative w-[200px] max-[768px]:w-full max-[768px]:max-w-[200px] overflow-hidden rounded-md flex p-[10px] border border-[#eee] rounded-[2px]">
+        <div
+          className={
+            previewClassName ||
+            "relative w-[200px] max-[768px]:w-full max-[768px]:max-w-[200px] overflow-hidden rounded-md flex p-[10px] border border-[#eee] rounded-[2px]"
+          }
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={value}
@@ -92,7 +132,7 @@ export function ImageUploader({ label, value, onChange }: ImageUploaderProps) {
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={accept || "image/*"}
         className="hidden"
         onChange={handleFileChange}
       />
