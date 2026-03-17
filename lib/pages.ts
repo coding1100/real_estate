@@ -84,6 +84,7 @@ function pageToContent(
       accentColor: page.domain.accentColor,
       ga4Id: page.domain.ga4Id,
       metaPixelId: page.domain.metaPixelId,
+      faviconUrl: page.domain.faviconUrl ?? null,
       linkedinUrl: page.domain.linkedinUrl ?? null,
       linkedinVisible: page.domain.linkedinVisible ?? true,
       googleUrl: page.domain.googleUrl ?? null,

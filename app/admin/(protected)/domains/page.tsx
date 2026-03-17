@@ -18,6 +18,7 @@ export default async function DomainsPage() {
     metaPixelId: d.metaPixelId,
     logoUrl: d.logoUrl,
     rightLogoUrl: d.agentPhoto ?? null,
+    faviconUrl: d.faviconUrl ?? null,
     linkedinUrl: d.linkedinUrl ?? null,
     linkedinVisible: d.linkedinVisible ?? true,
     googleUrl: d.googleUrl ?? null,
