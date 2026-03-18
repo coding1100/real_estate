@@ -132,7 +132,10 @@ export function SellerTemplate({ page, utm }: SellerTemplateProps) {
       : undefined;
 
   return (
-    <div className="min-h-screen bg-zinc-50 custom" style={pageStyleVars}>
+    <div
+      className="min-h-screen bg-zinc-50 custom flex flex-col"
+      style={pageStyleVars}
+    >
       {hasLayoutHeader ? (
         <div className="fixed top-0 left-0 right-0 z-50 max-h-[100px] border-b border-zinc-200 bg-white overflow-hidden">
           <BrandHeader page={page} />
@@ -140,17 +143,7 @@ export function SellerTemplate({ page, utm }: SellerTemplateProps) {
       ) : (
         <BrandHeader page={page} />
       )}
-      <main
-        className={
-          hasLayoutHeader && hasLayoutFooter
-            ? ""
-            : hasLayoutHeader
-              ? "pt-[100px]"
-              : hasLayoutFooter
-                ? "pb-[100px]"
-                : undefined
-        }
-      >
+      <main className={hasLayoutHeader ? "pt-[100px] flex-1" : "flex-1"}>
         {isHomeValuePage && page.multistepSteps && page.multistepSteps.length > 0 ? (
           <HomeValueMultistepFlow
             mainPage={page}

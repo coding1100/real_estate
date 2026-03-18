@@ -24,10 +24,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (!domain || !slug || !type) {
-      return NextResponse.json(
-        { error: "Missing domain, slug, or type" },
-        { status: 400 },
-      );
+      console.warn("[leads] Missing domain, slug, or type in payload", {
+        hasDomain: !!domain,
+        hasSlug: !!slug,
+        hasType: !!type,
+      });
+      // Fail soft: avoid surfacing a hard error to end users while still
+      // logging the misconfiguration for diagnostics.
+      return NextResponse.json({ ok: true }, { status: 200 });
     }
 
     // Verify reCAPTCHA (if configured)
@@ -69,10 +73,9 @@ export async function POST(req: NextRequest) {
       where: { hostname: domain, isActive: true },
     });
     if (!domainRow) {
-      return NextResponse.json(
-        { error: "Unknown domain" },
-        { status: 400 },
-      );
+      console.warn("[leads] Unknown or inactive domain", { domain });
+      // Soft-fail for user experience; no lead is stored but UI succeeds.
+      return NextResponse.json({ ok: true }, { status: 200 });
     }
 
     const page = await prisma.landingPage.findFirst({
@@ -83,10 +86,12 @@ export async function POST(req: NextRequest) {
       },
     });
     if (!page) {
-      return NextResponse.json(
-        { error: "Unknown landing page" },
-        { status: 400 },
-      );
+      console.warn("[leads] Unknown landing page for domain", {
+        domain: domainRow.hostname,
+        slug,
+      });
+      // Soft-fail for user experience; no lead is stored but UI succeeds.
+      return NextResponse.json({ ok: true }, { status: 200 });
     }
 
     const { utm_source, utm_medium, utm_campaign, _multistepData, ...restForm } = formData as Record<string, unknown>;

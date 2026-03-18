@@ -40,8 +40,6 @@ export const SocialLinksBar: React.FC<SocialLinksBarProps> = ({
   overrides,
   className,
 }) => {
-  const isAlwaysVisibleIcon = (key: string) => key === "youtube" || key === "tiktok";
-
   const items = [
     {
       key: "linkedin",
@@ -220,38 +218,32 @@ export const SocialLinksBar: React.FC<SocialLinksBarProps> = ({
           const rawUrl = typeof item.url === "string" ? item.url.trim() : "";
           const hasUrl = rawUrl.length > 0;
 
-          if (!hasUrl && !isAlwaysVisibleIcon(item.key)) {
-            return null;
-          }
+          const href = hasUrl
+            ? toAbsoluteUrl(rawUrl)
+            : item.key === "linkedin"
+              ? "https://linkedin.com"
+              : item.key === "google"
+                ? "https://google.com"
+                : item.key === "facebook"
+                  ? "https://facebook.com"
+                  : item.key === "instagram"
+                    ? "https://instagram.com"
+                    : item.key === "zillow"
+                      ? "https://zillow.com"
+                      : item.key === "youtube"
+                        ? "https://youtube.com"
+                        : item.key === "tiktok"
+                          ? "https://tiktok.com"
+                          : "#";
 
-          if (!hasUrl) {
-            const defaultHref =
-              item.key === "youtube"
-                ? "https://youtube.com"
-                : item.key === "tiktok"
-                  ? "https://tiktok.com"
-                  : "#";
-            return (
-              <a
-                key={item.key}
-                href={defaultHref}
-                aria-label={item.label}
-                title={item.key === "youtube" || item.key === "tiktok" ? item.label : "Add a URL to enable this icon"}
-                target={item.key === "youtube" || item.key === "tiktok" ? "_blank" : undefined}
-                rel={item.key === "youtube" || item.key === "tiktok" ? "noreferrer" : undefined}
-                className="inline-flex items-center justify-center"
-              >
-                {item.icon}
-              </a>
-            );
-          }
+          const openInNewTab = item.key !== "zillow" ? true : true;
 
           return (
             <a
               key={item.key}
-              href={toAbsoluteUrl(rawUrl)}
-              target="_blank"
-              rel="noreferrer"
+              href={href}
+              target={openInNewTab ? "_blank" : undefined}
+              rel={openInNewTab ? "noreferrer" : undefined}
               aria-label={item.label}
               className="inline-flex items-center justify-center"
             >

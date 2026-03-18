@@ -84,7 +84,7 @@ export function RichTextEditor({
     "Bricolage Grotesque, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
   const [currentFontFamily, setCurrentFontFamily] = useState("default");
   const [currentFontSize, setCurrentFontSize] = useState("14px");
-  const [currentLineHeight, setCurrentLineHeight] = useState("1.5");
+  const [currentLineHeight, setCurrentLineHeight] = useState("1");
   const lastEmittedHtml = useRef<string | null>(null);
   const lastSelectionRef = useRef<{ from: number; to: number } | null>(null);
 

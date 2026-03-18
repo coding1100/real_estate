@@ -285,6 +285,42 @@ export async function DELETE(_req: NextRequest, ctx: RouteContext) {
   const { id } = await ctx.params;
 
   try {
+    // Load the page to get its slug.
+    const pageToDelete = await prisma.landingPage.findUnique({
+      where: { id },
+      select: { slug: true },
+    });
+
+    // If we have a slug, scan for any entry pages whose multistepStepSlugs
+    // array includes this slug. We do this filtering in application code to
+    // avoid relying on provider-specific JSON operators.
+    if (pageToDelete?.slug) {
+      const potentialReferrers = await prisma.landingPage.findMany({
+        // We intentionally avoid provider-specific JSON filters here and
+        // perform the null/array checks in application code below.
+        select: {
+          id: true,
+          slug: true,
+          multistepStepSlugs: true,
+        },
+      });
+
+      const usedInMultistep = potentialReferrers.filter((p) => {
+        const slugs = (p.multistepStepSlugs as any) as string[] | null;
+        return Array.isArray(slugs) && slugs.includes(pageToDelete.slug);
+      });
+
+      if (usedInMultistep.length > 0) {
+        return NextResponse.json(
+          {
+            error:
+              "This page is used in a multistep flow. Remove it from all multistep flows before deleting.",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     await prisma.$transaction([
       prisma.lead.deleteMany({ where: { pageId: id } }),
       prisma.pageLayout.deleteMany({ where: { pageId: id } }),
