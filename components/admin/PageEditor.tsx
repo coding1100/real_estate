@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
+import { HexAlphaColorField } from "@/components/admin/HexAlphaColorField";
 import type {
   LandingPageContent,
   BlockConfig,
@@ -58,10 +59,37 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
     useRef<(() => HeroElementsByColumn | null) | null>(null);
   const layoutGetLayoutRef = useRef<(() => any[]) | null>(null);
   const { success: successToast, error: errorToast } = useAdminToast();
-
   const heroSections = Array.isArray(page.sections) ? page.sections : [];
   const heroSection = heroSections.find((s) => s.kind === "hero") || null;
   const heroLayout = (heroSection?.props as any) || {};
+
+  const blockquoteStyle = (heroLayout.blockquoteStyle || {}) as {
+    bg?: string;
+    border?: string;
+  };
+
+  const adminBlockquoteVars =
+    blockquoteStyle && (blockquoteStyle.bg || blockquoteStyle.border)
+      ? ({
+          ["--blockquote-bg" as any]: blockquoteStyle.bg,
+          ["--blockquote-border" as any]: blockquoteStyle.border,
+        } as React.CSSProperties)
+      : undefined;
+
+  function updateBlockquoteStyle(patch: Partial<typeof blockquoteStyle>) {
+    const next = {
+      bg: (patch.bg ?? blockquoteStyle.bg ?? "").trim(),
+      border: (patch.border ?? blockquoteStyle.border ?? "").trim(),
+    };
+    const cleaned = {
+      bg: next.bg.length > 0 ? next.bg : undefined,
+      border: next.border.length > 0 ? next.border : undefined,
+    };
+    const hasAny = !!(cleaned.bg || cleaned.border);
+    updateHeroLayout({
+      blockquoteStyle: hasAny ? cleaned : undefined,
+    });
+  }
 
   // Treat the dedicated /home-value entry page and any pages derived from it
   // (e.g. /home-value-copy, /home-value-qualify) as part of the Home Value family.
@@ -82,8 +110,11 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
   const isHomeValueException =
     normalizedSlug === "home-value(questionnaire)" ||
     normalizedSlug === "home-value(thankyou-strategy-call)";
+  const isPropertyFindingLayout =
+    (heroLayout.formStyle as string) === "property-finding";
   const isHomeValueFamily =
     !isHomeValueException && (slugIsHomeValueFamily || firstStepIsHomeValue);
+  const hideLayoutTab = isHomeValueFamily || isPropertyFindingLayout;
 
   const layoutData = page.pageLayout?.layoutData as any[] | undefined;
   const savedLayout =
@@ -247,7 +278,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 custom" style={adminBlockquoteVars}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
@@ -355,7 +386,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
       </div>
       <div className="border-b border-zinc-200 max-[768px]:overflow-x-auto max-[768px]:pb-1">
         <nav className="flex gap-4 text-sm font-medium text-zinc-600">
-          {(isHomeValueFamily
+          {(hideLayoutTab
             ? (["content", "form", "seo"] as Tab[])
             : (["content", "form", "seo", "layout"] as Tab[])
           ).map((t) => {
@@ -429,6 +460,75 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                             height={330}
                             fontOptions={editorFonts}
                           />
+
+                          <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                                  Blockquote style (frontend)
+                                </p>
+                                <p className="mt-1 text-xs text-zinc-500">
+                                  Controls the background and border for blockquotes on the public landing page only.
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                                onClick={() =>
+                                  updateHeroLayout({ blockquoteStyle: undefined })
+                                }
+                              >
+                                Reset
+                              </button>
+                            </div>
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div className="space-y-2">
+                                <label className="block text-sm font-medium text-zinc-700">
+                                  Background
+                                </label>
+                                <HexAlphaColorField
+                                  value={blockquoteStyle.bg ?? ""}
+                                  onChange={(hex) => updateBlockquoteStyle({ bg: hex })}
+                                  fallback="#6b5c5638"
+                                  placeholder="#6b5c5638"
+                                  label="Background (with transparency)"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="block text-sm font-medium text-zinc-700">
+                                  Border color
+                                </label>
+                                <HexAlphaColorField
+                                  value={blockquoteStyle.border ?? ""}
+                                  onChange={(hex) =>
+                                    updateBlockquoteStyle({ border: hex })
+                                  }
+                                  fallback="#62534dab"
+                                  placeholder="#62534dab"
+                                  label="Border (with transparency)"
+                                />
+                              </div>
+                            </div>
+                            <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600">
+                              <div
+                                className="custom space-y-2"
+                                style={{
+                                  // preview uses same CSS variables as frontend
+                                  ["--blockquote-bg" as any]:
+                                    blockquoteStyle.bg || undefined,
+                                  ["--blockquote-border" as any]:
+                                    blockquoteStyle.border || undefined,
+                                }}
+                              >
+                                <blockquote>
+                                  <p className="m-0">
+                                    Example blockquote preview. This preview
+                                    approximates the public style.
+                                  </p>
+                                </blockquote>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                         {/* RIGHT SECTION */}
                         <div className="space-y-3 rounded-md border border-zinc-200 bg-white p-4 shadow-sm md:col-span-2 lg:col-span-2">
@@ -475,7 +575,8 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                                   | "default"
                                   | "questionnaire"
                                   | "detailed-perspective"
-                                  | "next-steps",
+                                  | "next-steps"
+                                  | "property-finding",
                               })
                             }
                           >
@@ -491,6 +592,9 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                             <option value="next-steps">
                               Next steps (thank-you panel)
                             </option>
+                              <option value="property-finding">
+                                Property finding page (home-value search + map layout)
+                              </option>
                           </select>
                         </div>
                         <div className="space-y-3">
@@ -511,29 +615,15 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                             <label className="mb-1 block text-sm font-medium text-zinc-700">
                               Form background color
                             </label>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="color"
-                                className="h-9 w-9 rounded-md border border-zinc-300 bg-white"
-                                value={heroLayout.formBgColor ?? "#ffffff"}
-                                onChange={(e) =>
-                                  updateHeroLayout({
-                                    formBgColor: e.target.value,
-                                  })
-                                }
-                              />
-                              <input
-                                type="text"
-                                className="h-9 flex-1 rounded-md border border-zinc-300 px-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                                value={heroLayout.formBgColor ?? "#ffffff"}
-                                onChange={(e) =>
-                                  updateHeroLayout({
-                                    formBgColor: e.target.value,
-                                  })
-                                }
-                                placeholder="#ffffff"
-                              />
-                            </div>
+                            <HexAlphaColorField
+                              value={heroLayout.formBgColor ?? ""}
+                              onChange={(hex) =>
+                                updateHeroLayout({ formBgColor: hex })
+                              }
+                              fallback="#ffffffff"
+                              placeholder="#ffffffff"
+                              label="Form background"
+                            />
                           </div>
                         <RichTextEditor
                           label="Form intro text (right column, rich text)"
@@ -548,7 +638,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                       </div>
                     </div>
 
-                    {isHomeValueFamily && (
+                    {(heroLayout.formStyle as string) === "property-finding" && (
                       <div className="mt-4 space-y-4 border-t border-dashed border-zinc-200 pt-3">
                         <div className="space-y-2">
                           <p className="text-xs font-medium text-zinc-600">
@@ -605,29 +695,13 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                           <label className="mb-1 block text-sm font-medium text-zinc-700">
                             CTA background color
                           </label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="color"
-                              className="h-9 w-9 rounded-md border border-zinc-300 bg-white"
-                              value={heroLayout.ctaBgColor ?? "#18181b"}
-                              onChange={(e) =>
-                                updateHeroLayout({
-                                  ctaBgColor: e.target.value,
-                                })
-                              }
-                            />
-                            <input
-                              type="text"
-                              className="h-9 flex-1 rounded-md border border-zinc-300 px-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                              value={heroLayout.ctaBgColor ?? "#18181b"}
-                              onChange={(e) =>
-                                updateHeroLayout({
-                                  ctaBgColor: e.target.value,
-                                })
-                              }
-                              placeholder="#18181b"
-                            />
-                          </div>
+                          <HexAlphaColorField
+                            value={heroLayout.ctaBgColor ?? ""}
+                            onChange={(hex) => updateHeroLayout({ ctaBgColor: hex })}
+                            fallback="#18181bff"
+                            placeholder="#18181bff"
+                            label="CTA background"
+                          />
                         </div>
                       </div>
                       <div className="space-y-3">
@@ -875,6 +949,18 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                         label: "Zillow URL",
                         visibleKey: "zillowVisible" as const,
                         urlKey: "zillowUrl" as const,
+                      },
+                      {
+                        key: "youtube" as const,
+                        label: "YouTube URL",
+                        visibleKey: "youtubeVisible" as const,
+                        urlKey: "youtubeUrl" as const,
+                      },
+                      {
+                        key: "tiktok" as const,
+                        label: "TikTok URL",
+                        visibleKey: "tiktokVisible" as const,
+                        urlKey: "tiktokUrl" as const,
                       },
                     ].map((item) => {
                       const current = socialOverrides ?? {};

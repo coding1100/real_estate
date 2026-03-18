@@ -153,6 +153,14 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
             },
           };
           body.sections = sections;
+        } else {
+          // If no hero section exists (rare), create one so social overrides persist.
+          sections.push({
+            id: "hero",
+            kind: "hero",
+            props: { socialOverrides },
+          });
+          body.sections = sections;
         }
       } catch {
         // ignore failures; fall back to saving without social overrides
@@ -164,13 +172,33 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     console.log("[PATCH] Body keys:", Object.keys(body));
     console.log("[PATCH] Headline:", body.headline);
 
+    // Bookmark toggle: update via SQL so it works even if Prisma client
+    // hasn't been regenerated yet after a manual DB ALTER TABLE.
+    if (Object.prototype.hasOwnProperty.call(body, "bookmarked")) {
+      if (typeof body.bookmarked !== "boolean") {
+        return NextResponse.json(
+          { error: "bookmarked must be a boolean." },
+          { status: 400 },
+        );
+      }
+      await prisma.$executeRaw`
+        UPDATE "LandingPage"
+        SET "bookmarked" = ${body.bookmarked}, "updatedAt" = NOW()
+        WHERE "id" = ${id}
+      `;
+      delete body.bookmarked;
+    }
+
     // Update the page
-    const page = await prisma.landingPage.update({
-      where: { id },
-      data: {
-        ...body,
-      },
-    });
+    const page =
+      Object.keys(body).length > 0
+        ? await prisma.landingPage.update({
+            where: { id },
+            data: {
+              ...body,
+            },
+          })
+        : await prisma.landingPage.findUniqueOrThrow({ where: { id } });
 
     console.log("[PATCH] Updated page:", page.slug, "headline:", page.headline);
 
@@ -257,6 +285,42 @@ export async function DELETE(_req: NextRequest, ctx: RouteContext) {
   const { id } = await ctx.params;
 
   try {
+    // Load the page to get its slug.
+    const pageToDelete = await prisma.landingPage.findUnique({
+      where: { id },
+      select: { slug: true },
+    });
+
+    // If we have a slug, scan for any entry pages whose multistepStepSlugs
+    // array includes this slug. We do this filtering in application code to
+    // avoid relying on provider-specific JSON operators.
+    if (pageToDelete?.slug) {
+      const potentialReferrers = await prisma.landingPage.findMany({
+        // We intentionally avoid provider-specific JSON filters here and
+        // perform the null/array checks in application code below.
+        select: {
+          id: true,
+          slug: true,
+          multistepStepSlugs: true,
+        },
+      });
+
+      const usedInMultistep = potentialReferrers.filter((p) => {
+        const slugs = (p.multistepStepSlugs as any) as string[] | null;
+        return Array.isArray(slugs) && slugs.includes(pageToDelete.slug);
+      });
+
+      if (usedInMultistep.length > 0) {
+        return NextResponse.json(
+          {
+            error:
+              "This page is used in a multistep flow. Remove it from all multistep flows before deleting.",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     await prisma.$transaction([
       prisma.lead.deleteMany({ where: { pageId: id } }),
       prisma.pageLayout.deleteMany({ where: { pageId: id } }),

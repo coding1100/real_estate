@@ -3,6 +3,7 @@ import type {
   HeroElementsByColumn,
   LandingPageContent,
 } from "@/lib/types/page";
+import type { CSSProperties } from "react";
 import { HeroSection } from "./sections/HeroSection";
 import { MultistepHeroFlow } from "./MultistepHeroFlow";
 import { HomeValueExperience } from "./sections/HomeValueExperience";
@@ -96,10 +97,13 @@ export function BuyerTemplate({ page, utm }: BuyerTemplateProps) {
   // ONLY for the home-value funnel slugs, and not for unrelated pages like
   // /market-report(thankyou). This keeps the specialized HomeValueExperience /
   // HomeValueMultistepFlow layout scoped to the home-value family.
+  const isPropertyFinding =
+    (heroConfig as any).formStyle === "property-finding";
   const isHomeValuePage =
     page.slug !== "home-value-qualify" &&
-    page.slug.startsWith("home-value") &&
-    (!!(heroConfig as any).heroLowerStripHtml ||
+    (page.slug.startsWith("home-value") || isPropertyFinding) &&
+    (isPropertyFinding ||
+      !!(heroConfig as any).heroLowerStripHtml ||
       !!(heroConfig as any).formFooterText);
 
   const utmHiddenFields =
@@ -122,8 +126,22 @@ export function BuyerTemplate({ page, utm }: BuyerTemplateProps) {
 
   const showFooter = footerTextContent.length > 0;
 
+  const blockquoteStyle = (heroConfig as any)?.blockquoteStyle as
+    | { bg?: string; border?: string }
+    | undefined;
+  const pageStyleVars =
+    blockquoteStyle && (blockquoteStyle.bg || blockquoteStyle.border)
+      ? ({
+          ["--blockquote-bg" as any]: blockquoteStyle.bg,
+          ["--blockquote-border" as any]: blockquoteStyle.border,
+        } as CSSProperties)
+      : undefined;
+
   return (
-    <div className="min-h-screen bg-zinc-50 custom">
+    <div
+      className="min-h-screen bg-zinc-50 custom flex flex-col"
+      style={pageStyleVars}
+    >
       {hasLayoutHeader ? (
         <div className="fixed top-0 left-0 right-0 z-50 max-h-[100px] border-b border-zinc-200 bg-white overflow-hidden">
           <BrandHeader page={page} />
@@ -131,17 +149,7 @@ export function BuyerTemplate({ page, utm }: BuyerTemplateProps) {
       ) : (
         <BrandHeader page={page} />
       )}
-      <main
-        className={
-          hasLayoutHeader && hasLayoutFooter
-            ? ""
-            : hasLayoutHeader
-              ? "pt-[100px]"
-              : hasLayoutFooter
-                ? "pb-[100px]"
-                : undefined
-        }
-      >
+      <main className={hasLayoutHeader ? "pt-[100px] flex-1" : "flex-1"}>
         {isHomeValuePage && page.multistepSteps && page.multistepSteps.length > 0 ? (
           <HomeValueMultistepFlow
             mainPage={page}
