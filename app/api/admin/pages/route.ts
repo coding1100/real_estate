@@ -153,12 +153,31 @@ export async function POST(req: NextRequest) {
       (basePage.successMessage as string) ?? successMessageSeed;
   }
 
+  // Enforce global slug uniqueness at the application level so the same slug
+  // cannot be reused across domains or page types.
+  const normalizedSlug = String(slug).trim().toLowerCase();
+  const existingWithSlug = await prisma.landingPage.findFirst({
+    where: {
+      slug: normalizedSlug,
+    },
+    select: { id: true, domainId: true },
+  });
+  if (existingWithSlug) {
+    return NextResponse.json(
+      {
+        error:
+          "A page with this slug already exists. Please choose a different slug.",
+      },
+      { status: 400 },
+    );
+  }
+
   let page;
   try {
     page = await prisma.landingPage.create({
       data: {
         domainId: domainIdStr,
-        slug: String(slug),
+        slug: normalizedSlug,
         type: String(type),
         masterTemplateId: String(masterTemplateId),
         status: "draft",
@@ -174,7 +193,10 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     if (err?.code === "P2002") {
       return NextResponse.json(
-        { error: "A page with this slug already exists for this domain." },
+        {
+          error:
+            "A page with this slug already exists. Please choose a different slug.",
+        },
         { status: 400 },
       );
     }
