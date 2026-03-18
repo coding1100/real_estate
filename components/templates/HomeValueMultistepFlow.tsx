@@ -97,12 +97,20 @@ export function HomeValueMultistepFlow({
   const entryLayoutProps = (entryHeroSection?.props || {}) as {
     heroLowerStripHtml?: string;
     formFooterText?: string;
+    formStyle?: string;
   };
+  const normalizedEntrySlug = String(mainPage.slug ?? "")
+    .trim()
+    .replace(/^\//, "")
+    .toLowerCase();
+  const isPropertyFinding = entryLayoutProps.formStyle === "property-finding";
   const isHomeValueStyleEntry =
-    typeof mainPage.slug === "string" &&
-    mainPage.slug.startsWith("home-value") &&
-    (!!entryLayoutProps.heroLowerStripHtml ||
-      !!entryLayoutProps.formFooterText);
+    // Any page that explicitly selects the property-finding layout should
+    // render the home-value style entry UI, regardless of its slug.
+    isPropertyFinding ||
+    // Back-compat: home-value family pages using the legacy lower strip / footer fields.
+    (normalizedEntrySlug.startsWith("home-value") &&
+      (!!entryLayoutProps.heroLowerStripHtml || !!entryLayoutProps.formFooterText));
 
   const useHomeValueEntryLayout = isHomeValueStyleEntry;
 

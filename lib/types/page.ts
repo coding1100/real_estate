@@ -94,6 +94,10 @@ export interface LandingPageContent {
     instagramVisible?: boolean | null;
     zillowUrl?: string | null;
     zillowVisible?: boolean | null;
+    youtubeUrl?: string | null;
+    youtubeVisible?: boolean | null;
+    tiktokUrl?: string | null;
+    tiktokVisible?: boolean | null;
   } | null;
   seo: {
     title?: string | null;

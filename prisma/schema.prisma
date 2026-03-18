@@ -75,6 +75,7 @@ model LandingPage {
   masterTemplate   MasterTemplate @relation(fields: [masterTemplateId], references: [id])
   type             String
   status           String   @default("draft")
+  bookmarked       Boolean  @default(false)
 
   // Content
   title          String?

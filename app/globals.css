@@ -48,15 +48,14 @@ body {
 a{
   border-radius: 2px;
 }
-blockquote{
--webkit-backdrop-filter: blur(3px);
+/* Public landing page blockquotes only (avoid affecting admin UI) */
+.custom blockquote{
+  -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
-padding: 20px 25px;
-border-radius: 2px;
-background: #6b5c5638;
-border-radius: 2px;
-padding: 20px 25px;
-border: 1px solid #62534dab;
+  padding: 20px 25px;
+  border-radius: 2px;
+  background: var(--blockquote-bg, #6b5c5638);
+  border: 1px solid var(--blockquote-border, #62534dab);
 }
 button{
   cursor: pointer;
@@ -166,6 +165,19 @@ ul,ol{
   font-size: 18px;
   list-style: initial;
   }
+
+/* When a list has inline styles (from the editor), make children inherit them.
+   This ensures list-level font/color applies consistently in admin + frontend. */
+.custom ul[style] li,
+.custom ul[style] p,
+.custom ul[style] span,
+.custom ol[style] li,
+.custom ol[style] p,
+.custom ol[style] span{
+  color: inherit !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+}
   pre{
     margin-bottom: 40px;
     font-size: inherit;
@@ -210,50 +222,31 @@ hr{
   pointer-events: none;
 }
 
-.tag span > span::after {
+/* Tag decoration should render once, even if the editor nests spans. */
+.tag span > span::after,
+.tag span > span::before {
+  content: none !important;
+}
+.custom .tag > span::after {
   content: "\2014";
   /* background-color: #eee; */
   border-radius: 0;
   width: 20px;
   /* height: 1px; */
   position: absolute;
-  top: 50%;
+  top: 43%;
   left: -35px !important;
   transform: translateY(-50%);
   color: inherit;
 }
- .tag span > span::before {
+.custom .tag > span::before {
   content: "\2014";
   /* background-color: #eee; */
   border-radius: 0;
   width: 20px;
   /* height: 1px; */
   position: absolute;
-  top: 50%;
-  right: -35px;
-  transform: translateY(-50%);
-  color: inherit;
-}
-.custom .tag span::after {
-  content: "\2014";
-  /* background-color: #eee; */
-  border-radius: 0;
-  width: 20px;
-  /* height: 1px; */
-  position: absolute;
-  top: 50%;
-  left: -35px !important;
-  transform: translateY(-50%);
-  color: inherit;
-}
-.custom .tag span::before {
-  content: "\2014";
-  /* background-color: #eee; */
-  border-radius: 0;
-  width: 20px;
-  /* height: 1px; */
-  position: absolute;
-  top: 50%;
+  top: 43%;
   right: -35px;
   transform: translateY(-50%);
   color: inherit;
@@ -316,7 +309,7 @@ pre span{
   }
 }
 .blk-set blockquote {
-  background: #6b5c56b3;
+  padding: 20px;
 }
 
 .detailed-perspective-radio-list li{

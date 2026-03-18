@@ -153,6 +153,14 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
             },
           };
           body.sections = sections;
+        } else {
+          // If no hero section exists (rare), create one so social overrides persist.
+          sections.push({
+            id: "hero",
+            kind: "hero",
+            props: { socialOverrides },
+          });
+          body.sections = sections;
         }
       } catch {
         // ignore failures; fall back to saving without social overrides
@@ -164,13 +172,33 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     console.log("[PATCH] Body keys:", Object.keys(body));
     console.log("[PATCH] Headline:", body.headline);
 
+    // Bookmark toggle: update via SQL so it works even if Prisma client
+    // hasn't been regenerated yet after a manual DB ALTER TABLE.
+    if (Object.prototype.hasOwnProperty.call(body, "bookmarked")) {
+      if (typeof body.bookmarked !== "boolean") {
+        return NextResponse.json(
+          { error: "bookmarked must be a boolean." },
+          { status: 400 },
+        );
+      }
+      await prisma.$executeRaw`
+        UPDATE "LandingPage"
+        SET "bookmarked" = ${body.bookmarked}, "updatedAt" = NOW()
+        WHERE "id" = ${id}
+      `;
+      delete body.bookmarked;
+    }
+
     // Update the page
-    const page = await prisma.landingPage.update({
-      where: { id },
-      data: {
-        ...body,
-      },
-    });
+    const page =
+      Object.keys(body).length > 0
+        ? await prisma.landingPage.update({
+            where: { id },
+            data: {
+              ...body,
+            },
+          })
+        : await prisma.landingPage.findUniqueOrThrow({ where: { id } });
 
     console.log("[PATCH] Updated page:", page.slug, "headline:", page.headline);
 
