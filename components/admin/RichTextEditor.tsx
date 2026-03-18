@@ -86,6 +86,30 @@ export function RichTextEditor({
   const [currentFontSize, setCurrentFontSize] = useState("14px");
   const [currentLineHeight, setCurrentLineHeight] = useState("1.5");
   const lastEmittedHtml = useRef<string | null>(null);
+  const lastSelectionRef = useRef<{ from: number; to: number } | null>(null);
+
+  const toHex6 = (value: string | null | undefined): string => {
+    const raw = (value ?? "").trim();
+    if (!raw) return "#000000";
+    if (/^#[0-9a-f]{6}$/i.test(raw)) return raw.toLowerCase();
+    // rgb(r,g,b) -> #rrggbb
+    const m = raw.match(
+      /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i,
+    );
+    if (m) {
+      const r = Math.max(0, Math.min(255, Number(m[1])));
+      const g = Math.max(0, Math.min(255, Number(m[2])));
+      const b = Math.max(0, Math.min(255, Number(m[3])));
+      return (
+        "#" +
+        [r, g, b]
+          .map((n) => n.toString(16).padStart(2, "0"))
+          .join("")
+          .toLowerCase()
+      );
+    }
+    return "#000000";
+  };
 
   const editor = useEditor({
     extensions: [
@@ -127,40 +151,122 @@ export function RichTextEditor({
       let html = editor.getHTML();
       html = html.replace(/<p>\s*<\/p>/g, "<p>&nbsp;</p>");
 
-      // Normalize tag blocks so there is always exactly one <span> inside
-      // <div class="tag">...</div>, even if pasted content had nested spans.
-      // Example input:
-      //   <div class="tag"><span><span ...>Text</span></span></div>
-      // becomes:
-      //   <div class="tag"><span ...>Text</span></div>
-      html = html.replace(
-        /<div class="tag">\s*<span>\s*<span([^>]*)>([\s\S]*?)<\/span>\s*<\/span>\s*<\/div>/gi,
-        '<div class="tag"><span$1>$2</span></div>',
-      );
+      const liftListTextStyles = (rawHtml: string) => {
+        // Lift identical inline text styles inside list items up onto <ul>/<ol>
+        // and unwrap redundant <span style="..."> wrappers.
+        try {
+          if (typeof window === "undefined") return rawHtml;
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(rawHtml, "text/html");
+          const lists = Array.from(doc.querySelectorAll("ul, ol"));
+          for (const list of lists) {
+            const spans = Array.from(list.querySelectorAll("li span[style]"));
+            if (spans.length === 0) continue;
 
-      // Ensure every tag span carries the Bricolage Grotesque font-family,
-      // while preserving any existing inline styles such as color, size, etc.
-      html = html.replace(
-        /<div class="tag">\s*<span([^>]*)>/gi,
-        (full, attrs: string) => {
-          const hasStyle = /\sstyle=("|')([^"']*)\1/i.test(attrs);
-          const cleanedAttrs = attrs.replace(/\sstyle=("|')([^"']*)\1/i, "");
-          if (hasStyle) {
-            const styleMatch = attrs.match(/\sstyle=("|')([^"']*)\1/i);
-            const existingStyle = styleMatch ? styleMatch[2] : "";
-            const mergedStyle =
-              existingStyle.indexOf("font-family") !== -1
-                ? existingStyle
-                : `${existingStyle}${
-                    existingStyle.trim().endsWith(";") || existingStyle.trim() === ""
-                      ? ""
-                      : ";"
-                  } font-family: ${tagFontFamily};`;
-            return `<div class="tag"><span style="${mergedStyle}"${cleanedAttrs}>`;
+            // Only lift if every styled span in the list shares the same style string.
+            const style0 = (spans[0] as HTMLElement).getAttribute("style") || "";
+            if (!style0.trim()) continue;
+
+            const allSame = spans.every((s) => {
+              const st = (s as HTMLElement).getAttribute("style") || "";
+              return st.trim() === style0.trim();
+            });
+            if (!allSame) continue;
+
+            // Apply style to the list itself (merge with existing).
+            const existing = (list as HTMLElement).getAttribute("style") || "";
+            const merged =
+              existing.trim().length > 0
+                ? `${existing.trim().replace(/;?\s*$/, "; ")}${style0.trim()}`
+                : style0.trim();
+            (list as HTMLElement).setAttribute("style", merged);
+
+            // Unwrap the spans so styles apply from the list level.
+            for (const span of spans) {
+              const el = span as HTMLElement;
+              // Only unwrap if the span has no attributes besides style (to avoid breaking links etc.)
+              const attrNames = Array.from(el.attributes).map((a) => a.name);
+              const onlyStyle =
+                attrNames.length === 1 && attrNames[0].toLowerCase() === "style";
+              if (!onlyStyle) continue;
+              const parent = el.parentNode;
+              if (!parent) continue;
+              while (el.firstChild) {
+                parent.insertBefore(el.firstChild, el);
+              }
+              parent.removeChild(el);
+            }
           }
-          return `<div class="tag"><span style="font-family: ${tagFontFamily};"${attrs}>`;
-        },
-      );
+          return doc.body.innerHTML;
+        } catch {
+          return rawHtml;
+        }
+      };
+
+      const normalizeTagBlocks = (rawHtml: string) => {
+        try {
+          if (typeof window === "undefined") return rawHtml;
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(rawHtml, "text/html");
+          const tagDivs = Array.from(
+            doc.querySelectorAll("div.tag, div[class*='tag '] , div[class*=' tag']"),
+          );
+
+          for (const div of tagDivs) {
+            const outerSpan = div.querySelector(":scope > span");
+            if (!outerSpan) continue;
+
+            // If there is a single inner span, merge its style into the outer span
+            // and unwrap it so we always end up with exactly one span.
+            const innerSpans = Array.from(
+              outerSpan.querySelectorAll(":scope > span"),
+            ) as HTMLElement[];
+            if (innerSpans.length === 1) {
+              const inner = innerSpans[0];
+              const innerStyle = inner.getAttribute("style") || "";
+              const outerStyle = (outerSpan as HTMLElement).getAttribute("style") || "";
+
+              let mergedStyle = outerStyle.trim();
+              if (innerStyle.trim()) {
+                mergedStyle = mergedStyle
+                  ? `${mergedStyle.replace(/;?\s*$/, "; ")}${innerStyle.trim()}`
+                  : innerStyle.trim();
+              }
+
+              if (mergedStyle) {
+                (outerSpan as HTMLElement).setAttribute("style", mergedStyle);
+              }
+
+              while (inner.firstChild) {
+                outerSpan.insertBefore(inner.firstChild, inner);
+              }
+              outerSpan.removeChild(inner);
+            }
+
+            // Ensure the final span always has the Bricolage font-family.
+            const spanEl = outerSpan as HTMLElement;
+            const styleAttr = spanEl.getAttribute("style") || "";
+            const hasFontFamily = /font-family\s*:/i.test(styleAttr);
+            const finalStyle = hasFontFamily
+              ? styleAttr
+              : `${styleAttr}${
+                  styleAttr.trim().endsWith(";") || styleAttr.trim() === ""
+                    ? ""
+                    : ";"
+                } font-family: ${tagFontFamily};`;
+            spanEl.setAttribute("style", finalStyle);
+          }
+
+          return doc.body.innerHTML;
+        } catch {
+          return rawHtml;
+        }
+      };
+
+      // Normalize tag blocks to a single styled span, and lift list item inline styles
+      // up to the list element for consistent rendering.
+      html = normalizeTagBlocks(html);
+      html = liftListTextStyles(html);
 
       lastEmittedHtml.current = html;
       onChange(html);
@@ -175,11 +281,97 @@ export function RichTextEditor({
         // Strip editor-specific attributes that can break editing behavior,
         // but keep normal inline styles so each element can carry its own
         // font, size, color, alignment, etc. onto the frontend.
-        return html
+        // First strip editor-specific attributes that can break editing behavior.
+        let cleaned = html
           .replace(/\scontenteditable="[^"]*"/gi, "")
           .replace(/\scontenteditable='[^']*'/gi, "")
           .replace(/\sdata-[a-z0-9_-]+="[^"]*"/gi, "")
           .replace(/\sdata-[a-z0-9_-]+='[^']*'/gi, "");
+
+        // Normalize tag blocks and also lift list styles for pasted content so
+        // lists behave like authored ones.
+        try {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(cleaned, "text/html");
+          // Normalize tag blocks in pasted HTML
+          const tagDivs = Array.from(
+            doc.querySelectorAll("div.tag, div[class*='tag '] , div[class*=' tag']"),
+          );
+          for (const div of tagDivs) {
+            const outerSpan = div.querySelector(":scope > span");
+            if (!outerSpan) continue;
+            const innerSpans = Array.from(
+              outerSpan.querySelectorAll(":scope > span"),
+            ) as HTMLElement[];
+            if (innerSpans.length === 1) {
+              const inner = innerSpans[0];
+              const innerStyle = inner.getAttribute("style") || "";
+              const outerStyle = (outerSpan as HTMLElement).getAttribute("style") || "";
+              let mergedStyle = outerStyle.trim();
+              if (innerStyle.trim()) {
+                mergedStyle = mergedStyle
+                  ? `${mergedStyle.replace(/;?\s*$/, "; ")}${innerStyle.trim()}`
+                  : innerStyle.trim();
+              }
+              if (mergedStyle) {
+                (outerSpan as HTMLElement).setAttribute("style", mergedStyle);
+              }
+              while (inner.firstChild) {
+                outerSpan.insertBefore(inner.firstChild, inner);
+              }
+              outerSpan.removeChild(inner);
+            }
+            const spanEl = outerSpan as HTMLElement;
+            const styleAttr = spanEl.getAttribute("style") || "";
+            const hasFontFamily = /font-family\s*:/i.test(styleAttr);
+            const finalStyle = hasFontFamily
+              ? styleAttr
+              : `${styleAttr}${
+                  styleAttr.trim().endsWith(";") || styleAttr.trim() === ""
+                    ? ""
+                    : ";"
+                } font-family: ${tagFontFamily};`;
+            spanEl.setAttribute("style", finalStyle);
+          }
+
+          // Lift list styles
+          const lists = Array.from(doc.querySelectorAll("ul, ol"));
+          for (const list of lists) {
+            const spans = Array.from(list.querySelectorAll("li span[style]"));
+            if (spans.length === 0) continue;
+            const style0 = (spans[0] as HTMLElement).getAttribute("style") || "";
+            if (!style0.trim()) continue;
+            const allSame = spans.every((s) => {
+              const st = (s as HTMLElement).getAttribute("style") || "";
+              return st.trim() === style0.trim();
+            });
+            if (!allSame) continue;
+            const existing = (list as HTMLElement).getAttribute("style") || "";
+            const merged =
+              existing.trim().length > 0
+                ? `${existing.trim().replace(/;?\s*$/, "; ")}${style0.trim()}`
+                : style0.trim();
+            (list as HTMLElement).setAttribute("style", merged);
+            for (const span of spans) {
+              const el = span as HTMLElement;
+              const attrNames = Array.from(el.attributes).map((a) => a.name);
+              const onlyStyle =
+                attrNames.length === 1 && attrNames[0].toLowerCase() === "style";
+              if (!onlyStyle) continue;
+              const parent = el.parentNode;
+              if (!parent) continue;
+              while (el.firstChild) {
+                parent.insertBefore(el.firstChild, el);
+              }
+              parent.removeChild(el);
+            }
+          }
+          cleaned = doc.body.innerHTML;
+        } catch {
+          // ignore
+        }
+
+        return cleaned;
       },
     },
   });
@@ -188,6 +380,14 @@ export function RichTextEditor({
     if (!editor) return;
 
     const updateFromSelection = () => {
+      // Track last selection so toolbar actions can restore it after focus loss
+      try {
+        const sel = editor.state.selection;
+        lastSelectionRef.current = { from: sel.from, to: sel.to };
+      } catch {
+        // ignore
+      }
+
       // Inline text styles (font family / size)
       const attrs = editor.getAttributes("textStyle") as {
         fontFamily?: string;
@@ -364,22 +564,38 @@ export function RichTextEditor({
           </button>
 
           {/* Text color */}
-          <input
-            type="color"
-            title="Text color"
-            aria-label="Text color"
-            className="ml-1 h-5 w-5 cursor-pointer rounded border border-zinc-300 bg-white"
-            value={
-              (editor?.getAttributes("textStyle").color as string) || "#000000"
-            }
-            onChange={(e) =>
-              editor
-                ?.chain()
-                .focus()
-                .setColor(e.target.value)
-                .run()
-            }
-          />
+          <div className="ml-1 inline-flex items-center gap-1">
+            <input
+              type="color"
+              title="Text color"
+              aria-label="Text color"
+              className="h-5 w-5 cursor-pointer rounded border border-zinc-300 bg-white"
+              value={toHex6(editor?.getAttributes("textStyle").color as string)}
+              onMouseDown={() => {
+                // snapshot before picker steals focus
+                const sel = editor?.state.selection;
+                if (sel) lastSelectionRef.current = { from: sel.from, to: sel.to };
+              }}
+              onChange={(e) => {
+                const hex = toHex6(e.target.value);
+                const sel = lastSelectionRef.current;
+                const chain = editor?.chain();
+                if (!chain) return;
+                if (sel) {
+                  chain.setTextSelection(sel);
+                }
+                chain.setColor(hex).run();
+              }}
+            />
+            <input
+              type="text"
+              value={toHex6(editor?.getAttributes("textStyle").color as string)}
+              readOnly
+              className="h-6 w-[86px] rounded-md border border-zinc-300 bg-white px-1 text-[11px] text-zinc-700 shadow-sm"
+              title="Hex color (copy)"
+              onFocus={(e) => e.currentTarget.select()}
+            />
+          </div>
 
           {/* Highlight */}
           <button
@@ -396,6 +612,35 @@ export function RichTextEditor({
             }`}
           >
             HL
+          </button>
+
+          {/* Symbols */}
+          <button
+            type="button"
+            title="Insert copyright (©)"
+            aria-label="Insert copyright (©)"
+            onClick={() => editor?.chain().focus().insertContent("©").run()}
+            className="px-1.5 py-0.5 rounded text-zinc-700 hover:bg-zinc-200"
+          >
+            ©
+          </button>
+          <button
+            type="button"
+            title="Insert trademark (™)"
+            aria-label="Insert trademark (™)"
+            onClick={() => editor?.chain().focus().insertContent("™").run()}
+            className="px-1.5 py-0.5 rounded text-zinc-700 hover:bg-zinc-200"
+          >
+            ™
+          </button>
+          <button
+            type="button"
+            title="Insert registered trademark (®)"
+            aria-label="Insert registered trademark (®)"
+            onClick={() => editor?.chain().focus().insertContent("®").run()}
+            className="px-1.5 py-0.5 rounded text-zinc-700 hover:bg-zinc-200"
+          >
+            ®
           </button>
 
           {/* Alignment */}

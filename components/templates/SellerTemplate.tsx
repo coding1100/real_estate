@@ -3,6 +3,7 @@ import type {
   HeroElementsByColumn,
   LandingPageContent,
 } from "@/lib/types/page";
+import type { CSSProperties } from "react";
 import { HeroSection } from "./sections/HeroSection";
 import { MultistepHeroFlow } from "./MultistepHeroFlow";
 import Image from "next/image";
@@ -97,7 +98,8 @@ export function SellerTemplate({ page, utm }: SellerTemplateProps) {
   const isHomeValuePage =
     page.slug !== "home-value-qualify" &&
     (!!(heroConfig as any).heroLowerStripHtml ||
-      !!(heroConfig as any).formFooterText);
+      !!(heroConfig as any).formFooterText ||
+      (heroConfig as any).formStyle === "property-finding");
 
   const utmHiddenFields =
     utm && (utm.source || utm.medium || utm.campaign)
@@ -118,8 +120,19 @@ export function SellerTemplate({ page, utm }: SellerTemplateProps) {
 
   const showFooter = footerTextContent.length > 0;
 
+  const blockquoteStyle = (heroConfig as any)?.blockquoteStyle as
+    | { bg?: string; border?: string }
+    | undefined;
+  const pageStyleVars =
+    blockquoteStyle && (blockquoteStyle.bg || blockquoteStyle.border)
+      ? ({
+          ["--blockquote-bg" as any]: blockquoteStyle.bg,
+          ["--blockquote-border" as any]: blockquoteStyle.border,
+        } as CSSProperties)
+      : undefined;
+
   return (
-    <div className="min-h-screen bg-zinc-50 custom">
+    <div className="min-h-screen bg-zinc-50 custom" style={pageStyleVars}>
       {hasLayoutHeader ? (
         <div className="fixed top-0 left-0 right-0 z-50 max-h-[100px] border-b border-zinc-200 bg-white overflow-hidden">
           <BrandHeader page={page} />

@@ -11,6 +11,10 @@ type SocialLinksSource = {
   instagramVisible?: boolean | null;
   zillowUrl?: string | null;
   zillowVisible?: boolean | null;
+  youtubeUrl?: string | null;
+  youtubeVisible?: boolean | null;
+  tiktokUrl?: string | null;
+  tiktokVisible?: boolean | null;
 };
 
 interface SocialLinksBarProps {
@@ -36,6 +40,8 @@ export const SocialLinksBar: React.FC<SocialLinksBarProps> = ({
   overrides,
   className,
 }) => {
+  const isAlwaysVisibleIcon = (key: string) => key === "youtube" || key === "tiktok";
+
   const items = [
     {
       key: "linkedin",
@@ -161,30 +167,98 @@ export const SocialLinksBar: React.FC<SocialLinksBarProps> = ({
         </svg>
       ),
     },
+    {
+      key: "youtube",
+      url: overrides?.youtubeUrl ?? base.youtubeUrl,
+      visible: overrides?.youtubeVisible ?? base.youtubeVisible,
+      label: "YouTube",
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          className={ICON_SIZE_CLASS}
+          aria-hidden="true"
+        >
+          <rect width="24" height="24" rx="4" fill="#FF0000" />
+          <path
+            d="M10 15.5V8.5l6 3.5-6 3.5Z"
+            fill="white"
+          />
+        </svg>
+      ),
+    },
+    {
+      key: "tiktok",
+      url: overrides?.tiktokUrl ?? base.tiktokUrl,
+      visible: overrides?.tiktokVisible ?? base.tiktokVisible,
+      label: "TikTok",
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          className={ICON_SIZE_CLASS}
+          aria-hidden="true"
+        >
+          <rect width="24" height="24" rx="4" fill="#111827" />
+          <path
+            d="M14.6 7.2c.7.7 1.6 1.1 2.6 1.2v2.3c-1.1 0-2.1-.3-3-.8v5c0 2.2-1.8 4-4 4s-4-1.8-4-4 1.8-4 4-4c.3 0 .7 0 1 .1v2.4c-.3-.2-.6-.3-1-.3-1 0-1.8.8-1.8 1.8s.8 1.8 1.8 1.8 1.8-.8 1.8-1.8V5.5h2.6c0 .7.3 1.3.8 1.7Z"
+            fill="white"
+          />
+        </svg>
+      ),
+    },
   ];
 
-  const visibleItems = items.filter(
-    (item): item is (typeof items)[number] & { url: string } =>
-      typeof item.url === "string" &&
-      item.url.trim().length > 0 &&
-      item.visible !== false,
-  );
+  const visibleItems = items.filter((item) => item.visible !== false);
 
   if (!visibleItems.length) return null;
 
   return (
     <div className={cn("mt-3 flex items-center gap-3 justify-center mt-[15px] ", className)}>
       {visibleItems.map((item) => (
-        <a
-          key={item.key}
-          href={toAbsoluteUrl(item.url)}
-          target="_blank"
-          rel="noreferrer"
-          aria-label={item.label}
-          className="inline-flex items-center justify-center"
-        >
-          {item.icon}
-        </a>
+        (() => {
+          const rawUrl = typeof item.url === "string" ? item.url.trim() : "";
+          const hasUrl = rawUrl.length > 0;
+
+          if (!hasUrl && !isAlwaysVisibleIcon(item.key)) {
+            return null;
+          }
+
+          if (!hasUrl) {
+            const defaultHref =
+              item.key === "youtube"
+                ? "https://youtube.com"
+                : item.key === "tiktok"
+                  ? "https://tiktok.com"
+                  : "#";
+            return (
+              <a
+                key={item.key}
+                href={defaultHref}
+                aria-label={item.label}
+                title={item.key === "youtube" || item.key === "tiktok" ? item.label : "Add a URL to enable this icon"}
+                target={item.key === "youtube" || item.key === "tiktok" ? "_blank" : undefined}
+                rel={item.key === "youtube" || item.key === "tiktok" ? "noreferrer" : undefined}
+                className="inline-flex items-center justify-center"
+              >
+                {item.icon}
+              </a>
+            );
+          }
+
+          return (
+            <a
+              key={item.key}
+              href={toAbsoluteUrl(rawUrl)}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={item.label}
+              className="inline-flex items-center justify-center"
+            >
+              {item.icon}
+            </a>
+          );
+        })()
       ))}
     </div>
   );

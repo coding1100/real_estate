@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "@/components/ui/Dialog";
 import { Plus } from "lucide-react";
@@ -46,6 +46,9 @@ export function AddPageDialog({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"template" | "duplicate">("template");
+  const [duplicateSearch, setDuplicateSearch] = useState("");
+  const [duplicateSelectorOpen, setDuplicateSelectorOpen] = useState(false);
+  const duplicateSelectorRef = useRef<HTMLDivElement | null>(null);
   const [duplicatePageId, setDuplicatePageId] = useState(
     pages[0]?.id ?? "",
   );
@@ -67,8 +70,37 @@ export function AddPageDialog({
   });
   const { success: successToast, error: errorToast } = useAdminToast();
 
+  const filteredDuplicatePages = useMemo(() => {
+    const q = duplicateSearch.trim().toLowerCase();
+    if (!q) return pages;
+    return pages.filter((p) => {
+      const hay = `${p.domainHostname} ${p.slug} ${p.type}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [duplicateSearch, pages]);
+
+  const selectedDuplicatePageLabel = useMemo(() => {
+    const selected = pages.find((p) => p.id === duplicatePageId);
+    if (!selected) return "";
+    return `${selected.domainHostname} — ${selected.slug} (${selected.type})`;
+  }, [duplicatePageId, pages]);
+
+  useEffect(() => {
+    if (!duplicateSelectorOpen) return;
+    function onDocMouseDown(e: MouseEvent) {
+      const el = duplicateSelectorRef.current;
+      if (!el) return;
+      if (e.target instanceof Node && el.contains(e.target)) return;
+      setDuplicateSelectorOpen(false);
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
+  }, [duplicateSelectorOpen]);
+
   function openDialog(template?: string) {
     setMode("template");
+    setDuplicateSearch("");
+    setDuplicateSelectorOpen(false);
     setDuplicatePageId(pages[0]?.id ?? "");
     setDuplicateDomainId(pages[0]?.domainId ?? domains[0]?.id ?? "");
     setDuplicateSlug(pages[0]?.slug ? `${pages[0].slug}-copy` : "");
@@ -310,28 +342,72 @@ export function AddPageDialog({
                 <label className="block text-md font-medium text-zinc-700">
                   Base page to duplicate <span className="text-red-500">*</span>
                 </label>
-                <select
-                  value={duplicatePageId}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setDuplicatePageId(value);
-                    const selected = pages.find((p) => p.id === value);
-                    if (selected) {
-                      setDuplicateDomainId(selected.domainId);
-                      setDuplicateSlug(`${selected.slug}-copy`);
-                      setDuplicateType(selected.type);
-                    }
-                  }}
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
-                  required
-                >
-                  <option value="">Select a page</option>
-                  {pages.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.domainHostname} — {p.slug} ({p.type})
-                    </option>
-                  ))}
-                </select>
+                <div ref={duplicateSelectorRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setDuplicateSelectorOpen((v) => !v)}
+                    className="flex w-full items-center justify-between rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  >
+                    <span className="min-w-0 truncate">
+                      {selectedDuplicatePageLabel || "Select a page"}
+                    </span>
+                    <span className="ml-2 text-zinc-400">▾</span>
+                  </button>
+
+                  {duplicateSelectorOpen && (
+                    <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg">
+                      <div className="border-b border-zinc-100 p-2">
+                        <input
+                          type="search"
+                          autoFocus
+                          value={duplicateSearch}
+                          onChange={(e) => setDuplicateSearch(e.target.value)}
+                          placeholder="Search pages… (domain, slug, type)"
+                          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                        />
+                        {duplicateSearch.trim().length > 0 && (
+                          <p className="mt-1 text-[11px] text-zinc-500">
+                            Showing {filteredDuplicatePages.length} of{" "}
+                            {pages.length}
+                          </p>
+                        )}
+                      </div>
+                      <div className="max-h-64 overflow-auto py-1">
+                        {filteredDuplicatePages.length === 0 ? (
+                          <div className="px-3 py-2 text-sm text-zinc-500">
+                            No matches.
+                          </div>
+                        ) : (
+                          filteredDuplicatePages.map((p) => {
+                            const label = `${p.domainHostname} — ${p.slug} (${p.type})`;
+                            const selected = p.id === duplicatePageId;
+                            return (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => {
+                                  setDuplicatePageId(p.id);
+                                  setDuplicateDomainId(p.domainId);
+                                  setDuplicateSlug(`${p.slug}-copy`);
+                                  setDuplicateType(p.type);
+                                  setDuplicateSelectorOpen(false);
+                                }}
+                                className={`w-full px-3 py-2 text-left text-sm hover:bg-zinc-50 ${
+                                  selected
+                                    ? "bg-zinc-50 font-medium text-zinc-900"
+                                    : "text-zinc-700"
+                                }`}
+                                title={label}
+                              >
+                                <div className="truncate">{label}</div>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">

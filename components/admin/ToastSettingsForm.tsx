@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import type { ToastTheme } from "@/lib/uiSettings";
 import { useAdminToast } from "@/components/admin/useAdminToast";
+import { HexAlphaColorField } from "@/components/admin/HexAlphaColorField";
 
 interface ToastSettingsFormProps {
   initialTheme: ToastTheme;
@@ -102,12 +103,6 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
               </label>
               <div className="flex items-center gap-2">
                 <input
-                  type="color"
-                  value={theme.successBg}
-                  onChange={(e) => update("successBg", e.target.value)}
-                  className="h-8 w-10 cursor-pointer rounded border border-zinc-300 bg-white"
-                />
-                <input
                   type="text"
                   value={theme.successBg}
                   onChange={(e) => update("successBg", e.target.value)}
@@ -115,22 +110,36 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                   placeholder="#ecfdf3"
                 />
               </div>
+              <div className="mt-2">
+                <HexAlphaColorField
+                  value={theme.successBg}
+                  onChange={(hex) => update("successBg", hex || theme.successBg)}
+                  fallback="#ecfdf3ff"
+                  placeholder="#ecfdf3ff"
+                  label="Success background"
+                />
+              </div>
               <label className="mt-2 block text-xs font-medium text-zinc-600">
                 Text color
               </label>
               <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={theme.successText}
-                  onChange={(e) => update("successText", e.target.value)}
-                  className="h-8 w-10 cursor-pointer rounded border border-zinc-300 bg-white"
-                />
                 <input
                   type="text"
                   value={theme.successText}
                   onChange={(e) => update("successText", e.target.value)}
                   className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   placeholder="#166534"
+                />
+              </div>
+              <div className="mt-2">
+                <HexAlphaColorField
+                  value={theme.successText}
+                  onChange={(hex) =>
+                    update("successText", hex || theme.successText)
+                  }
+                  fallback="#166534ff"
+                  placeholder="#166534ff"
+                  label="Success text"
                 />
               </div>
             </div>
@@ -145,12 +154,6 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
               </label>
               <div className="flex items-center gap-2">
                 <input
-                  type="color"
-                  value={theme.errorBg}
-                  onChange={(e) => update("errorBg", e.target.value)}
-                  className="h-8 w-10 cursor-pointer rounded border border-zinc-300 bg-white"
-                />
-                <input
                   type="text"
                   value={theme.errorBg}
                   onChange={(e) => update("errorBg", e.target.value)}
@@ -158,22 +161,36 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                   placeholder="#fef2f2"
                 />
               </div>
+              <div className="mt-2">
+                <HexAlphaColorField
+                  value={theme.errorBg}
+                  onChange={(hex) => update("errorBg", hex || theme.errorBg)}
+                  fallback="#fef2f2ff"
+                  placeholder="#fef2f2ff"
+                  label="Error background"
+                />
+              </div>
               <label className="mt-2 block text-xs font-medium text-zinc-600">
                 Text color
               </label>
               <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={theme.errorText}
-                  onChange={(e) => update("errorText", e.target.value)}
-                  className="h-8 w-10 cursor-pointer rounded border border-zinc-300 bg-white"
-                />
                 <input
                   type="text"
                   value={theme.errorText}
                   onChange={(e) => update("errorText", e.target.value)}
                   className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   placeholder="#b91c1c"
+                />
+              </div>
+              <div className="mt-2">
+                <HexAlphaColorField
+                  value={theme.errorText}
+                  onChange={(hex) =>
+                    update("errorText", hex || theme.errorText)
+                  }
+                  fallback="#b91c1cff"
+                  placeholder="#b91c1cff"
+                  label="Error text"
                 />
               </div>
             </div>
@@ -192,12 +209,6 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
               </label>
               <div className="flex items-center gap-2">
                 <input
-                  type="color"
-                  value={theme.alertBg}
-                  onChange={(e) => update("alertBg", e.target.value)}
-                  className="h-8 w-10 cursor-pointer rounded border border-zinc-300 bg-white"
-                />
-                <input
                   type="text"
                   value={theme.alertBg}
                   onChange={(e) => update("alertBg", e.target.value)}
@@ -205,22 +216,36 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                   placeholder="#fffbeb"
                 />
               </div>
+              <div className="mt-2">
+                <HexAlphaColorField
+                  value={theme.alertBg}
+                  onChange={(hex) => update("alertBg", hex || theme.alertBg)}
+                  fallback="#fffbebff"
+                  placeholder="#fffbebff"
+                  label="Alert background"
+                />
+              </div>
               <label className="mt-2 block text-xs font-medium text-zinc-600">
                 Text color
               </label>
               <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={theme.alertText}
-                  onChange={(e) => update("alertText", e.target.value)}
-                  className="h-8 w-10 cursor-pointer rounded border border-zinc-300 bg-white"
-                />
                 <input
                   type="text"
                   value={theme.alertText}
                   onChange={(e) => update("alertText", e.target.value)}
                   className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   placeholder="#92400e"
+                />
+              </div>
+              <div className="mt-2">
+                <HexAlphaColorField
+                  value={theme.alertText}
+                  onChange={(hex) =>
+                    update("alertText", hex || theme.alertText)
+                  }
+                  fallback="#92400eff"
+                  placeholder="#92400eff"
+                  label="Alert text"
                 />
               </div>
              
@@ -239,12 +264,6 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
               </label>
               <div className="flex items-center gap-2">
                 <input
-                  type="color"
-                  value={theme.infoBg}
-                  onChange={(e) => update("infoBg", e.target.value)}
-                  className="h-8 w-10 cursor-pointer rounded border border-zinc-300 bg-white"
-                />
-                <input
                   type="text"
                   value={theme.infoBg}
                   onChange={(e) => update("infoBg", e.target.value)}
@@ -252,22 +271,36 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                   placeholder="#eff6ff"
                 />
               </div>
+              <div className="mt-2">
+                <HexAlphaColorField
+                  value={theme.infoBg}
+                  onChange={(hex) => update("infoBg", hex || theme.infoBg)}
+                  fallback="#eff6ffff"
+                  placeholder="#eff6ffff"
+                  label="Info background"
+                />
+              </div>
               <label className="mt-2 block text-xs font-medium text-zinc-600">
                 Text color
               </label>
               <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={theme.infoText}
-                  onChange={(e) => update("infoText", e.target.value)}
-                  className="h-8 w-10 cursor-pointer rounded border border-zinc-300 bg-white"
-                />
                 <input
                   type="text"
                   value={theme.infoText}
                   onChange={(e) => update("infoText", e.target.value)}
                   className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   placeholder="#1d4ed8"
+                />
+              </div>
+              <div className="mt-2">
+                <HexAlphaColorField
+                  value={theme.infoText}
+                  onChange={(hex) =>
+                    update("infoText", hex || theme.infoText)
+                  }
+                  fallback="#1d4ed8ff"
+                  placeholder="#1d4ed8ff"
+                  label="Info text"
                 />
               </div>
             </div>
