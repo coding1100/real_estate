@@ -8,6 +8,7 @@ import {
   getRequestHostnameFromHeaders,
   isPreviewHostname,
   resolveTenantHostname,
+  normalizeHostname,
 } from "@/lib/hostnames";
 
 // Force dynamic rendering and no caching
@@ -21,6 +22,28 @@ type RouteParams = {
   }>;
   searchParams?: Promise<Record<string, string | string[]>> | Record<string, string | string[]>;
 };
+
+function getQueryStringParam(
+  query: Record<string, string | string[]> | undefined,
+  key: string,
+): string | null {
+  if (!query) return null;
+  const raw = query[key];
+  if (!raw) return null;
+  return Array.isArray(raw) ? raw[0] ?? null : raw;
+}
+
+function getPreviewHostnameOverride(
+  query: Record<string, string | string[]>,
+): string | null {
+  const raw =
+    getQueryStringParam(query, "domain") ||
+    getQueryStringParam(query, "hostname") ||
+    getQueryStringParam(query, "host");
+  if (!raw) return null;
+  const normalized = normalizeHostname(raw);
+  return normalized.length > 0 ? normalized : null;
+}
 
 async function getHostContextFromHeaders() {
   const rawHostname = await getRequestHostnameFromHeaders();
@@ -37,7 +60,10 @@ export async function generateMetadata({
   const { slug } = await params;
   const query = (await (searchParams as any)) ?? {};
   const { hostname, isPreviewHost } = await getHostContextFromHeaders();
-  const page = await getLandingPage(hostname, slug, {
+  const hostnameOverride =
+    isPreviewHost && query ? getPreviewHostnameOverride(query) : null;
+  const effectiveHostname = hostnameOverride || hostname;
+  const page = await getLandingPage(effectiveHostname, slug, {
     allowFallbackToAnyDomain: isPreviewHost,
     includeDraft: isPreviewHost || query.preview === "1" || query.preview === "true",
   });
@@ -108,8 +134,11 @@ export default async function LandingPage({ params, searchParams }: RouteParams)
       : query.utm_campaign,
   };
   const { hostname, isPreviewHost } = await getHostContextFromHeaders();
-  console.log("[landing-page] Fetching page:", slug, "hostname:", hostname);
-  const page = await getLandingPage(hostname, slug, {
+  const hostnameOverride =
+    isPreviewHost && query ? getPreviewHostnameOverride(query) : null;
+  const effectiveHostname = hostnameOverride || hostname;
+  console.log("[landing-page] Fetching page:", slug, "hostname:", effectiveHostname);
+  const page = await getLandingPage(effectiveHostname, slug, {
     allowFallbackToAnyDomain: isPreviewHost,
     includeDraft: isPreviewHost || query.preview === "1" || query.preview === "true",
   });

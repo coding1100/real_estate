@@ -88,23 +88,46 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Also look at a base page so we can inherit hero image, CTA text, and
-  // success message. Prefer the canonical master-seller/master-buyer pages
-  // when creating from those templates so we don't accidentally inherit
-  // branding from an unrelated page (e.g. home-value).
+  // Also look at a base page so we can inherit sections/layout, hero image,
+  // CTA text, and success message. Prefer the domain-specific
+  // master-seller/master-buyer pages when creating from those templates so we
+  // don't accidentally inherit branding from an unrelated page (e.g. home-value).
   let basePage = null as any;
 
   const typeStr = String(type);
   if (typeStr === "seller") {
     basePage = await prisma.landingPage.findFirst({
-      where: { slug: "master-seller", type: "seller" },
+      where: {
+        slug: "master-seller",
+        type: "seller",
+        domainId: domainIdStr,
+      },
       orderBy: { updatedAt: "desc" },
     });
   } else if (typeStr === "buyer") {
     basePage = await prisma.landingPage.findFirst({
-      where: { slug: "master-buyer", type: "buyer" },
+      where: {
+        slug: "master-buyer",
+        type: "buyer",
+        domainId: domainIdStr,
+      },
       orderBy: { updatedAt: "desc" },
     });
+  }
+
+  // Fallback to any domain master page (useful in dev/preview environments).
+  if (!basePage) {
+    if (typeStr === "seller") {
+      basePage = await prisma.landingPage.findFirst({
+        where: { slug: "master-seller", type: "seller" },
+        orderBy: { updatedAt: "desc" },
+      });
+    } else if (typeStr === "buyer") {
+      basePage = await prisma.landingPage.findFirst({
+        where: { slug: "master-buyer", type: "buyer" },
+        orderBy: { updatedAt: "desc" },
+      });
+    }
   }
 
   if (!basePage) {
@@ -115,20 +138,16 @@ export async function POST(req: NextRequest) {
   }
 
   if (basePage) {
+    // Always prefer the base page's values so \"Create from template\" matches
+    // \"Duplicate existing page\" behavior when using master pages.
     const baseSections = (basePage.sections as any) ?? [];
-    if (
-      (!Array.isArray(sectionsSeed) || sectionsSeed.length === 0) &&
-      Array.isArray(baseSections) &&
-      baseSections.length > 0
-    ) {
+    if (Array.isArray(baseSections) && baseSections.length > 0) {
       sectionsSeed = baseSections;
     }
-    if (!formSchemaSeed && basePage.formSchema) {
+    if (basePage.formSchema) {
       formSchemaSeed = basePage.formSchema as any;
     }
-    if (!heroImageUrlSeed) {
-      heroImageUrlSeed = basePage.heroImageUrl ?? null;
-    }
+    heroImageUrlSeed = basePage.heroImageUrl ?? null;
     ctaTextSeed = (basePage.ctaText as string) ?? ctaTextSeed;
     successMessageSeed =
       (basePage.successMessage as string) ?? successMessageSeed;
@@ -164,6 +183,26 @@ export async function POST(req: NextRequest) {
       { error: "Failed to create page." },
       { status: 500 },
     );
+  }
+
+  // If we created this page based on an existing base page, also copy its layout
+  // configuration so \"Create from template\" matches \"Duplicate\" behavior.
+  if (basePage?.id) {
+    try {
+      const baseLayout = await prisma.pageLayout.findUnique({
+        where: { pageId: String(basePage.id) },
+      });
+      if (baseLayout) {
+        await prisma.pageLayout.create({
+          data: {
+            pageId: page.id,
+            layoutData: baseLayout.layoutData as any,
+          },
+        });
+      }
+    } catch (e) {
+      console.error("[pages] Failed to copy base page layout", e);
+    }
   }
 
   if (!contentType.includes("application/json")) {

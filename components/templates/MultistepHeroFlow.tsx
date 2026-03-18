@@ -8,6 +8,7 @@ import { DynamicForm } from "@/components/forms/DynamicForm";
 import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
 import { useRecaptcha, RecaptchaScript } from "@/components/forms/Captcha";
 import { useToast } from "@/components/ui/use-toast";
+import { PropertyFindingStep } from "@/components/templates/HomeValueMultistepFlow";
 
 interface LayoutItem {
   i: string;
@@ -18,7 +19,12 @@ interface LayoutItem {
   hidden?: boolean;
 }
 
-type FormStyle = "default" | "questionnaire" | "detailed-perspective" | "next-steps";
+type FormStyle =
+  | "default"
+  | "questionnaire"
+  | "detailed-perspective"
+  | "next-steps"
+  | "property-finding";
 
 interface HeroLayoutConfig {
   formIntro?: string;
@@ -40,6 +46,7 @@ interface HeroLayoutConfig {
   profileEmail?: string;
   formPostCtaText?: string;
   formFooterText?: string;
+  heroLowerStripHtml?: string;
 }
 
 interface MultistepHeroFlowProps {
@@ -84,6 +91,11 @@ export function MultistepHeroFlow({
   const isQuestionnaire = layout?.formStyle === "questionnaire";
   const isDetailedPerspective = layout?.formStyle === "detailed-perspective";
   const isNextSteps = layout?.formStyle === "next-steps";
+  const isPropertyFinding = layout?.formStyle === "property-finding";
+  const isProfileOnlyNextSteps =
+    isNextSteps &&
+    ((((layout as any)?.nextStepsSecondOnly as boolean | undefined) === true) ||
+      step.slug === "strategy-call");
   const isLastStep = currentStep === steps.length - 1;
   const isFirstStep = currentStep === 0;
   const isThankYouStep = isLastStep && isNextSteps;
@@ -201,6 +213,27 @@ export function MultistepHeroFlow({
     }
   }
 
+  if (isPropertyFinding) {
+    const propertyLayout = {
+      leftMainHtml: layout.leftMainHtml,
+      formHeading: layout.formHeading,
+      formIntro: layout.formIntro,
+      formFooterText: layout.formFooterText,
+      formBgColor: layout.formBgColor,
+      ctaBgColor: layout.ctaBgColor,
+      heroLowerStripHtml: layout.heroLowerStripHtml,
+    };
+
+    return (
+      <PropertyFindingStep
+        page={step}
+        layout={propertyLayout}
+        formSchema={formSchema}
+        onNextStep={(values) => handleNextStep(values)}
+      />
+    );
+  }
+
   return (
     <section
       className={
@@ -210,7 +243,7 @@ export function MultistepHeroFlow({
       }
     >
       <RecaptchaScript />
-      {!isThankYouStep && (mainPage.heroImageUrl || step.heroImageUrl) && (
+      {(mainPage.heroImageUrl || step.heroImageUrl) && (
         <div className="pointer-events-none inset-0 fixed top-0 left-0 right-0 bottom-0">
           <Image
             src={(step.heroImageUrl || mainPage.heroImageUrl) as string}
@@ -259,21 +292,9 @@ export function MultistepHeroFlow({
                     dangerouslySetInnerHTML={{ __html: formHeading }}
                   />
                 )}
-                <div className="grid gap-4 max-[768px]:grid-cols-1 md:grid-cols-2 md:gap-4">
+
+                {isProfileOnlyNextSteps ? (
                   <div className="space-y-3">
-                    <div className="rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4">
-                      {(layout?.nextStepsFirstHtml || layout?.leftMainHtml) && (
-                        <div
-                          className="text-sm text-zinc-800 font-serif leading-relaxed space-y-2"
-                          dangerouslySetInnerHTML={{
-                            __html:
-                              layout?.nextStepsFirstHtml ||
-                              layout?.leftMainHtml ||
-                              "",
-                          }}
-                        />
-                      )}
-                    </div>
                     <div className="relative flex items-stretch rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4 max-[768px]:flex-wrap">
                       {(layout?.nextStepsSecondImageUrl ||
                         layout?.profileImageUrl) && (
@@ -318,36 +339,25 @@ export function MultistepHeroFlow({
                         )}
                       </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-3">
-                    <div className="flex h-full flex-col justify-between rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4">
-                      <div className="space-y-2">
-                        {layout?.formIntro?.trim() && (
-                          <div
-                            className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
-                            dangerouslySetInnerHTML={{
-                              __html: layout.formIntro ?? "",
-                            }}
-                          />
-                        )}
-                      </div>
                     <div className="mt-3 space-y-3">
                       <button
                         type="button"
                         onClick={isLastStep ? handleFinalSubmitFromNextSteps : undefined}
                         disabled={isSubmittingFinal}
                         className="inline-flex w-full items-center justify-center rounded-[2px] px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                        style={ctaBgColor ? { backgroundColor: ctaBgColor } : undefined}
+                        style={
+                          ctaBgColor
+                            ? { backgroundColor: ctaBgColor }
+                            : { backgroundColor: "#a5883b" }
+                        }
                       >
-                        <span
-                          dangerouslySetInnerHTML={{ __html: step.ctaText }}
-                        />
+                        <span dangerouslySetInnerHTML={{ __html: step.ctaText }} />
                       </button>
                       <SocialLinksBar
                         base={mainPage.domain}
                         overrides={mainPage.socialOverrides ?? null}
-                        className="mt-1.5"
+                        className="mt-2"
                       />
                       {isFinalSubmitted && mainPage.successMessage && (
                         <div
@@ -363,9 +373,122 @@ export function MultistepHeroFlow({
                         </p>
                       )}
                     </div>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 max-[768px]:grid-cols-1 md:grid-cols-2 md:gap-4">
+                    <div className="space-y-3">
+                      <div className="rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4">
+                        {(layout?.nextStepsFirstHtml || layout?.leftMainHtml) && (
+                          <div
+                            className="text-sm text-zinc-800 font-serif leading-relaxed space-y-2"
+                            dangerouslySetInnerHTML={{
+                              __html:
+                                layout?.nextStepsFirstHtml ||
+                                layout?.leftMainHtml ||
+                                "",
+                            }}
+                          />
+                        )}
+                      </div>
+                      <div className="relative flex items-stretch rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4 max-[768px]:flex-wrap">
+                        {(layout?.nextStepsSecondImageUrl ||
+                          layout?.profileImageUrl) && (
+                          <div className="relative h-[110px] w-[90px] flex-shrink-0 self-center overflow-hidden rounded-[2px] mr-[15px] max-[768px]:mb-2">
+                            <Image
+                              src={
+                                (layout?.nextStepsSecondImageUrl ||
+                                  layout?.profileImageUrl) as string
+                              }
+                              alt={(layout?.profileName as string) || "Profile"}
+                              fill
+                              className="object-cover rounded-[4px]"
+                            />
+                          </div>
+                        )}
+                        <div className="flex flex-1 flex-col justify-center space-y-1.5 pr-4">
+                          {layout?.nextStepsSecondHtml ? (
+                            <div
+                              className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
+                              dangerouslySetInnerHTML={{
+                                __html: layout.nextStepsSecondHtml,
+                              }}
+                            />
+                          ) : (
+                            <>
+                              {layout?.profileName && (
+                                <h3 className="text-base font-semibold text-zinc-800 font-serif">
+                                  {layout.profileName as string}
+                                </h3>
+                              )}
+                              {layout?.profileRole && (
+                                <p className="text-sm text-zinc-700 font-serif">
+                                  {layout.profileRole as string}
+                                </p>
+                              )}
+                              {layout?.profileTitle && (
+                                <p className="text-sm text-zinc-600 font-serif">
+                                  {layout.profileTitle as string}
+                                </p>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex h-full flex-col justify-between rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4">
+                        <div className="space-y-2">
+                          {layout?.formIntro?.trim() && (
+                            <div
+                              className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
+                              dangerouslySetInnerHTML={{
+                                __html: layout.formIntro ?? "",
+                              }}
+                            />
+                          )}
+                        </div>
+                        <div className="mt-3 space-y-3">
+                          <button
+                            type="button"
+                            onClick={
+                              isLastStep ? handleFinalSubmitFromNextSteps : undefined
+                            }
+                            disabled={isSubmittingFinal}
+                            className="inline-flex w-full items-center justify-center rounded-[2px] px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                            style={
+                              ctaBgColor
+                                ? { backgroundColor: ctaBgColor }
+                                : undefined
+                            }
+                          >
+                            <span
+                              dangerouslySetInnerHTML={{ __html: step.ctaText }}
+                            />
+                          </button>
+                          <SocialLinksBar
+                            base={mainPage.domain}
+                            overrides={mainPage.socialOverrides ?? null}
+                            className="mt-1.5"
+                          />
+                          {isFinalSubmitted && mainPage.successMessage && (
+                            <div
+                              className="text-md text-emerald-800 font-serif text-center"
+                              dangerouslySetInnerHTML={{
+                                __html: mainPage.successMessage,
+                              }}
+                            />
+                          )}
+                          {submitError && (
+                            <p className="text-[14px] text-red-700 font-serif text-center">
+                              {submitError}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             ) : isDetailedPerspective ? (
               <div
@@ -389,6 +512,7 @@ export function MultistepHeroFlow({
                     {formSchema && formSchema.fields?.length > 0 && (
                       <>
                         <DynamicForm
+                          key={step.slug || `step-${currentStep}`}
                           schema={formSchema}
                           ctaText={step.ctaText}
                           successMessage={mainPage.successMessage}
@@ -496,6 +620,7 @@ export function MultistepHeroFlow({
                 {formSchema && formSchema.fields?.length > 0 ? (
                   <>
                     <DynamicForm
+                      key={step.slug || `step-${currentStep}`}
                       schema={formSchema}
                       ctaText={step.ctaText}
                       successMessage={mainPage.successMessage}

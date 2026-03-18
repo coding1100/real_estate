@@ -268,7 +268,7 @@ export async function getLandingPage(
         where: {
           slug: stepSlug,
           domainId: page.domainId,
-          status: "published",
+          ...(includeDraft ? {} : { status: "published" }),
         },
         include: { domain: true },
       });
