@@ -12,6 +12,7 @@ interface FormEditorProps {
 
 export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
   const [error, setError] = useState<string | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const schema: FormSchema =
     value && Array.isArray((value as any).fields)
       ? value
@@ -55,7 +56,9 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
 
   function removeField(index: number) {
     const fields = schema.fields.filter((_, i) => i !== index);
-    onChange({ fields });
+    // Re-normalize order so DynamicForm sorts correctly
+    const withOrder = fields.map((f, i) => ({ ...f, order: i + 1 }));
+    onChange({ fields: withOrder });
   }
 
   function handleJsonChange(text: string) {
@@ -159,6 +162,16 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
     });
   };
 
+  function handleReorder(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex) return;
+    const fields = [...schema.fields];
+    const [moved] = fields.splice(fromIndex, 1);
+    fields.splice(toIndex, 0, moved);
+    // Update order field to match new array index
+    const withOrder = fields.map((f, i) => ({ ...f, order: i + 1 }));
+    onChange({ fields: withOrder });
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -197,11 +210,40 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
         </div>
       </div>
       <div className="space-y-3">
-        {schema.fields.map((field, index) => (
-          <div
-            key={`${field.id}-${index}`}
-            className="flex items-start justify-between gap-2 rounded-md border border-zinc-200 bg-white p-2"
-          >
+        {schema.fields.map((field, index) => {
+          const isDragging = dragIndex === index;
+          return (
+            <div
+              key={`${field.id}-${index}`}
+              className={`flex items-start justify-between gap-2 rounded-md border bg-white p-2 transition-shadow ${
+                isDragging
+                  ? "border-amber-500 shadow-lg shadow-amber-100"
+                  : "border-zinc-200 hover:shadow-sm"
+              }`}
+              onDragOver={(e) => {
+                if (dragIndex === null) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (dragIndex === null) return;
+                handleReorder(dragIndex, index);
+                setDragIndex(null);
+              }}
+            >
+              <button
+                type="button"
+                className="mt-2 flex h-8 w-6 cursor-grab items-center justify-center text-zinc-400 hover:text-zinc-700"
+                draggable
+                onDragStart={() => setDragIndex(index)}
+              >
+                <span className="inline-flex flex-col gap-[3px]">
+                  <span className="h-[2px] w-4 rounded bg-current" />
+                  <span className="h-[2px] w-4 rounded bg-current" />
+                  <span className="h-[2px] w-4 rounded bg-current" />
+                </span>
+              </button>
             <div className="flex-1 space-y-2 text-md">
               <RichTextEditor
                 label="Field label (rich text – use toolbar for color, font size, etc.)"
@@ -337,7 +379,7 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
               ✕
             </button>
           </div>
-        ))}
+        );})}
       </div>
       <div>
         <p className="mb-1 text-md font-medium text-zinc-700">
