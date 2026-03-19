@@ -74,26 +74,52 @@ export async function POST(req: NextRequest) {
   }
 
   const domainIdToUse = targetDomainId ?? original.domainId;
-  const baseSlug =
-    targetSlug && targetSlug.length > 0
-      ? targetSlug
-      : `${original.slug}-copy`;
 
-  // Ensure slug is unique for (domainId, slug) pair by appending
-  // an incrementing suffix when needed: -copy, -copy-2, -copy-3, ...
-  let slugToUse = baseSlug;
-  for (let i = 2; i <= 50; i++) {
-    const existing = await prisma.landingPage.findFirst({
+  const requestedSlugRaw =
+    typeof targetSlug === "string" ? targetSlug.trim() : "";
+
+  let slugToUse: string;
+
+  if (requestedSlugRaw) {
+    // Path 1: user explicitly provided a slug (e.g. via dialog). Enforce
+    // global uniqueness for this exact slug.
+    const normalizedSlug = requestedSlugRaw.toLowerCase();
+    const conflict = await prisma.landingPage.findFirst({
       where: {
-        domainId: domainIdToUse,
-        slug: slugToUse,
+        slug: normalizedSlug,
       },
       select: { id: true },
     });
-    if (!existing) {
-      break;
+    if (conflict) {
+      return NextResponse.json(
+        {
+          error:
+            "A page with this slug already exists. Please choose a different slug.",
+        },
+        { status: 400 },
+      );
     }
-    slugToUse = `${baseSlug}-${i}`;
+    slugToUse = normalizedSlug;
+  } else {
+    // Path 2: quick duplicate from the 3-dot menu with no slug supplied.
+    // Auto-generate a unique slug by appending -copy, -copy-2, etc.
+    const baseSlug = `${original.slug}-copy`;
+    let candidate = baseSlug.toLowerCase();
+
+    for (let i = 1; i <= 50; i++) {
+      const existing = await prisma.landingPage.findFirst({
+        where: {
+          slug: candidate,
+        },
+        select: { id: true },
+      });
+      if (!existing) {
+        break;
+      }
+      candidate = `${baseSlug}-${i + 1}`.toLowerCase();
+    }
+
+    slugToUse = candidate;
   }
 
   const {

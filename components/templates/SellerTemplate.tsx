@@ -120,7 +120,17 @@ export function SellerTemplate({ page, utm }: SellerTemplateProps) {
 
   const showFooter = footerTextContent.length > 0;
 
-  const blockquoteStyle = (heroConfig as any)?.blockquoteStyle as
+  // Blockquote style should reflect the hero configuration used for the
+  // currently visible content. For multistep pages we follow the first step's
+  // hero config so the entry page matches step 1 styling.
+  const firstStepHeroConfig =
+    page.multistepSteps && page.multistepSteps.length > 0
+      ? ((page.multistepSteps[0].sections || []) as any[]).find(
+          (s) => s.kind === "hero",
+        )?.props
+      : null;
+
+  const blockquoteStyle = (firstStepHeroConfig || heroConfig)?.blockquoteStyle as
     | { bg?: string; border?: string }
     | undefined;
   const pageStyleVars =
