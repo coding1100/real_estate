@@ -76,6 +76,10 @@ export function MultistepHeroFlow({
 
   if (!steps.length) return null;
 
+  // In multistep mode, social icons should follow the first configured step
+  // so the entry page reflects the step-1 social visibility/links.
+  const socialSourcePage = steps[0] ?? mainPage;
+
   const step = steps[currentStep];
   const stepLayoutData =
     (step.pageLayout?.layoutData as LayoutItem[] | undefined) ||
@@ -355,8 +359,8 @@ export function MultistepHeroFlow({
                         <span dangerouslySetInnerHTML={{ __html: step.ctaText }} />
                       </button>
                       <SocialLinksBar
-                        base={mainPage.domain}
-                        overrides={mainPage.socialOverrides ?? null}
+                        base={socialSourcePage.domain}
+                        overrides={socialSourcePage.socialOverrides ?? null}
                         className="mt-2"
                       />
                       {isFinalSubmitted && mainPage.successMessage && (
@@ -467,8 +471,8 @@ export function MultistepHeroFlow({
                             />
                           </button>
                           <SocialLinksBar
-                            base={mainPage.domain}
-                            overrides={mainPage.socialOverrides ?? null}
+                            base={socialSourcePage.domain}
+                            overrides={socialSourcePage.socialOverrides ?? null}
                             className="mt-1.5"
                           />
                           {isFinalSubmitted && mainPage.successMessage && (
@@ -531,8 +535,8 @@ export function MultistepHeroFlow({
                           onNextStep={isLastStep ? undefined : handleNextStep}
                         />
                         <SocialLinksBar
-                          base={mainPage.domain}
-                          overrides={mainPage.socialOverrides ?? null}
+                          base={socialSourcePage.domain}
+                          overrides={socialSourcePage.socialOverrides ?? null}
                           className="mt-3"
                         />
                       </>
@@ -633,8 +637,8 @@ export function MultistepHeroFlow({
                       onNextStep={isLastStep ? undefined : handleNextStep}
                     />
                     <SocialLinksBar
-                      base={mainPage.domain}
-                      overrides={mainPage.socialOverrides ?? null}
+                      base={socialSourcePage.domain}
+                      overrides={socialSourcePage.socialOverrides ?? null}
                       className="mt-3"
                     />
                   </>

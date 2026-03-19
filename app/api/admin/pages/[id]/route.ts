@@ -67,27 +67,27 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
         { status: 400 },
       );
     }
-    body.slug = body.slug.trim();
+    const normalizedSlug = body.slug.trim().toLowerCase();
 
-    const targetDomainId =
-      typeof body.domainId === "string" && body.domainId.trim().length > 0
-        ? body.domainId.trim()
-        : existingPage.domainId;
-
-    // Enforce slug uniqueness only within the target domain.
+    // Enforce global uniqueness: slug must be unique across all domains/pages.
     const existing = await prisma.landingPage.findFirst({
       where: {
-        slug: body.slug,
-        domainId: targetDomainId,
+        slug: normalizedSlug,
         NOT: { id },
       },
+      select: { id: true },
     });
     if (existing) {
       return NextResponse.json(
-        { error: "A page with this slug already exists for this domain." },
+        {
+          error:
+            "A page with this slug already exists. Please choose a different slug.",
+        },
         { status: 400 },
       );
     }
+
+    body.slug = normalizedSlug;
   }
 
   try {
