@@ -261,6 +261,7 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
                 }}
                 placeholder="Question or field label"
                 fontOptions={editorFonts}
+                height={130}
               />
               <div className="flex flex-wrap gap-2 items-center">
                 <select
