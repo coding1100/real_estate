@@ -126,7 +126,14 @@ export function BuyerTemplate({ page, utm }: BuyerTemplateProps) {
 
   const showFooter = footerTextContent.length > 0;
 
-  const blockquoteStyle = (heroConfig as any)?.blockquoteStyle as
+  const firstStepHeroConfig =
+    page.multistepSteps && page.multistepSteps.length > 0
+      ? ((page.multistepSteps[0].sections || []) as any[]).find(
+          (s) => s.kind === "hero",
+        )?.props
+      : null;
+
+  const blockquoteStyle = (firstStepHeroConfig || heroConfig)?.blockquoteStyle as
     | { bg?: string; border?: string }
     | undefined;
   const pageStyleVars =

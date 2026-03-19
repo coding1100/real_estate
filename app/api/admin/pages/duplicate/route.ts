@@ -75,36 +75,52 @@ export async function POST(req: NextRequest) {
 
   const domainIdToUse = targetDomainId ?? original.domainId;
 
-  const normalizedSlug =
-    typeof targetSlug === "string" ? targetSlug.trim().toLowerCase() : "";
+  const requestedSlugRaw =
+    typeof targetSlug === "string" ? targetSlug.trim() : "";
 
-  // Require an explicit, non-empty slug when duplicating.
-  if (!normalizedSlug) {
-    return NextResponse.json(
-      { error: "Slug for new page is required." },
-      { status: 400 },
-    );
-  }
+  let slugToUse: string;
 
-  // Enforce global uniqueness for the requested slug – we do not auto-adjust
-  // when the user has chosen a specific slug.
-  const conflict = await prisma.landingPage.findFirst({
-    where: {
-      slug: normalizedSlug,
-    },
-    select: { id: true },
-  });
-  if (conflict) {
-    return NextResponse.json(
-      {
-        error:
-          "A page with this slug already exists. Please choose a different slug.",
+  if (requestedSlugRaw) {
+    // Path 1: user explicitly provided a slug (e.g. via dialog). Enforce
+    // global uniqueness for this exact slug.
+    const normalizedSlug = requestedSlugRaw.toLowerCase();
+    const conflict = await prisma.landingPage.findFirst({
+      where: {
+        slug: normalizedSlug,
       },
-      { status: 400 },
-    );
-  }
+      select: { id: true },
+    });
+    if (conflict) {
+      return NextResponse.json(
+        {
+          error:
+            "A page with this slug already exists. Please choose a different slug.",
+        },
+        { status: 400 },
+      );
+    }
+    slugToUse = normalizedSlug;
+  } else {
+    // Path 2: quick duplicate from the 3-dot menu with no slug supplied.
+    // Auto-generate a unique slug by appending -copy, -copy-2, etc.
+    const baseSlug = `${original.slug}-copy`;
+    let candidate = baseSlug.toLowerCase();
 
-  const slugToUse = normalizedSlug;
+    for (let i = 1; i <= 50; i++) {
+      const existing = await prisma.landingPage.findFirst({
+        where: {
+          slug: candidate,
+        },
+        select: { id: true },
+      });
+      if (!existing) {
+        break;
+      }
+      candidate = `${baseSlug}-${i + 1}`.toLowerCase();
+    }
+
+    slugToUse = candidate;
+  }
 
   const {
     id: _id,
