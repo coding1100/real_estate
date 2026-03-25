@@ -232,7 +232,7 @@ export function HeroSection({
                   style={formBgColor ? { backgroundColor: formBgColor } : undefined}
                 >
                   {formHeading && (
-                    <h2
+                    <div
                       className="mb-5 text-xl font-semibold text-zinc-800 font-serif leading-tight text-center md:text-left"
                       dangerouslySetInnerHTML={{ __html: formHeading }}
                     />
@@ -422,7 +422,7 @@ export function HeroSection({
                     <div className="grid max-[768px]:grid-cols-1 md:grid-cols-[57%_40%] gap-[3%]">
                       <div className="space-y-5">
                         {formHeading && (
-                          <h2
+                          <div
                             className="text-xl font-semibold text-zinc-800 font-serif leading-tight"
                             dangerouslySetInnerHTML={{ __html: formHeading }}
                           />
@@ -541,7 +541,7 @@ export function HeroSection({
                     style={formBgColor ? { backgroundColor: formBgColor } : undefined}
                   >
                     {formHeading && (
-                      <h2
+                      <div
                         className={`mb-4 text-base font-semibold border-b border-[#eadbd3] dot font-serif ${
                           isQuestionnaire ? "text-zinc-800 text-center" : ""
                         }`}
