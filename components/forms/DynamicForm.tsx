@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import type { FormSchema } from "@/lib/types/form";
 import { FormField } from "./FormField";
 import { useRecaptcha, RecaptchaScript } from "./Captcha";
@@ -42,9 +42,14 @@ export function DynamicForm({
     register,
     handleSubmit,
     getValues,
+    control,
     formState: { errors },
     reset,
-  } = useForm<Record<string, any>>();
+  } = useForm<Record<string, any>>({
+    // When fields are hidden via conditional logic, unregister them so they
+    // don't keep stale values/required-validation errors.
+    shouldUnregister: true,
+  });
 
   const [isPending, startTransition] = useTransition();
   const [submitted, setSubmitted] = useState(false);
@@ -52,6 +57,7 @@ export function DynamicForm({
   const [loadRecaptcha, setLoadRecaptcha] = useState(false);
   const { execute } = useRecaptcha();
   const { toast } = useToast();
+  const watchedValues = useWatch({ control }) as Record<string, unknown>;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -137,6 +143,18 @@ export function DynamicForm({
     (a, b) => (a.order ?? 0) - (b.order ?? 0),
   );
 
+  function isFieldVisible(field: (typeof sortedFields)[number]): boolean {
+    const rule = field.visibility;
+    if (!rule) return true;
+    const raw = watchedValues?.[rule.whenFieldId];
+    if (Array.isArray(raw)) {
+      return raw.map(String).includes(String(rule.equals));
+    }
+    return String(raw ?? "") === String(rule.equals);
+  }
+
+  const visibleFields = sortedFields.filter(isFieldVisible);
+
   const formInlineStyle = textSize ? { fontSize: textSize } : undefined;
   const buttonStyle = ctaBgColor ? { backgroundColor: ctaBgColor } : undefined;
   const isQuestionnaire = formStyle === "questionnaire";
@@ -164,7 +182,7 @@ export function DynamicForm({
           {...register("website")}
         />
 
-        {sortedFields.map((field, index) => (
+        {visibleFields.map((field, index) => (
           <FormField
             key={`${field.id}-${index}`}
             field={field}
