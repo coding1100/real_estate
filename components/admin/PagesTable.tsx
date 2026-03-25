@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Search, Star } from "lucide-react";
 import { SlugEditor } from "@/components/admin/SlugEditor";
 import { TitleEditor } from "@/components/admin/TitleEditor";
@@ -18,6 +18,7 @@ export interface PageListItem {
   domainHostname: string;
   domainId: string;
   multistepStepSlugs: string[] | null;
+  thumbnailImageUrl?: string | null;
   bookmarked?: boolean;
 }
 
@@ -25,14 +26,151 @@ interface PagesTableProps {
   pages: PageListItem[];
 }
 
+const THUMB_IFRAME_BASE_W = 1280;
+const THUMB_IFRAME_BASE_H = 720;
+const THUMB_BOX_W = 150;
+const THUMB_BOX_H = 100;
+const THUMB_SCALE = Math.min(THUMB_BOX_W / THUMB_IFRAME_BASE_W, THUMB_BOX_H / THUMB_IFRAME_BASE_H);
+// How many "full iframe" thumbnails are allowed to be active at once.
+// This should cover the number of rows visible in typical viewport heights
+// while still preventing resource exhaustion.
+const MAX_ACTIVE_THUMB_IFRAMES = 10;
+
+// Keep a limited number of already-loaded thumbnail iframes mounted so they
+// don't reload on scroll. Evict oldest when exceeding this cap.
+const MAX_WARM_THUMB_IFRAMES = 30;
+
+function PreviewThumbnail({
+  pageId,
+  previewSrc,
+  fallbackImageUrl,
+  isActive,
+  onVisibleChange,
+  keepWarm,
+  onWarmLoaded,
+}: {
+  pageId: string;
+  previewSrc: string;
+  fallbackImageUrl?: string | null;
+  isActive: boolean;
+  onVisibleChange: (pageId: string, inView: boolean) => void;
+  keepWarm: boolean;
+  onWarmLoaded: (pageId: string) => void;
+}) {
+  const holderRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = holderRef.current;
+    if (!el) return;
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        onVisibleChange(pageId, entry.isIntersecting);
+      },
+      // For tiny 150x100 boxes, 0.6 can be too strict; lower it so any meaningful
+      // visibility counts and becomes eligible after scroll idle.
+      { root: null, threshold: 0.15 },
+    );
+
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [pageId, onVisibleChange]);
+
+  return (
+    <div
+      ref={holderRef}
+      className="mx-auto h-[86px] w-[150px] overflow-hidden rounded border border-zinc-200 bg-zinc-50"
+      aria-label={`Preview thumbnail for ${pageId}`}
+    >
+      {(isActive || keepWarm) && (
+        <iframe
+          title={`Preview thumbnail ${pageId}`}
+          src={previewSrc}
+          onLoad={() => onWarmLoaded(pageId)}
+          style={{
+            width: THUMB_IFRAME_BASE_W,
+            height: THUMB_IFRAME_BASE_H,
+            border: 0,
+            transform: `scale(${THUMB_SCALE})`,
+            transformOrigin: "top left",
+            // When not active, keep it mounted but visually hidden.
+            opacity: isActive ? 1 : 0,
+            pointerEvents: isActive ? "auto" : "none",
+          }}
+          className="block"
+        />
+      )}
+      {!isActive && !keepWarm && (fallbackImageUrl ? (
+        <img
+          src={fallbackImageUrl}
+          alt={`Preview thumbnail ${pageId}`}
+          loading="lazy"
+          className="h-full w-full object-contain bg-zinc-50"
+          draggable={false}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-xs text-zinc-500">
+          Loading…
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function PagesTable({ pages }: PagesTableProps) {
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<PageListItem[]>(pages);
   const [starredFirst, setStarredFirst] = useState(false);
+  const [previewHoverId, setPreviewHoverId] = useState<string | null>(null);
+  const [previewOpenId, setPreviewOpenId] = useState<string | null>(null);
+  const previewClearTimeoutRef = useRef<number | null>(null);
+  const previewOpenTimeoutRef = useRef<number | null>(null);
+  const visibleThumbsRef = useRef<Record<string, boolean>>({});
+  const [activeThumbIds, setActiveThumbIds] = useState<Set<string>>(() => new Set());
+  const warmThumbIdsRef = useRef<Set<string>>(new Set());
+  const warmThumbOrderRef = useRef<string[]>([]);
+  const [warmThumbIds, setWarmThumbIds] = useState<Set<string>>(() => new Set());
+  const isUserScrollingRef = useRef(false);
+  const scrollIdleTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     setRows(pages);
   }, [pages]);
+
+  useEffect(() => {
+    return () => {
+      if (previewClearTimeoutRef.current) {
+        window.clearTimeout(previewClearTimeoutRef.current);
+      }
+      if (previewOpenTimeoutRef.current) {
+        window.clearTimeout(previewOpenTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    function onScroll() {
+      isUserScrollingRef.current = true;
+      if (scrollIdleTimerRef.current) {
+        window.clearTimeout(scrollIdleTimerRef.current);
+      }
+      scrollIdleTimerRef.current = window.setTimeout(() => {
+        isUserScrollingRef.current = false;
+        reconcileActiveThumbs();
+      }, 150);
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (scrollIdleTimerRef.current) {
+        window.clearTimeout(scrollIdleTimerRef.current);
+        scrollIdleTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -99,6 +237,52 @@ export function PagesTable({ pages }: PagesTableProps) {
     }
   }
 
+  const reconcileActiveThumbs = useCallback(() => {
+    setActiveThumbIds((prev) => {
+      const nextActive = new Set<string>(prev);
+
+      // Deactivate any that are not visible.
+      for (const id of Array.from(nextActive)) {
+        if (!visibleThumbsRef.current[id]) nextActive.delete(id);
+      }
+
+      // Activate up to the limit.
+      if (!isUserScrollingRef.current) {
+        const visibleIds = Object.keys(visibleThumbsRef.current).filter(
+          (id) => visibleThumbsRef.current[id],
+        );
+        for (const id of visibleIds) {
+          if (nextActive.size >= MAX_ACTIVE_THUMB_IFRAMES) break;
+          if (!nextActive.has(id)) nextActive.add(id);
+        }
+      }
+
+      return nextActive;
+    });
+  }, []);
+
+  const handleThumbVisibleChange = useCallback(
+    (thumbId: string, inView: boolean) => {
+      visibleThumbsRef.current[thumbId] = inView;
+      reconcileActiveThumbs();
+    },
+    [reconcileActiveThumbs],
+  );
+
+  const handleWarmLoaded = useCallback((thumbId: string) => {
+    if (warmThumbIdsRef.current.has(thumbId)) return;
+    warmThumbIdsRef.current.add(thumbId);
+    warmThumbOrderRef.current.push(thumbId);
+
+    // Evict oldest warm if we exceed cap.
+    while (warmThumbOrderRef.current.length > MAX_WARM_THUMB_IFRAMES) {
+      const evict = warmThumbOrderRef.current.shift();
+      if (!evict) break;
+      warmThumbIdsRef.current.delete(evict);
+    }
+    setWarmThumbIds(new Set(warmThumbIdsRef.current));
+  }, []);
+
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -147,6 +331,7 @@ export function PagesTable({ pages }: PagesTableProps) {
               <th className="px-3 py-2 text-left">Mode</th>
               <th className="px-3 py-2 text-left">Status</th>
               <th className="px-3 py-2 text-left">Updated</th>
+              <th className="px-3 py-2 text-left w-[110px]">Preview</th>
               <th className="px-3 py-2 text-right">Actions</th>
             </tr>
           </thead>
@@ -157,7 +342,7 @@ export function PagesTable({ pages }: PagesTableProps) {
               return (
                 <>
                   <tr key={`group-${domain}`} className="border-t border-zinc-200 bg-zinc-50/60">
-                    <td className="px-3 py-2 text-sm font-semibold text-zinc-800" colSpan={9}>
+                    <td className="px-3 py-2 text-sm font-semibold text-zinc-800" colSpan={10}>
                       <div className="flex items-center justify-between gap-3">
                         <Link
                           href={`https://${domain}`}
@@ -226,7 +411,7 @@ export function PagesTable({ pages }: PagesTableProps) {
                         <td className="px-3 py-3 text-zinc-700">
                           <span className="capitalize">{page.type}</span>
                         </td>
-                        <td className="px-3 py-3 text-zinc-700 align-top">
+                        <td className="px-3 py-3 text-zinc-700">
                           <div className="flex flex-col gap-1">
                             <span
                               className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
@@ -256,7 +441,141 @@ export function PagesTable({ pages }: PagesTableProps) {
                         </td>
                         <td className="px-3 py-3 text-zinc-700">{page.status}</td>
                         <td className="px-3 py-2 text-zinc-500">
-                          {new Date(page.updatedAt).toLocaleString()}
+                          {/* Use deterministic UTC formatting to avoid SSR/client hydration mismatches. */}
+                          {new Date(page.updatedAt).toISOString().slice(0, 19).replace("T", " ")}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {(() => {
+                            const previewSrc = `/${encodeURIComponent(page.slug)}?preview=1&domain=${encodeURIComponent(page.domainHostname)}`;
+                            const showLarge = previewHoverId === page.id;
+                            const POPUP_BOX = 600;
+                            // Keep popup extremely close to the thumbnail so it's easy to hover.
+                            const GAP = 0;
+                            const BASE_W = THUMB_IFRAME_BASE_W;
+                            const BASE_H = THUMB_IFRAME_BASE_H;
+                            const popupScale = Math.min(POPUP_BOX / BASE_W, POPUP_BOX / BASE_H);
+
+                            return (
+                              <div
+                                className="group relative inline-block"
+                                onMouseEnter={() => {
+                                  if (previewClearTimeoutRef.current) {
+                                    window.clearTimeout(previewClearTimeoutRef.current);
+                                    previewClearTimeoutRef.current = null;
+                                  }
+                                  if (previewOpenTimeoutRef.current) {
+                                    window.clearTimeout(previewOpenTimeoutRef.current);
+                                    previewOpenTimeoutRef.current = null;
+                                  }
+                                  setPreviewHoverId(page.id);
+                                  // Debounce opening the heavy preview iframe to avoid
+                                  // thrashing when the user moves across rows.
+                                  previewOpenTimeoutRef.current = window.setTimeout(() => {
+                                    setPreviewOpenId(page.id);
+                                    previewOpenTimeoutRef.current = null;
+                                  }, 180);
+                                }}
+                                onMouseLeave={() => {
+                                  if (previewOpenTimeoutRef.current) {
+                                    window.clearTimeout(previewOpenTimeoutRef.current);
+                                    previewOpenTimeoutRef.current = null;
+                                  }
+                                  if (previewClearTimeoutRef.current) {
+                                    window.clearTimeout(previewClearTimeoutRef.current);
+                                  }
+                                  previewClearTimeoutRef.current = window.setTimeout(() => {
+                                    setPreviewHoverId((prev) => (prev === page.id ? null : prev));
+                                    previewClearTimeoutRef.current = null;
+                                  }, 120);
+                                }}
+                              >
+                                <PreviewThumbnail
+                                  pageId={page.id}
+                                  previewSrc={previewSrc}
+                                  fallbackImageUrl={page.thumbnailImageUrl}
+                                  isActive={activeThumbIds.has(page.id)}
+                                  onVisibleChange={handleThumbVisibleChange}
+                                  keepWarm={warmThumbIds.has(page.id)}
+                                  onWarmLoaded={handleWarmLoaded}
+                                />
+
+                                {showLarge && previewOpenId === page.id && (
+                                  <div
+                                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 p-4"
+                                    onMouseDown={(e) => {
+                                      // Close only when clicking the backdrop, not the dialog content.
+                                      if (e.target !== e.currentTarget) return;
+                                      if (previewClearTimeoutRef.current) {
+                                        window.clearTimeout(previewClearTimeoutRef.current);
+                                        previewClearTimeoutRef.current = null;
+                                      }
+                                      if (previewOpenTimeoutRef.current) {
+                                        window.clearTimeout(previewOpenTimeoutRef.current);
+                                        previewOpenTimeoutRef.current = null;
+                                      }
+                                      setPreviewHoverId(null);
+                                      setPreviewOpenId(null);
+                                    }}
+                                    onMouseEnter={() => {
+                                      if (previewClearTimeoutRef.current) {
+                                        window.clearTimeout(previewClearTimeoutRef.current);
+                                        previewClearTimeoutRef.current = null;
+                                      }
+                                    }}
+                                    onMouseLeave={() => {
+                                      if (previewClearTimeoutRef.current) {
+                                        window.clearTimeout(previewClearTimeoutRef.current);
+                                        previewClearTimeoutRef.current = null;
+                                      }
+                                      setPreviewHoverId((prev) => (prev === page.id ? null : prev));
+                                      setPreviewOpenId((prev) => (prev === page.id ? null : prev));
+                                    }}
+                                  >
+                                    <div className="relative rounded-md border border-zinc-200 bg-white p-2 shadow-lg">
+                                      <div className="flex items-start justify-between gap-3 mb-2">
+                                        <div className="text-xs font-medium text-zinc-600">
+                                          {page.domainHostname} / {page.slug}
+                                        </div>
+                                        <button
+                                          type="button"
+                                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                                          aria-label="Close preview"
+                                          onClick={() => {
+                                            if (previewClearTimeoutRef.current) {
+                                              window.clearTimeout(previewClearTimeoutRef.current);
+                                              previewClearTimeoutRef.current = null;
+                                            }
+                                            if (previewOpenTimeoutRef.current) {
+                                              window.clearTimeout(previewOpenTimeoutRef.current);
+                                              previewOpenTimeoutRef.current = null;
+                                            }
+                                            setPreviewHoverId(null);
+                                            setPreviewOpenId(null);
+                                          }}
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
+                                      <div className="h-[338px] w-[600px] overflow-hidden rounded-sm bg-white">
+                                      <iframe
+                                        title={`Preview 600x600 ${page.slug}`}
+                                        src={previewSrc}
+                                        style={{
+                                          width: BASE_W,
+                                          height: BASE_H,
+                                          border: 0,
+                                          transform: `scale(${popupScale})`,
+                                          transformOrigin: "top left",
+                                        }}
+                                        className="block"
+                                      />
+                                    </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-3 py-2 text-right">
                           <PageRowActions
@@ -275,7 +594,7 @@ export function PagesTable({ pages }: PagesTableProps) {
               <tr>
                 <td
                   className="px-3 py-4 text-center text-zinc-500"
-                  colSpan={9}
+                  colSpan={10}
                 >
                   No pages match your search.
                 </td>

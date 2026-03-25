@@ -87,6 +87,8 @@ export default async function AdminPagesListPage() {
     domainHostname: p.domain.hostname,
     domainId: p.domainId,
     multistepStepSlugs: ((p as any).multistepStepSlugs as string[] | null) ?? null,
+    thumbnailImageUrl:
+      (p as any).heroImageUrl ?? (p as any).ogImageUrl ?? null,
     bookmarked: bookmarkedById.get(p.id) ?? false,
   }));
 

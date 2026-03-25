@@ -217,11 +217,11 @@ export function MultistepPageSelector({
                     {page ? (
                       <span className="text-zinc-800">
                         {page.slug}
-                        {page.headline ? (
+                        {/* {page.headline ? (
                           <span className="ml-1.5 text-zinc-500 truncate max-w-[200px]">
                             – {page.headline}
                           </span>
-                        ) : null}
+                        ) : null} */}
                       </span>
                     ) : (
                       <span className="text-amber-700">

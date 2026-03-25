@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MoreHorizontal, Eye, Pencil, Copy } from "lucide-react";
+import { MoreHorizontal, Eye, Pencil, Copy, Link as LinkIcon } from "lucide-react";
 import { DeletePageButton } from "@/components/admin/DeletePageButton";
 import { useAdminToast } from "@/components/admin/useAdminToast";
 
@@ -111,6 +111,44 @@ export function PageRowActions({ pageId, slug, isMaster }: PageRowActionsProps) 
             >
               <Copy className="h-3.5 w-3.5" />
               <span>Duplicate</span>
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={async () => {
+                try {
+                  const origin =
+                    typeof window !== "undefined" ? window.location.origin : "";
+                  const url = `${origin}/${slug}`.replace(/\/+/g, "/");
+
+                  if (
+                    typeof navigator !== "undefined" &&
+                    navigator.clipboard?.writeText
+                  ) {
+                    await navigator.clipboard.writeText(url);
+                  } else {
+                    const temp = document.createElement("textarea");
+                    temp.value = url;
+                    temp.style.position = "fixed";
+                    temp.style.left = "-9999px";
+                    temp.style.top = "-9999px";
+                    document.body.appendChild(temp);
+                    temp.focus();
+                    temp.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(temp);
+                  }
+
+                  setOpen(false);
+                  success("Link copied to clipboard.");
+                } catch {
+                  error("Failed to copy link.");
+                }
+              }}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+            >
+              <LinkIcon className="h-3.5 w-3.5" />
+              <span>Copy link</span>
             </button>
             <div className="mt-1 border-t border-zinc-100 pt-1">
               <DeletePageButton pageId={pageId} slug={slug} variant="menu" />
