@@ -4,6 +4,7 @@ import { BuyerTemplate } from "@/components/templates/BuyerTemplate";
 import { SellerTemplate } from "@/components/templates/SellerTemplate";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { MetaPixel } from "@/components/analytics/MetaPixel";
+import { getAdminUiSettings } from "@/lib/uiSettings";
 import {
   getRequestHostnameFromHeaders,
   isPreviewHostname,
@@ -143,12 +144,21 @@ export default async function LandingPage({ params, searchParams }: RouteParams)
     includeDraft: isPreviewHost || query.preview === "1" || query.preview === "true",
   });
   console.log("[landing-page] Got page:", page.slug, "headline:", page.headline);
+  const { settings } = await getAdminUiSettings();
 
   const content =
     page.type === "seller" ? (
-      <SellerTemplate page={page} utm={utm} />
+      <SellerTemplate
+        page={page}
+        utm={utm}
+        ctaForwardingRules={settings.ctaForwardingRules ?? []}
+      />
     ) : (
-      <BuyerTemplate page={page} utm={utm} />
+      <BuyerTemplate
+        page={page}
+        utm={utm}
+        ctaForwardingRules={settings.ctaForwardingRules ?? []}
+      />
     );
 
   return (

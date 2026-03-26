@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { EditorFontOption } from "@/lib/editorFonts";
 import { DEFAULT_EDITOR_FONTS } from "@/lib/editorFonts";
+import { type CtaForwardingRule, sanitizeCtaTitle } from "@/lib/types/ctaForwarding";
 
 const SINGLETON_ID = "singleton";
 
@@ -40,6 +41,7 @@ export interface AdminUiSettings {
   toastAlertTitle: string;
   toastAlertBody: string;
   editorFonts?: EditorFontOption[] | null;
+  ctaForwardingRules?: CtaForwardingRule[] | null;
 }
 
 // Re-export from client-safe module so server code can still import from here
@@ -68,6 +70,46 @@ export const DEFAULT_THEME: ToastTheme = {
   alertTitle: "Attention",
   alertBody: "Please review this information.",
 };
+
+function normalizeCtaForwardingRules(
+  input: unknown,
+): CtaForwardingRule[] {
+  if (!Array.isArray(input)) return [];
+  const normalized: CtaForwardingRule[] = [];
+  for (const item of input) {
+    if (!item || typeof item !== "object") continue;
+    const ctaTitle = sanitizeCtaTitle(
+      typeof (item as any).ctaTitle === "string"
+        ? (item as any).ctaTitle
+        : "",
+    );
+    const forwardUrl = typeof (item as any).forwardUrl === "string"
+      ? (item as any).forwardUrl.trim()
+      : "";
+    if (!ctaTitle || !/^https?:\/\//i.test(forwardUrl)) continue;
+    normalized.push({ ctaTitle, forwardUrl });
+  }
+  return normalized;
+}
+
+async function ensureCtaForwardingColumn() {
+  await prisma.$executeRawUnsafe(
+    'ALTER TABLE "AdminUiSettings" ADD COLUMN IF NOT EXISTS "ctaForwardingRules" JSONB',
+  );
+}
+
+async function readCtaForwardingRules(): Promise<CtaForwardingRule[]> {
+  try {
+    await ensureCtaForwardingColumn();
+    const rows = await prisma.$queryRawUnsafe<Array<{ ctaForwardingRules: unknown }>>(
+      'SELECT "ctaForwardingRules" FROM "AdminUiSettings" WHERE "id" = $1 LIMIT 1',
+      SINGLETON_ID,
+    );
+    return normalizeCtaForwardingRules(rows?.[0]?.ctaForwardingRules);
+  } catch {
+    return [];
+  }
+}
 
 export async function getAdminUiSettings(): Promise<{
   settings: AdminUiSettings;
@@ -144,8 +186,10 @@ export async function getAdminUiSettings(): Promise<{
     savedByLabel.forEach((f) => merged.push(f));
     const editorFonts = merged;
 
+    const ctaForwardingRules = await readCtaForwardingRules();
+
     return {
-      settings: settings as AdminUiSettings,
+      settings: { ...(settings as AdminUiSettings), ctaForwardingRules },
       theme,
       editorFonts,
     };
@@ -169,6 +213,7 @@ export async function getAdminUiSettings(): Promise<{
         toastAlertTitle: DEFAULT_THEME.alertTitle,
         toastAlertBody: DEFAULT_THEME.alertBody,
         editorFonts: DEFAULT_EDITOR_FONTS as any,
+        ctaForwardingRules: [],
       };
       return {
         settings,
@@ -199,6 +244,7 @@ export async function updateAdminUiSettings(
     | "toastAlertTitle"
     | "toastAlertBody"
     | "editorFonts"
+    | "ctaForwardingRules"
   >>,
 ): Promise<{ settings: AdminUiSettings; theme: ToastTheme }> {
   try {
@@ -279,6 +325,15 @@ export async function updateAdminUiSettings(
       },
     });
 
+    if (patch.ctaForwardingRules != null) {
+      await ensureCtaForwardingColumn();
+      await prisma.$executeRawUnsafe(
+        'UPDATE "AdminUiSettings" SET "ctaForwardingRules" = $1 WHERE "id" = $2',
+        JSON.stringify(normalizeCtaForwardingRules(patch.ctaForwardingRules)),
+        SINGLETON_ID,
+      );
+    }
+
     const theme: ToastTheme = {
       successBg: settings.toastSuccessBg || DEFAULT_THEME.successBg,
       successText: settings.toastSuccessText || DEFAULT_THEME.successText,
@@ -298,7 +353,11 @@ export async function updateAdminUiSettings(
       alertBody: settings.toastAlertBody || DEFAULT_THEME.alertBody,
     };
 
-    return { settings: settings as AdminUiSettings, theme };
+    const ctaForwardingRules = await readCtaForwardingRules();
+    return {
+      settings: { ...(settings as AdminUiSettings), ctaForwardingRules },
+      theme,
+    };
   } catch (err: any) {
     if (err?.code === "P2021" || /AdminUiSettings/.test(String(err?.message))) {
       const settings: AdminUiSettings = {
@@ -322,6 +381,9 @@ export async function updateAdminUiSettings(
         toastAlertTitle:
           patch.toastAlertTitle ?? DEFAULT_THEME.alertTitle,
         toastAlertBody: patch.toastAlertBody ?? DEFAULT_THEME.alertBody,
+        ctaForwardingRules: normalizeCtaForwardingRules(
+          patch.ctaForwardingRules,
+        ),
       };
       return { settings, theme: DEFAULT_THEME };
     }

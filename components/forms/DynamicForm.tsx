@@ -3,6 +3,11 @@
 import { useEffect, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import type { FormSchema } from "@/lib/types/form";
+import {
+  type CtaForwardingRule,
+  normalizeCtaTitleKey,
+} from "@/lib/types/ctaForwarding";
+import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 import { FormField } from "./FormField";
 import { useRecaptcha, RecaptchaScript } from "./Captcha";
 import { useToast } from "@/components/ui/use-toast";
@@ -22,6 +27,7 @@ interface DynamicFormProps {
   postCtaText?: string;
   onNextStep?: (values: Record<string, unknown>) => void;
   skipValidationForNextStep?: boolean;
+  ctaForwardingRules?: CtaForwardingRule[];
 }
 
 export function DynamicForm({
@@ -37,6 +43,7 @@ export function DynamicForm({
   postCtaText,
   onNextStep,
   skipValidationForNextStep,
+  ctaForwardingRules,
 }: DynamicFormProps) {
   const {
     register,
@@ -122,6 +129,13 @@ export function DynamicForm({
             "Thank you! We'll be in touch shortly.",
           variant: "default",
         });
+        const normalizedCtaText = normalizeCtaTitleKey(ctaText || "");
+        const matchingRule = (ctaForwardingRules ?? []).find(
+          (rule) => normalizeCtaTitleKey(rule.ctaTitle) === normalizedCtaText,
+        );
+        if (matchingRule?.forwardUrl) {
+          window.location.assign(matchingRule.forwardUrl);
+        }
       } catch (e) {
         console.error(e);
         const msg = "Something went wrong. Please try again.";
@@ -208,20 +222,20 @@ export function DynamicForm({
           ) : (
             <span
               className="cta-text"
-              dangerouslySetInnerHTML={{ __html: ctaText }}
+              dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(ctaText) }}
             />
           )}
         </button>
         {helperText && (
           <p
             className={`${isDetailedPerspective ? "mt-4 text-md" : "mt-3 text-md"} text-zinc-600 font-serif text-center leading-relaxed`}
-            dangerouslySetInnerHTML={{ __html: helperText }}
+            dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(helperText) }}
           />
         )}
         {postCtaText && (
           <div
             className="text-sm text-zinc-700 font-serif leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: postCtaText }}
+            dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(postCtaText) }}
           />
         )}
       </form>

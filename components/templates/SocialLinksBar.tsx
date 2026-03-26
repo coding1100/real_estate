@@ -212,7 +212,7 @@ export const SocialLinksBar: React.FC<SocialLinksBarProps> = ({
   if (!visibleItems.length) return null;
 
   return (
-    <div className={cn("mt-3 flex items-center gap-3 justify-center mt-[15px] ", className)}>
+    <div className={cn("mt-3 flex items-center gap-3 justify-center mt-[15px] test ", className)}>
       {visibleItems.map((item) => (
         (() => {
           const rawUrl = typeof item.url === "string" ? item.url.trim() : "";
