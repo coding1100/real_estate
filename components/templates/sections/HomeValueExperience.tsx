@@ -6,6 +6,8 @@ import Script from "next/script";
 import { Search } from "lucide-react";
 import type { LandingPageContent } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
+import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
+import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 import { RecaptchaScript } from "@/components/forms/Captcha";
 import { DynamicForm } from "@/components/forms/DynamicForm";
 import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
@@ -37,6 +39,7 @@ interface HomeValueExperienceProps {
   layout?: HomeValueLayout | null;
   formSchema?: FormSchema | null;
   utmHiddenFields?: Record<string, string | undefined>;
+  ctaForwardingRules?: CtaForwardingRule[];
 }
 
 export function HomeValueExperience({
@@ -44,6 +47,7 @@ export function HomeValueExperience({
   layout,
   formSchema,
   utmHiddenFields,
+  ctaForwardingRules,
 }: HomeValueExperienceProps) {
   const [address, setAddress] = useState("");
   const [searchState, setSearchState] = useState<SearchState>("idle");
@@ -185,7 +189,7 @@ export function HomeValueExperience({
           {hasHeroRichText ? (
             <div
               className="space-y-2 text-amber-50"
-              dangerouslySetInnerHTML={{ __html: layout!.leftMainHtml as string }}
+                dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(layout!.leftMainHtml as string) }}
             />
           ) : (
             <>
@@ -240,7 +244,7 @@ export function HomeValueExperience({
             {lowerStripHtml ? (
               <div
                 className="text-[13px] leading-snug text-[#433124]"
-                dangerouslySetInnerHTML={{ __html: lowerStripHtml }}
+                dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(lowerStripHtml) }}
               />
             ) : (
               <p className="text-[13px] leading-snug text-[#433124]">
@@ -267,7 +271,7 @@ export function HomeValueExperience({
                 <div
                   className="max-w-lg text-sm text-amber-100/95"
                   dangerouslySetInnerHTML={{
-                    __html: layout!.formFooterText as string,
+                    __html: wrapLegalSignsHtml(layout!.formFooterText as string),
                   }}
                 />
               </div>
@@ -294,7 +298,7 @@ export function HomeValueExperience({
                 <div
                   className="font-serif text-lg font-semibold leading-tight text-amber-900"
                   dangerouslySetInnerHTML={{
-                    __html: layout!.formHeading as string,
+                    __html: wrapLegalSignsHtml(layout!.formHeading as string),
                   }}
                 />
               ) : (
@@ -309,6 +313,7 @@ export function HomeValueExperience({
                     schema={formSchema}
                     ctaText={page.ctaText}
                     successMessage={page.successMessage}
+                    ctaForwardingRules={ctaForwardingRules}
                     ctaBgColor={layout?.ctaBgColor}
                     extraHiddenFields={{
                       domain: page.domain.hostname,
@@ -345,7 +350,7 @@ export function HomeValueExperience({
                   <div
                     className="mt-2 text-xs text-zinc-800"
                     dangerouslySetInnerHTML={{
-                      __html: layout!.formIntro as string,
+                      __html: wrapLegalSignsHtml(layout!.formIntro as string),
                     }}
                   />
                 )}

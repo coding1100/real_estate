@@ -5,10 +5,18 @@ import type {
   LandingPageContent,
 } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
+import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
+import { normalizeCtaTitleKey } from "@/lib/types/ctaForwarding";
+import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 import { DynamicForm } from "@/components/forms/DynamicForm";
 import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
 
-type FormStyle = "default" | "questionnaire" | "detailed-perspective" | "next-steps";
+type FormStyle =
+  | "default"
+  | "questionnaire"
+  | "detailed-perspective"
+  | "next-steps"
+  | "team-showcase";
 
 interface HeroLayoutConfig {
   formIntro?: string;
@@ -54,6 +62,7 @@ interface HeroSectionProps {
     showForm: boolean;
   };
   utmHiddenFields?: Record<string, string | undefined>;
+  ctaForwardingRules?: CtaForwardingRule[];
 }
 
 export function HeroSection({
@@ -64,6 +73,7 @@ export function HeroSection({
   heroElements,
   visibleBlocks,
   utmHiddenFields,
+  ctaForwardingRules,
 }: HeroSectionProps) {
   const formHeading = layout?.formHeading?.trim() ?? "";
   const formBgColor = layout?.formBgColor;
@@ -72,6 +82,7 @@ export function HeroSection({
   const isQuestionnaire = layout?.formStyle === "questionnaire";
   const isDetailedPerspective = layout?.formStyle === "detailed-perspective";
   const isNextSteps = layout?.formStyle === "next-steps";
+  const isTeamShowcase = layout?.formStyle === "team-showcase";
   const isProfileOnlyNextSteps =
     isNextSteps &&
     ((((layout as any)?.nextStepsSecondOnly as boolean | undefined) === true) ||
@@ -109,15 +120,15 @@ export function HeroSection({
     : undefined;
   const textContainerStyle = useSavedLayout
     ? {
-        gridColumn: `${textLayout.x + 1} / span ${textLayout.w}`,
-        gridRow: `${textLayout.y + 1} / span ${textLayout.h}`,
-      }
+      gridColumn: `${textLayout.x + 1} / span ${textLayout.w}`,
+      gridRow: `${textLayout.y + 1} / span ${textLayout.h}`,
+    }
     : undefined;
   const formContainerStyle = useSavedLayout
     ? {
-        gridColumn: `${formLayout.x + 1} / span ${formLayout.w}`,
-        gridRow: `${formLayout.y + 1} / span ${formLayout.h}`,
-      }
+      gridColumn: `${formLayout.x + 1} / span ${formLayout.w}`,
+      gridRow: `${formLayout.y + 1} / span ${formLayout.h}`,
+    }
     : undefined;
   const textContainerClass = useSavedLayout
     ? "relative mt-0 space-y-4 md:-mt-4 md:space-y-6 lg:-mt-[50px] content-area"
@@ -125,6 +136,143 @@ export function HeroSection({
   const formContainerClass = useSavedLayout
     ? "w-full md:w-auto form-area"
     : "col-span-12 w-full md:col-span-4 md:w-auto";
+
+  const teamImageUrl = (layout as any)?.teamImageUrl as string | undefined;
+  const teamInfoHtml = (layout as any)?.teamInfoHtml as string | undefined;
+  const teamTrustHtml = (layout as any)?.teamTrustHtml as string | undefined;
+  const normalizedPageCtaKey = normalizeCtaTitleKey(page.ctaText ?? "");
+  const teamFallbackForwardUrl = (ctaForwardingRules ?? []).find((rule) => {
+    const normalizedRule = normalizeCtaTitleKey(rule.ctaTitle);
+    return normalizedRule.length > 0 && normalizedRule === normalizedPageCtaKey;
+  })?.forwardUrl;
+
+  if (isTeamShowcase) {
+    return (
+      <section className="relative text-white min-h-[calc(100vh_-_85px)] pt-[120px] max-[768px]:pt-20">
+        {page.heroImageUrl && (
+          <div className="pointer-events-none inset-0 fixed top-0 left-0 right-0 bottom-0">
+            <Image
+              src={page.heroImageUrl}
+              alt={page.headline}
+              fill
+              priority
+              quality={60}
+              sizes="100vw"
+              className="object-cover brightness-[0.58]"
+            />
+          </div>
+        )}
+
+        <div className="mx-auto max-w-6xl px-4 pb-10 md:px-0 md:pb-12 relative z-10">
+          <div className="grid gap-6 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)] items-end">
+            <div className="team-member space-y-4 rounded-[2px] md:p-6">
+              <div
+                className="rounded-[2px] bg-amber-50/95 p-4 text-zinc-900 md:p-5"
+                style={formBgColor ? { backgroundColor: formBgColor } : undefined}
+              >
+                {formHeading ? (
+                  <div
+                    className="mb-3 font-serif text-lg font-semibold leading-tight text-amber-900"
+                    dangerouslySetInnerHTML={{
+                      __html: wrapLegalSignsHtml(formHeading),
+                    }}
+                  />
+                ) : null}
+                {formSchema && formSchema.fields?.length ? (
+                  <DynamicForm
+                    schema={formSchema}
+                    ctaText={page.ctaText}
+                    successMessage={page.successMessage}
+                    ctaForwardingRules={ctaForwardingRules}
+                    ctaBgColor={ctaBgColor}
+                    textSize={formTextSize}
+                    extraHiddenFields={{
+                      domain: page.domain.hostname,
+                      slug: page.slug,
+                      type: page.type,
+                      ...(utmHiddenFields ?? {}),
+                    }}
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {teamFallbackForwardUrl ? (
+                      <a
+                        href={teamFallbackForwardUrl}
+                        className="inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800"
+                        style={ctaBgColor ? { backgroundColor: ctaBgColor } : undefined}
+                      >
+                        <span
+                          className="cta-text"
+                          dangerouslySetInnerHTML={{
+                            __html: wrapLegalSignsHtml(page.ctaText),
+                          }}
+                        />
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        className="inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm opacity-70"
+                        style={ctaBgColor ? { backgroundColor: ctaBgColor } : undefined}
+                      >
+                        <span
+                          className="cta-text"
+                          dangerouslySetInnerHTML={{
+                            __html: wrapLegalSignsHtml(page.ctaText),
+                          }}
+                        />
+                      </button>
+                    )}
+                    {!teamFallbackForwardUrl && (
+                      <p className="text-xs text-amber-900/80">
+                        Configure a CTA forwarding rule in Settings to make this
+                        CTA redirect.
+                      </p>
+                    )}
+                     
+                  </div>
+                )}
+                {teamTrustHtml ? (
+                  <div
+                    className="mt-3 text-xs text-zinc-700"
+                    dangerouslySetInnerHTML={{
+                      __html: wrapLegalSignsHtml(teamTrustHtml),
+                    }}
+                  />
+                ) : null}
+               <div className="mt-3">
+                      <SocialLinksBar base={page.domain} overrides={page.socialOverrides ?? null} />
+                    </div>
+              </div>
+            </div>
+
+            <div className="relative min-h-[260px] md:min-h-[420px] team-img self-end md:sticky md:bottom-0">
+              {teamImageUrl ? (
+                <Image
+                  src={teamImageUrl}
+                  alt="Team"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 40vw"
+                  className="object-contain object-bottom"
+                />
+              ) : (
+                <div className="h-full w-full rounded-[2px] border border-white/20 bg-black/25" />
+              )}
+              {teamInfoHtml ? (
+                <div
+                  className="absolute bottom-2 right-2 max-w-[100%] bottom-[10%] right-[10%] rounded-[2px] px-3 py-2 text-right text-xs text-white md:text-sm"
+                  dangerouslySetInnerHTML={{
+                    __html: wrapLegalSignsHtml(teamInfoHtml),
+                  }}
+                />
+              ) : null}
+            </div>
+          </div>
+
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="relative text-white min-h-[calc(100vh_-_85px)] pt-[120px] max-[768px]:pt-20">
@@ -154,7 +302,7 @@ export function HeroSection({
                   <div
                     className="space-y-2"
                     // authored by admin via rich text editor
-                    dangerouslySetInnerHTML={{ __html: leftMainHtml }}
+                    dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(leftMainHtml) }}
                   />
                 ) : hasExplicitBlankHero ? null : (
                   <>
@@ -195,7 +343,7 @@ export function HeroSection({
                                   key={el.id}
                                   className="space-y-2"
                                   dangerouslySetInnerHTML={{
-                                    __html: layout.leftMainHtml ?? "",
+                                    __html: wrapLegalSignsHtml(layout.leftMainHtml ?? ""),
                                   }}
                                 />
                               );
@@ -234,7 +382,7 @@ export function HeroSection({
                   {formHeading && (
                     <div
                       className="mb-5 text-xl font-semibold text-zinc-800 font-serif leading-tight text-center md:text-left"
-                      dangerouslySetInnerHTML={{ __html: formHeading }}
+                      dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(formHeading) }}
                     />
                   )}
 
@@ -244,24 +392,24 @@ export function HeroSection({
                       <div className="relative flex items-stretch rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4 max-[768px]:flex-wrap">
                         {(layout?.nextStepsSecondImageUrl ||
                           layout?.profileImageUrl) && (
-                          <div className="relative h-[110px] w-[90px] flex-shrink-0 self-center overflow-hidden rounded-[2px] mr-[15px] max-[768px]:mb-2">
-                            <Image
-                              src={
-                                (layout?.nextStepsSecondImageUrl ||
-                                  layout?.profileImageUrl) as string
-                              }
-                              alt={(layout?.profileName as string) || "Profile"}
-                              fill
-                              className="object-cover rounded-[4px]"
-                            />
-                          </div>
-                        )}
+                            <div className="relative h-[110px] w-[90px] flex-shrink-0 self-center overflow-hidden rounded-[2px] mr-[15px] max-[768px]:mb-2">
+                              <Image
+                                src={
+                                  (layout?.nextStepsSecondImageUrl ||
+                                    layout?.profileImageUrl) as string
+                                }
+                                alt={(layout?.profileName as string) || "Profile"}
+                                fill
+                                className="object-cover rounded-[4px]"
+                              />
+                            </div>
+                          )}
                         <div className="flex flex-1 flex-col justify-center space-y-1.5 pr-4">
                           {layout?.nextStepsSecondHtml ? (
                             <div
                               className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
                               dangerouslySetInnerHTML={{
-                                __html: layout.nextStepsSecondHtml,
+                                __html: wrapLegalSignsHtml(layout.nextStepsSecondHtml),
                               }}
                             />
                           ) : (
@@ -298,7 +446,7 @@ export function HeroSection({
                             }
                           >
                             <span
-                              dangerouslySetInnerHTML={{ __html: page.ctaText }}
+                              dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(page.ctaText) }}
                             />
                           </button>
                         </div>
@@ -329,24 +477,24 @@ export function HeroSection({
                         <div className="relative flex items-stretch rounded-[2px] border border-[#cbb1a7ab] bg-[#fff6f1] px-4 py-4 max-[768px]:flex-wrap">
                           {(layout?.nextStepsSecondImageUrl ||
                             layout?.profileImageUrl) && (
-                            <div className="relative h-[110px] w-[90px] flex-shrink-0 self-center overflow-hidden rounded-[2px] mr-[15px] max-[768px]:mb-2">
-                              <Image
-                                src={
-                                  (layout?.nextStepsSecondImageUrl ||
-                                    layout?.profileImageUrl) as string
-                                }
-                                alt={(layout?.profileName as string) || "Profile"}
-                                fill
-                                className="object-cover rounded-[4px]"
-                              />
-                            </div>
-                          )}
+                              <div className="relative h-[110px] w-[90px] flex-shrink-0 self-center overflow-hidden rounded-[2px] mr-[15px] max-[768px]:mb-2">
+                                <Image
+                                  src={
+                                    (layout?.nextStepsSecondImageUrl ||
+                                      layout?.profileImageUrl) as string
+                                  }
+                                  alt={(layout?.profileName as string) || "Profile"}
+                                  fill
+                                  className="object-cover rounded-[4px]"
+                                />
+                              </div>
+                            )}
                           <div className="flex flex-1 flex-col justify-center space-y-1.5 pr-4">
                             {layout?.nextStepsSecondHtml ? (
                               <div
                                 className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
                                 dangerouslySetInnerHTML={{
-                                  __html: layout.nextStepsSecondHtml,
+                                  __html: wrapLegalSignsHtml(layout.nextStepsSecondHtml),
                                 }}
                               />
                             ) : (
@@ -379,7 +527,7 @@ export function HeroSection({
                               <div
                                 className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
                                 dangerouslySetInnerHTML={{
-                                  __html: layout.formIntro ?? "",
+                                  __html: wrapLegalSignsHtml(layout.formIntro ?? ""),
                                 }}
                               />
                             )}
@@ -396,7 +544,7 @@ export function HeroSection({
                                 }
                               >
                                 <span
-                                  dangerouslySetInnerHTML={{ __html: page.ctaText }}
+                                  dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(page.ctaText) }}
                                 />
                               </button>
                             </div>
@@ -424,19 +572,20 @@ export function HeroSection({
                         {formHeading && (
                           <div
                             className="text-xl font-semibold text-zinc-800 font-serif leading-tight"
-                            dangerouslySetInnerHTML={{ __html: formHeading }}
+                            dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(formHeading) }}
                           />
                         )}
                         {layout?.formIntro?.trim() && (
                           <p
                             className="text-sm text-zinc-700 font-serif leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: layout.formIntro }}
+                            dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(layout.formIntro) }}
                           />
                         )}
                         <DynamicForm
                           schema={formSchema}
                           ctaText={page.ctaText}
                           successMessage={page.successMessage}
+                          ctaForwardingRules={ctaForwardingRules}
                           textSize={formTextSize}
                           ctaBgColor={ctaBgColor}
                           formStyle="detailed-perspective"
@@ -456,18 +605,18 @@ export function HeroSection({
                         <SocialLinksBar
                           base={page.domain}
                           overrides={page.socialOverrides ?? null}
-                          className="mt-3 dsadasdas"
+                          className="mt-3"
                         />
                       </div>
                       <div className="space-y-4 relative flex flex-col justify-center">
                         <div className="w-full px-[25px] pt-[30px] pb-[70px] break-all relative border border-[#cbb1a7ab] pr-[44%] flex flex-col justify-center max-[768px]:pr-4 max-[768px]:pb-4">
                           {layout?.profileImageUrl && (
-                            <div className="absolute h-[265px] w-[220px] -bottom-[0px] -right-[54px] text-transparent rounded-[2px] max-[768px]:relative max-[768px]:h-40 max-[768px]:w-full max-[768px]:bottom-auto max-[768px]:right-auto max-[768px]:mx-0 max-[768px]:mb-3">
+                            <div className="absolute h-[300px] w-[220px] -bottom-[0px] -right-[54px] text-transparent rounded-[2px] max-[768px]:relative max-[768px]:h-40 max-[768px]:w-full max-[768px]:bottom-auto max-[768px]:right-auto max-[768px]:mx-0 max-[768px]:mb-3">
                               <Image
                                 src={layout.profileImageUrl as string}
                                 alt={(layout?.profileName as string) || "Profile"}
                                 fill
-                                className="object-cover max-[768px]:!w-auto"
+                                className=" max-[768px]:!w-auto"
                                 style={{ borderRadius: "2px" }}
                               />
                             </div>
@@ -476,7 +625,7 @@ export function HeroSection({
                             <div
                               className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
                               dangerouslySetInnerHTML={{
-                                __html: layout.profileSectionHtml,
+                                __html: wrapLegalSignsHtml(layout.profileSectionHtml),
                               }}
                             />
                           ) : (
@@ -518,34 +667,32 @@ export function HeroSection({
                       </div>
                     </div>
                   </div>
-                  <SocialLinksBar
+                  {/* <SocialLinksBar
                     base={page.domain}
                     overrides={page.socialOverrides ?? null}
                     className="mt-3"
-                  />
+                  /> */}
                   {layout?.formFooterText?.trim() && (
                     <div
                       className="mt-4 text-sm text-zinc-700 font-serif leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: layout.formFooterText }}
+                      dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(layout.formFooterText) }}
                     />
                   )}
                 </div>
               ) : (
                 <div className={formContainerClass} style={formContainerStyle}>
                   <div
-                    className={`cust1 relative w-full rounded-[2px] p-5 text-zinc-900 shadow-2xl md:w-full md:p-6 ${
-                      isQuestionnaire
+                    className={`cust1 relative w-full rounded-[2px] p-5 text-zinc-900 shadow-2xl md:w-full md:p-6 ${isQuestionnaire
                         ? "bg-amber-50/95 opacity-95 border border-amber-200/60"
                         : "bg-white/95 opacity-90"
-                    }`}
+                      }`}
                     style={formBgColor ? { backgroundColor: formBgColor } : undefined}
                   >
                     {formHeading && (
                       <div
-                        className={`mb-4 text-base font-semibold border-b border-[#eadbd3] dot font-serif ${
-                          isQuestionnaire ? "text-zinc-800 text-center" : ""
-                        }`}
-                        dangerouslySetInnerHTML={{ __html: formHeading }}
+                        className={`mb-4 text-base font-semibold border-b border-[#eadbd3] dot font-serif ${isQuestionnaire ? "text-zinc-800 text-center" : ""
+                          }`}
+                        dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(formHeading) }}
                       />
                     )}
 
@@ -553,6 +700,7 @@ export function HeroSection({
                       schema={formSchema}
                       ctaText={page.ctaText}
                       successMessage={page.successMessage}
+                      ctaForwardingRules={ctaForwardingRules}
                       textSize={formTextSize}
                       ctaBgColor={ctaBgColor}
                       formStyle={isQuestionnaire ? "questionnaire" : "default"}
@@ -569,11 +717,10 @@ export function HeroSection({
                     />
                     {layout?.formIntro?.trim() && (
                       <div
-                        className={`mt-4 text-md text-zinc-500 space-y-2 font-serif ${
-                          isQuestionnaire ? "text-center text-zinc-600" : "text-center"
-                        }`}
+                        className={`mt-4 text-md text-zinc-500 space-y-2 font-serif ${isQuestionnaire ? "text-center text-zinc-600" : "text-center"
+                          }`}
                         dangerouslySetInnerHTML={{
-                          __html: layout.formIntro,
+                          __html: wrapLegalSignsHtml(layout.formIntro),
                         }}
                       />
                     )}

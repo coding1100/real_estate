@@ -28,7 +28,7 @@ const navItems = [
   { href: "/admin/domains", label: "Domains", icon: Globe2 },
   { href: "/admin/pages", label: "Landing Pages", icon: FileText },
   { href: "/admin/templates", label: "Templates", icon: Layers },
-  // { href: "/admin/webhooks", label: "Webhooks", icon: RadioTower },
+  { href: "/admin/webhooks", label: "Webhooks", icon: RadioTower },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

@@ -2,6 +2,7 @@
 
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import type { FormFieldConfig } from "@/lib/types/form";
+import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 
 type FormStyle = "default" | "questionnaire" | "detailed-perspective";
 
@@ -250,10 +251,10 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
       <div className={outerClass}>
         <div className="rounded-lg bg-[#fef6f6] backdrop-blur-sm border border-zinc-200/80 shadow-sm p-4 space-y-3">
           {label && (
-            <p className="text-sm font-semibold text-zinc-800 font-serif" dangerouslySetInnerHTML={{ __html: label }} />
+            <p className="text-sm font-semibold text-zinc-800 font-serif" dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(label) }} />
           )}
           {helperText && (
-            <p className="text-sm text-zinc-700 font-serif" dangerouslySetInnerHTML={{ __html: helperText }} />
+            <p className="text-sm text-zinc-700 font-serif" dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(helperText) }} />
           )}
           <textarea
             id={id}
@@ -273,13 +274,13 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
       <div className={wrapperClass}>
         {label && (
           <label htmlFor={id} className={labelClass}>
-            <span dangerouslySetInnerHTML={{ __html: label }} />
+            <span dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(label) }} />
           </label>
         )}
         {fieldContent}
       </div>
       {helperText && !error && (
-        <p className="text-md text-zinc-500 font-serif" dangerouslySetInnerHTML={{ __html: helperText }} />
+        <p className="text-md text-zinc-500 font-serif" dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(helperText) }} />
       )}
       {error && <p className="text-md text-red-500">{error}</p>}
     </div>

@@ -4,6 +4,8 @@ import { useState } from "react";
 import Image from "next/image";
 import type { LandingPageContent } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
+import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
+import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 import { DynamicForm } from "@/components/forms/DynamicForm";
 import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
 import { useRecaptcha, RecaptchaScript } from "@/components/forms/Captcha";
@@ -24,7 +26,8 @@ type FormStyle =
   | "questionnaire"
   | "detailed-perspective"
   | "next-steps"
-  | "property-finding";
+  | "property-finding"
+  | "team-showcase";
 
 interface HeroLayoutConfig {
   formIntro?: string;
@@ -58,6 +61,7 @@ interface MultistepHeroFlowProps {
    */
   layoutData?: LayoutItem[] | null;
   utmHiddenFields?: Record<string, string | undefined>;
+  ctaForwardingRules?: CtaForwardingRule[];
 }
 
 export function MultistepHeroFlow({
@@ -65,6 +69,7 @@ export function MultistepHeroFlow({
   steps,
   layoutData,
   utmHiddenFields,
+  ctaForwardingRules,
 }: MultistepHeroFlowProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [accumulatedData, setAccumulatedData] = useState<Record<string, Record<string, unknown>>>({});
@@ -278,7 +283,7 @@ export function MultistepHeroFlow({
               {layout?.leftMainHtml && (
                 <div
                   className="mt-4 space-y-2"
-                  dangerouslySetInnerHTML={{ __html: layout.leftMainHtml }}
+                  dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(layout.leftMainHtml) }}
                 />
               )}
             </div>
@@ -293,7 +298,7 @@ export function MultistepHeroFlow({
                 {formHeading && (
                   <h2
                     className="mb-5 text-xl font-semibold text-zinc-800 font-serif leading-tight text-center md:text-left"
-                    dangerouslySetInnerHTML={{ __html: formHeading }}
+                    dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(formHeading) }}
                   />
                 )}
 
@@ -319,7 +324,7 @@ export function MultistepHeroFlow({
                           <div
                             className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
                             dangerouslySetInnerHTML={{
-                              __html: layout.nextStepsSecondHtml,
+                              __html: wrapLegalSignsHtml(layout.nextStepsSecondHtml),
                             }}
                           />
                         ) : (
@@ -356,7 +361,7 @@ export function MultistepHeroFlow({
                             : { backgroundColor: "#a5883b" }
                         }
                       >
-                        <span dangerouslySetInnerHTML={{ __html: step.ctaText }} />
+                        <span dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(step.ctaText) }} />
                       </button>
                       <SocialLinksBar
                         base={socialSourcePage.domain}
@@ -367,7 +372,7 @@ export function MultistepHeroFlow({
                         <div
                           className="text-md text-emerald-800 font-serif text-center"
                           dangerouslySetInnerHTML={{
-                            __html: mainPage.successMessage,
+                            __html: wrapLegalSignsHtml(mainPage.successMessage),
                           }}
                         />
                       )}
@@ -414,7 +419,7 @@ export function MultistepHeroFlow({
                             <div
                               className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
                               dangerouslySetInnerHTML={{
-                                __html: layout.nextStepsSecondHtml,
+                                __html: wrapLegalSignsHtml(layout.nextStepsSecondHtml),
                               }}
                             />
                           ) : (
@@ -447,7 +452,7 @@ export function MultistepHeroFlow({
                             <div
                               className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
                               dangerouslySetInnerHTML={{
-                                __html: layout.formIntro ?? "",
+                                __html: wrapLegalSignsHtml(layout.formIntro ?? ""),
                               }}
                             />
                           )}
@@ -467,7 +472,7 @@ export function MultistepHeroFlow({
                             }
                           >
                             <span
-                              dangerouslySetInnerHTML={{ __html: step.ctaText }}
+                              dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(step.ctaText) }}
                             />
                           </button>
                           <SocialLinksBar
@@ -479,7 +484,7 @@ export function MultistepHeroFlow({
                             <div
                               className="text-md text-emerald-800 font-serif text-center"
                               dangerouslySetInnerHTML={{
-                                __html: mainPage.successMessage,
+                                __html: wrapLegalSignsHtml(mainPage.successMessage),
                               }}
                             />
                           )}
@@ -504,13 +509,13 @@ export function MultistepHeroFlow({
                     {formHeading && (
                       <h2
                         className="text-xl font-semibold text-zinc-800 font-serif leading-tight"
-                        dangerouslySetInnerHTML={{ __html: formHeading }}
+                        dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(formHeading) }}
                       />
                     )}
                     {layout?.formIntro?.trim() && (
                       <p
                         className="text-sm text-zinc-700 font-serif leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: layout.formIntro }}
+                        dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(layout.formIntro) }}
                       />
                     )}
                     {formSchema && formSchema.fields?.length > 0 && (
@@ -533,6 +538,9 @@ export function MultistepHeroFlow({
                             isLastStep ? extraHiddenFieldsForSubmit : undefined
                           }
                           onNextStep={isLastStep ? undefined : handleNextStep}
+                          ctaForwardingRules={
+                            isLastStep ? ctaForwardingRules : undefined
+                          }
                         />
                         <SocialLinksBar
                           base={socialSourcePage.domain}
@@ -558,7 +566,7 @@ export function MultistepHeroFlow({
                         <div
                           className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
                           dangerouslySetInnerHTML={{
-                            __html: layout.profileSectionHtml,
+                            __html: wrapLegalSignsHtml(layout.profileSectionHtml),
                           }}
                         />
                       ) : (
@@ -602,7 +610,7 @@ export function MultistepHeroFlow({
                 {layout?.formFooterText?.trim() && (
                   <div
                     className="mt-4 text-sm text-zinc-700 font-serif leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: layout.formFooterText }}
+                    dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(layout.formFooterText) }}
                   />
                 )}
               </div>
@@ -618,7 +626,7 @@ export function MultistepHeroFlow({
                 {formHeading && (
                   <h2
                     className="mb-4 text-base font-semibold border-b border-[#eadbd3] dot font-serif"
-                    dangerouslySetInnerHTML={{ __html: formHeading }}
+                    dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(formHeading) }}
                   />
                 )}
                 {formSchema && formSchema.fields?.length > 0 ? (
@@ -635,6 +643,9 @@ export function MultistepHeroFlow({
                         isLastStep ? extraHiddenFieldsForSubmit : undefined
                       }
                       onNextStep={isLastStep ? undefined : handleNextStep}
+                      ctaForwardingRules={
+                        isLastStep ? ctaForwardingRules : undefined
+                      }
                     />
                     <SocialLinksBar
                       base={socialSourcePage.domain}
@@ -649,14 +660,14 @@ export function MultistepHeroFlow({
                     className="inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
                     style={ctaBgColor ? { backgroundColor: ctaBgColor } : undefined}
                   >
-                    <span dangerouslySetInnerHTML={{ __html: step.ctaText }} />
+                    <span dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(step.ctaText) }} />
                   </button>
                 ) : null}
 
                 {layout?.formIntro?.trim() && (
                   <div
                     className={`mt-4 text-md text-zinc-500 space-y-2 font-serif text-center`}
-                    dangerouslySetInnerHTML={{ __html: layout.formIntro }}
+                    dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(layout.formIntro) }}
                   />
                 )}
               </div>

@@ -17,6 +17,7 @@ import CodeBlock from "@tiptap/extension-code-block";
 import HorizontalRule from "@tiptap/extension-horizontal-rule";
 import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
+import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 
 interface RichTextEditorProps {
   label?: ReactNode;
@@ -144,7 +145,7 @@ export function RichTextEditor({
       Subscript,
       Superscript,
     ],
-    content: value || "",
+    content: wrapLegalSignsHtml(value),
     immediatelyRender: false,
     onUpdate({ editor }) {
       // Normalize completely empty paragraphs to <p>&nbsp;</p>
@@ -267,6 +268,7 @@ export function RichTextEditor({
       // up to the list element for consistent rendering.
       html = normalizeTagBlocks(html);
       html = liftListTextStyles(html);
+      html = wrapLegalSignsHtml(html);
 
       lastEmittedHtml.current = html;
       onChange(html);
@@ -371,7 +373,7 @@ export function RichTextEditor({
           // ignore
         }
 
-        return cleaned;
+        return wrapLegalSignsHtml(cleaned);
       },
     },
   });
@@ -439,8 +441,9 @@ export function RichTextEditor({
     if (value === lastEmittedHtml.current) {
       return;
     }
-    if (value !== editor.getHTML()) {
-      editor.commands.setContent(value || "");
+    const nextValue = wrapLegalSignsHtml(value);
+    if (nextValue !== editor.getHTML()) {
+      editor.commands.setContent(nextValue);
     }
   }, [editor, value]);
 
