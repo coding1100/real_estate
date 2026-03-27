@@ -300,11 +300,11 @@ export function MultistepPageSelector({
                       className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-50"
                     >
                       <span className="font-mono text-zinc-600">{p.slug}</span>
-                      {p.headline ? (
+                      {/* {p.headline ? (
                         <span className="truncate text-zinc-500">
                           – {p.headline}
                         </span>
-                      ) : null}
+                      ) : null} */}
                     </button>
                   ))
                 )}
