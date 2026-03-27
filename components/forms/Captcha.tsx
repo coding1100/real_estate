@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
-import { deferUntilAfterLcpOrLoad } from "@/lib/deferNonCriticalScript";
+import { useCallback } from "react";
 
 const SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
@@ -47,7 +46,7 @@ function injectRecaptchaScript(): Promise<void> {
     script.async = true;
     script.defer = true;
     script.setAttribute("data-recaptcha-deferred", SITE_KEY);
-    script.addEventListener("load", () => resolve(), { once: true });
+    script.addEventListener("load", () => resolve(undefined), { once: true });
     script.addEventListener(
       "error",
       () => reject(new Error("reCAPTCHA script failed")),
@@ -62,13 +61,13 @@ function injectRecaptchaScript(): Promise<void> {
   });
 }
 
-/** Loads api.js if needed (e.g. user submits before deferred prefetch runs). */
+/** Loads api.js only when needed (form submit) so recaptcha__en.js is not parsed on first paint. */
 export function ensureRecaptchaReady(): Promise<void> {
   if (!SITE_KEY) return Promise.resolve();
   if (typeof window === "undefined") return Promise.resolve();
   if (window.grecaptcha) {
     return new Promise<void>((resolve) => {
-      window.grecaptcha!.ready(() => resolve());
+      window.grecaptcha!.ready(() => resolve(undefined));
     });
   }
   if (!recaptchaReadyPromise) {
@@ -104,17 +103,4 @@ export function useRecaptcha() {
   }, []);
 
   return { execute };
-}
-
-export function RecaptchaScript() {
-  useEffect(() => {
-    if (!SITE_KEY) return;
-    if (typeof window === "undefined") return;
-
-    return deferUntilAfterLcpOrLoad(() => {
-      void ensureRecaptchaReady().catch(() => {});
-    });
-  }, []);
-
-  return null;
 }
