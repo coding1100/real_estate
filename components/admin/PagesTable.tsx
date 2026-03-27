@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Search, Star } from "lucide-react";
+import { Loader2, Search, Star } from "lucide-react";
 import { SlugEditor } from "@/components/admin/SlugEditor";
 import { TitleEditor } from "@/components/admin/TitleEditor";
 import { PageRowActions } from "@/components/admin/PageRowActions";
@@ -31,14 +31,21 @@ const THUMB_IFRAME_BASE_H = 720;
 const THUMB_BOX_W = 150;
 const THUMB_BOX_H = 100;
 const THUMB_SCALE = Math.min(THUMB_BOX_W / THUMB_IFRAME_BASE_W, THUMB_BOX_H / THUMB_IFRAME_BASE_H);
-// How many "full iframe" thumbnails are allowed to be active at once.
-// This should cover the number of rows visible in typical viewport heights
-// while still preventing resource exhaustion.
+// How many thumbnail iframes get full opacity / pointer-events at once.
+// Loaded iframes stay mounted (opacity 0 when off-screen) so they never reload on scroll.
 const MAX_ACTIVE_THUMB_IFRAMES = 10;
 
-// Keep a limited number of already-loaded thumbnail iframes mounted so they
-// don't reload on scroll. Evict oldest when exceeding this cap.
-const MAX_WARM_THUMB_IFRAMES = 30;
+function ThumbLoaderOverlay({ label }: { label: string }) {
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-zinc-50/95"
+      aria-hidden
+    >
+      <Loader2 className="h-6 w-6 animate-spin text-zinc-400" aria-hidden />
+      <span className="sr-only">{label}</span>
+    </div>
+  );
+}
 
 function PreviewThumbnail({
   pageId,
@@ -46,18 +53,65 @@ function PreviewThumbnail({
   fallbackImageUrl,
   isActive,
   onVisibleChange,
-  keepWarm,
-  onWarmLoaded,
 }: {
   pageId: string;
   previewSrc: string;
   fallbackImageUrl?: string | null;
   isActive: boolean;
   onVisibleChange: (pageId: string, inView: boolean) => void;
-  keepWarm: boolean;
-  onWarmLoaded: (pageId: string) => void;
 }) {
   const holderRef = useRef<HTMLDivElement | null>(null);
+  const iframeLoadFallbackRef = useRef<number | null>(null);
+  /** Once the iframe has loaded, keep it mounted so it never reloads on scroll. */
+  const [persistIframe, setPersistIframe] = useState(false);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const showIframe = isActive || persistIframe;
+
+  useEffect(() => {
+    setPersistIframe(false);
+    setIframeLoaded(false);
+  }, [previewSrc]);
+
+  useEffect(() => {
+    setImageLoaded(false);
+  }, [fallbackImageUrl]);
+
+  const markIframeLoaded = useCallback(() => {
+    if (iframeLoadFallbackRef.current !== null) {
+      window.clearTimeout(iframeLoadFallbackRef.current);
+      iframeLoadFallbackRef.current = null;
+    }
+    setIframeLoaded(true);
+    setPersistIframe(true);
+  }, []);
+
+  useEffect(() => {
+    if (!showIframe) {
+      if (iframeLoadFallbackRef.current !== null) {
+        window.clearTimeout(iframeLoadFallbackRef.current);
+        iframeLoadFallbackRef.current = null;
+      }
+      return;
+    }
+    if (iframeLoadFallbackRef.current !== null) {
+      window.clearTimeout(iframeLoadFallbackRef.current);
+    }
+    iframeLoadFallbackRef.current = window.setTimeout(() => {
+      markIframeLoaded();
+    }, 12000);
+    return () => {
+      if (iframeLoadFallbackRef.current !== null) {
+        window.clearTimeout(iframeLoadFallbackRef.current);
+        iframeLoadFallbackRef.current = null;
+      }
+    };
+  }, [showIframe, previewSrc, markIframeLoaded]);
+
+  const showThumbLoader =
+    (showIframe && !iframeLoaded) ||
+    (!showIframe && !!fallbackImageUrl && !imageLoaded);
 
   useEffect(() => {
     const el = holderRef.current;
@@ -81,14 +135,17 @@ function PreviewThumbnail({
   return (
     <div
       ref={holderRef}
-      className="mx-auto h-[86px] w-[150px] overflow-hidden rounded border border-zinc-200 bg-zinc-50"
+      className="relative mx-auto h-[86px] w-[150px] overflow-hidden rounded border border-zinc-200 bg-zinc-50"
       aria-label={`Preview thumbnail for ${pageId}`}
     >
-      {(isActive || keepWarm) && (
+      {showThumbLoader && (
+        <ThumbLoaderOverlay label="Loading preview thumbnail" />
+      )}
+      {showIframe && (
         <iframe
           title={`Preview thumbnail ${pageId}`}
           src={previewSrc}
-          onLoad={() => onWarmLoaded(pageId)}
+          onLoad={markIframeLoaded}
           style={{
             width: THUMB_IFRAME_BASE_W,
             height: THUMB_IFRAME_BASE_H,
@@ -102,19 +159,70 @@ function PreviewThumbnail({
           className="block"
         />
       )}
-      {!isActive && !keepWarm && (fallbackImageUrl ? (
-        <img
-          src={fallbackImageUrl}
-          alt={`Preview thumbnail ${pageId}`}
-          loading="lazy"
-          className="h-full w-full object-contain bg-zinc-50"
-          draggable={false}
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center text-xs text-zinc-500">
-          Loading…
+      {!showIframe &&
+        (fallbackImageUrl ? (
+          <img
+            src={fallbackImageUrl}
+            alt={`Preview thumbnail ${pageId}`}
+            loading="lazy"
+            onLoad={() => setImageLoaded(true)}
+            className="h-full w-full object-contain bg-zinc-50"
+            draggable={false}
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-zinc-500">
+            <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+            <span className="text-xs">Loading…</span>
+          </div>
+        ))}
+    </div>
+  );
+}
+
+function PreviewDialogIframe({
+  previewSrc,
+  title,
+  baseW,
+  baseH,
+  scale,
+}: {
+  previewSrc: string;
+  title: string;
+  baseW: number;
+  baseH: number;
+  scale: number;
+}) {
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setLoaded(false);
+  }, [previewSrc]);
+
+  return (
+    <div className="relative h-[338px] w-[600px] overflow-hidden rounded-sm bg-zinc-50">
+      {!loaded && (
+        <div
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-zinc-50"
+          role="status"
+          aria-live="polite"
+        >
+          <Loader2 className="h-9 w-9 animate-spin text-zinc-400" aria-hidden />
+          <span className="text-xs text-zinc-500">Loading preview…</span>
         </div>
-      ))}
+      )}
+      <iframe
+        title={title}
+        src={previewSrc}
+        onLoad={() => setLoaded(true)}
+        style={{
+          width: baseW,
+          height: baseH,
+          border: 0,
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+        }}
+        className="block"
+      />
     </div>
   );
 }
@@ -129,9 +237,6 @@ export function PagesTable({ pages }: PagesTableProps) {
   const previewOpenTimeoutRef = useRef<number | null>(null);
   const visibleThumbsRef = useRef<Record<string, boolean>>({});
   const [activeThumbIds, setActiveThumbIds] = useState<Set<string>>(() => new Set());
-  const warmThumbIdsRef = useRef<Set<string>>(new Set());
-  const warmThumbOrderRef = useRef<string[]>([]);
-  const [warmThumbIds, setWarmThumbIds] = useState<Set<string>>(() => new Set());
   const isUserScrollingRef = useRef(false);
   const scrollIdleTimerRef = useRef<number | null>(null);
 
@@ -268,20 +373,6 @@ export function PagesTable({ pages }: PagesTableProps) {
     },
     [reconcileActiveThumbs],
   );
-
-  const handleWarmLoaded = useCallback((thumbId: string) => {
-    if (warmThumbIdsRef.current.has(thumbId)) return;
-    warmThumbIdsRef.current.add(thumbId);
-    warmThumbOrderRef.current.push(thumbId);
-
-    // Evict oldest warm if we exceed cap.
-    while (warmThumbOrderRef.current.length > MAX_WARM_THUMB_IFRAMES) {
-      const evict = warmThumbOrderRef.current.shift();
-      if (!evict) break;
-      warmThumbIdsRef.current.delete(evict);
-    }
-    setWarmThumbIds(new Set(warmThumbIdsRef.current));
-  }, []);
 
   return (
     <div className="space-y-3">
@@ -497,8 +588,6 @@ export function PagesTable({ pages }: PagesTableProps) {
                                   fallbackImageUrl={page.thumbnailImageUrl}
                                   isActive={activeThumbIds.has(page.id)}
                                   onVisibleChange={handleThumbVisibleChange}
-                                  keepWarm={warmThumbIds.has(page.id)}
-                                  onWarmLoaded={handleWarmLoaded}
                                 />
 
                                 {showLarge && previewOpenId === page.id && (
@@ -558,20 +647,13 @@ export function PagesTable({ pages }: PagesTableProps) {
                                           ✕
                                         </button>
                                       </div>
-                                      <div className="h-[338px] w-[600px] overflow-hidden rounded-sm bg-white">
-                                      <iframe
-                                        title={`Preview 600x600 ${page.slug}`}
-                                        src={previewSrc}
-                                        style={{
-                                          width: BASE_W,
-                                          height: BASE_H,
-                                          border: 0,
-                                          transform: `scale(${popupScale})`,
-                                          transformOrigin: "top left",
-                                        }}
-                                        className="block"
+                                      <PreviewDialogIframe
+                                        previewSrc={previewSrc}
+                                        title={`Preview ${page.slug}`}
+                                        baseW={BASE_W}
+                                        baseH={BASE_H}
+                                        scale={popupScale}
                                       />
-                                    </div>
                                     </div>
                                   </div>
                                 )}
