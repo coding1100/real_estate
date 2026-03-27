@@ -101,7 +101,6 @@ export function PropertyFindingStep({
   const [result, setResult] = useState<ZestimateResult | null>(initialResult);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [placesLoaded, setPlacesLoaded] = useState(false);
-  const [loadRecaptcha, setLoadRecaptcha] = useState(false);
   const addressInputRef = useRef<HTMLInputElement | null>(null);
 
   const hasFoundProperty =
@@ -164,13 +163,6 @@ export function PropertyFindingStep({
     };
   }, [placesLoaded]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoadRecaptcha(true);
-    }, 3500);
-    return () => clearTimeout(timer);
-  }, []);
-
   async function handleSearch(e: FormEvent) {
     e.preventDefault();
     setSearchError(null);
@@ -213,7 +205,7 @@ export function PropertyFindingStep({
 
   return (
     <div className="relative min-h-screen text-zinc-50 bg-[#d4c8c8]">
-      {loadRecaptcha && <RecaptchaScript />}
+      <RecaptchaScript />
       {MAPS_KEY && (
         <Script
           src={`https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places`}
@@ -465,7 +457,6 @@ export function HomeValueMultistepFlow({
   const [isSubmittingFinal, setIsSubmittingFinal] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isFinalSubmitted, setIsFinalSubmitted] = useState(false);
-  const [loadRecaptcha, setLoadRecaptcha] = useState(false);
   const { execute } = useRecaptcha();
   const { toast } = useToast();
   const [propertyFindingContext, setPropertyFindingContext] = useState<{
@@ -529,9 +520,6 @@ export function HomeValueMultistepFlow({
 
   const handleFinalSubmitFromNextSteps = async () => {
     if (isSubmittingFinal) return;
-    if (!loadRecaptcha) {
-      setLoadRecaptcha(true);
-    }
     setIsSubmittingFinal(true);
     setSubmitError(null);
     try {
@@ -709,7 +697,7 @@ export function HomeValueMultistepFlow({
 
   return (
     <section className="relative text-white min-h-[calc(100vh_-_85px)] pt-[120px] max-[768px]:pt-20">
-      {loadRecaptcha && <RecaptchaScript />}
+      <RecaptchaScript />
       {(mainPage.heroImageUrl || step.heroImageUrl) && (
         <div className="pointer-events-none inset-0 fixed top-0 left-0 right-0 bottom-0">
           <Image

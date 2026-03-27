@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import type { FormSchema } from "@/lib/types/form";
 import {
@@ -61,17 +61,9 @@ export function DynamicForm({
   const [isPending, startTransition] = useTransition();
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loadRecaptcha, setLoadRecaptcha] = useState(false);
   const { execute } = useRecaptcha();
   const { toast } = useToast();
   const watchedValues = useWatch({ control }) as Record<string, unknown>;
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoadRecaptcha(true);
-    }, 3500);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleNextClick = () => {
     if (!onNextStep) return;
@@ -82,17 +74,11 @@ export function DynamicForm({
       reset();
       return;
     }
-    if (!loadRecaptcha) {
-      setLoadRecaptcha(true);
-    }
     onNextStep(values as Record<string, unknown>);
   };
 
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
-    if (!loadRecaptcha) {
-      setLoadRecaptcha(true);
-    }
     const honeypot = (values as any).website as string | undefined;
     if (honeypot) {
       setSubmitted(true);
@@ -181,7 +167,7 @@ export function DynamicForm({
 
   return (
     <>
-      {loadRecaptcha && <RecaptchaScript />}
+      <RecaptchaScript />
       <form
         onSubmit={onSubmit}
         className={`${isDetailedPerspective ? "space-y-3" : "space-y-3"} text-sm ${isQuestionnaire || isDetailedPerspective ? "font-serif" : ""}`}
