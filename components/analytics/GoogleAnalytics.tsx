@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { deferUntilAfterLcpOrLoad } from "@/lib/deferNonCriticalScript";
+import { deferUntilInteractionOrTimeout } from "@/lib/deferNonCriticalScript";
 
 interface GoogleAnalyticsProps {
   measurementId?: string | null;
@@ -51,7 +51,7 @@ export function GoogleAnalytics({ measurementId }: GoogleAnalyticsProps) {
       window.__ga4LoadedIds?.add(measurementId);
     };
 
-    return deferUntilAfterLcpOrLoad(initializeGa);
+    return deferUntilInteractionOrTimeout(initializeGa);
   }, [measurementId]);
 
   return null;

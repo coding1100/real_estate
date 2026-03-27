@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { deferUntilAfterLcpOrLoad } from "@/lib/deferNonCriticalScript";
+import { deferUntilInteractionOrTimeout } from "@/lib/deferNonCriticalScript";
 
 interface MetaPixelProps {
   pixelId?: string | null;
@@ -56,7 +56,7 @@ export function MetaPixel({ pixelId }: MetaPixelProps) {
   useEffect(() => {
     if (!pixelId) return;
 
-    return deferUntilAfterLcpOrLoad(() => {
+    return deferUntilInteractionOrTimeout(() => {
       bootstrapMetaPixel(pixelId);
     });
   }, [pixelId]);
