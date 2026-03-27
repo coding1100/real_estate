@@ -76,6 +76,8 @@ model LandingPage {
   type             String
   status           String   @default("draft")
   bookmarked       Boolean  @default(false)
+  /// Sort order within /admin/pages for a given domain (drag-and-drop).
+  adminListOrder   Int      @default(0)
 
   // Content
   title          String?

@@ -1,0 +1,15 @@
+export interface PageListItem {
+  id: string;
+  slug: string;
+  type: string;
+  status: string;
+  updatedAt: string;
+  headline: string | null;
+  title: string | null;
+  domainHostname: string;
+  domainId: string;
+  multistepStepSlugs: string[] | null;
+  thumbnailImageUrl?: string | null;
+  bookmarked?: boolean;
+  adminListOrder: number;
+}
