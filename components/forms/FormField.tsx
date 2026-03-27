@@ -238,18 +238,18 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
       })()
     );
 
-  const wrapperClass = type === "radio" || type === "checkbox" ? "space-y-2" : "space-y-1";
+  const wrapperClass = type === "radio" || type === "checkbox" ? "space-y-1" : "space-y-0.5";
   const outerClass = 
     formStyle === "detailed-perspective" && type === "radio"
       ? "space-y-0"
       : type === "radio" || type === "textarea"
-      ? "space-y-3"
-      : "space-y-2";
+      ? "space-y-1.5"
+      : "space-y-1";
 
   if (type === "textarea" && optionalSection) {
     return (
       <div className={outerClass}>
-        <div className="rounded-lg bg-[#fef6f6] backdrop-blur-sm border border-zinc-200/80 shadow-sm p-4 space-y-3">
+        <div className="rounded-lg bg-[#fef6f6] backdrop-blur-sm border border-zinc-200/80 shadow-sm p-3 space-y-2">
           {label && (
             <p className="text-sm font-semibold text-zinc-800 font-serif" dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(label) }} />
           )}

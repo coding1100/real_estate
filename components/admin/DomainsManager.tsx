@@ -34,6 +34,19 @@ interface DomainsManagerProps {
   initialDomains: DomainRow[];
 }
 
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function isValidUsPhone(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  if (!/^[0-9+\-()\s]+$/.test(trimmed)) return false;
+  if (trimmed.includes("+") && !trimmed.startsWith("+")) return false;
+  const digits = trimmed.replace(/\D/g, "");
+  return digits.length === 10 || (digits.length === 11 && digits.startsWith("1"));
+}
+
 export function DomainsManager({ initialDomains }: DomainsManagerProps) {
   const [domains, setDomains] = useState<DomainRow[]>(initialDomains);
   const [savingId, setSavingId] = useState<string | "new" | null>(null);
@@ -86,6 +99,21 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
 
   async function saveDomain(domain: DomainRow) {
     setError(null);
+    const notifyEmail = domain.notifyEmail?.trim() ?? "";
+    const notifySms = domain.notifySms?.trim() ?? "";
+    if (!isValidEmail(notifyEmail)) {
+      const message = "Notify email must be a valid email (e.g., sample@gmail.com).";
+      setError(message);
+      toastError(message);
+      return;
+    }
+    if (!isValidUsPhone(notifySms)) {
+      const message =
+        "Notify SMS must be a valid US number (10 digits, or 11 digits starting with 1).";
+      setError(message);
+      toastError(message);
+      return;
+    }
     setSavingId(domain.id || "new");
     startTransition(async () => {
       try {
@@ -253,6 +281,16 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
     const { hostname, displayName, notifyEmail } = newDomainForm;
     if (!hostname?.trim() || !displayName?.trim() || !notifyEmail?.trim()) {
       setAddFormError("Hostname, display name, and notify email are required.");
+      return;
+    }
+    if (!isValidEmail(notifyEmail)) {
+      setAddFormError("Notify email must be a valid email (e.g., sample@gmail.com).");
+      return;
+    }
+    if (!isValidUsPhone(newDomainForm.notifySms ?? "")) {
+      setAddFormError(
+        "Notify SMS must be a valid US number (10 digits, or 11 digits starting with 1).",
+      );
       return;
     }
     setAddFormError(null);

@@ -184,7 +184,7 @@ export function DynamicForm({
       {loadRecaptcha && <RecaptchaScript />}
       <form
         onSubmit={onSubmit}
-        className={`${isDetailedPerspective ? "space-y-5" : "space-y-6"} text-sm ${isQuestionnaire || isDetailedPerspective ? "font-serif" : ""}`}
+        className={`${isDetailedPerspective ? "space-y-3" : "space-y-3"} text-sm ${isQuestionnaire || isDetailedPerspective ? "font-serif" : ""}`}
         style={formInlineStyle}
       >
         {/* Honeypot field for bots */}
@@ -228,7 +228,7 @@ export function DynamicForm({
         </button>
         {helperText && (
           <p
-            className={`${isDetailedPerspective ? "mt-4 text-md" : "mt-3 text-md"} text-zinc-600 font-serif text-center leading-relaxed`}
+            className={`${isDetailedPerspective ? "mt-2 text-md" : "mt-2 text-md"} text-zinc-600 font-serif text-center leading-relaxed`}
             dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(helperText) }}
           />
         )}

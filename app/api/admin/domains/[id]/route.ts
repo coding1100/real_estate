@@ -24,6 +24,19 @@ type VercelStatusResult = {
   };
 };
 
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function isValidUsPhone(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  if (!/^[0-9+\-()\s]+$/.test(trimmed)) return false;
+  if (trimmed.includes("+") && !trimmed.startsWith("+")) return false;
+  const digits = trimmed.replace(/\D/g, "");
+  return digits.length === 10 || (digits.length === 11 && digits.startsWith("1"));
+}
+
 async function safeReadVercelStatus(hostname: string): Promise<VercelStatusResult> {
   try {
     const vercel = await getDomainConnectionStatus(hostname);
@@ -103,6 +116,26 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
   if (!isLikelyPublicHostname(nextHostname)) {
     return NextResponse.json(
       { error: "Please provide a valid public hostname (e.g. example.com)." },
+      { status: 400 },
+    );
+  }
+  const nextNotifyEmail =
+    typeof body.notifyEmail === "string" ? body.notifyEmail : existing.notifyEmail;
+  const nextNotifySms = Object.prototype.hasOwnProperty.call(body, "notifySms")
+    ? body.notifySms
+    : existing.notifySms;
+  if (!isValidEmail(String(nextNotifyEmail ?? ""))) {
+    return NextResponse.json(
+      { error: "Notify email must be a valid email (e.g., sample@gmail.com)." },
+      { status: 400 },
+    );
+  }
+  if (!isValidUsPhone(String(nextNotifySms ?? ""))) {
+    return NextResponse.json(
+      {
+        error:
+          "Notify SMS must be a valid US number (10 digits, or 11 digits starting with 1).",
+      },
       { status: 400 },
     );
   }

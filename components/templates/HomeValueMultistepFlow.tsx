@@ -723,7 +723,7 @@ export function HomeValueMultistepFlow({
         </div>
       )}
 
-      <div className="mx-auto flex h-full max-w-6xl flex-col justify-start gap-8 px-4 pt-8 pb-6 max-[768px]:px-4 md:gap-10 md:px-0 md:pt-10 md:pb-8">
+      <div className="mx-auto flex h-full max-w-6xl flex-col justify-start gap-8 px-4 pb-6 max-[768px]:px-4 md:gap-10 md:px-0 md:pb-8">
         <div className={gridWrapperClass} style={gridWrapperStyle}>
           <div className={textContainerClass} style={textContainerStyle}>
             <div>
@@ -1123,7 +1123,7 @@ export function HomeValueMultistepFlow({
 
                 {layout?.formIntro?.trim() && (
                   <div
-                    className={`mt-4 text-md text-zinc-500 space-y-2 font-serif text-center`}
+                    className={`mt-2 text-md text-zinc-500 space-y-2 font-serif text-center`}
                     dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(layout.formIntro) }}
                   />
                 )}
