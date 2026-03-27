@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormSchema, FormFieldConfig } from "@/lib/types/form";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 
@@ -10,6 +10,61 @@ interface FormEditorProps {
   editorFonts?: { label: string; cssFamily: string }[];
 }
 
+const ID_SYNC_DEBOUNCE_MS = 900;
+
+/** Fix empty/invalid whenFieldId and mismatched equals for option-based fields. */
+function normalizeFormVisibilityFields(
+  fields: FormFieldConfig[],
+): FormFieldConfig[] {
+  let changed = false;
+  const next = fields.map((field, index) => {
+    const vis = field.visibility as
+      | { whenFieldId?: string; equals?: string }
+      | undefined;
+    if (!vis) return field;
+    const others = fields.filter((_, i) => i !== index);
+    if (others.length === 0) {
+      changed = true;
+      return { ...field, visibility: undefined };
+    }
+    let whenFieldId = vis.whenFieldId ?? "";
+    let equals = vis.equals ?? "";
+    if (!whenFieldId || !others.some((f) => f.id === whenFieldId)) {
+      const preferred =
+        others.find(
+          (f) =>
+            (f.type === "radio" ||
+              f.type === "select" ||
+              f.type === "checkbox") &&
+            Array.isArray(f.options) &&
+            f.options.length > 0,
+        ) ?? others[0];
+      whenFieldId = preferred.id;
+      equals =
+        preferred.options?.[0]?.value != null
+          ? String(preferred.options[0].value)
+          : "";
+      changed = true;
+      return { ...field, visibility: { whenFieldId, equals } };
+    }
+    const ctrl = others.find((f) => f.id === whenFieldId);
+    const opts = ctrl?.options as Array<{ value: string }> | undefined;
+    if (opts?.length) {
+      const ok = opts.some((o) => String(o.value) === String(equals));
+      if (!ok) {
+        changed = true;
+        return {
+          ...field,
+          visibility: { whenFieldId, equals: String(opts[0].value) },
+        };
+      }
+    }
+    return field;
+  });
+  if (!changed) return fields;
+  return next;
+}
+
 export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
   const [error, setError] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -17,6 +72,26 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
     value && Array.isArray((value as any).fields)
       ? value
       : { fields: [] };
+
+  const schemaRef = useRef(schema);
+  schemaRef.current = schema;
+  const idSyncTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(
+    new Map(),
+  );
+
+  useEffect(() => {
+    return () => {
+      idSyncTimersRef.current.forEach(clearTimeout);
+      idSyncTimersRef.current.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    const normalized = normalizeFormVisibilityFields(schema.fields);
+    if (normalized === schema.fields) return;
+    if (JSON.stringify(normalized) === JSON.stringify(schema.fields)) return;
+    onChange({ fields: normalized });
+  }, [schema.fields, onChange]);
 
   function stripHtml(html: string): string {
     if (!html) return "";
@@ -31,8 +106,84 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
       .toLowerCase()
       .replace(/[^a-z0-9\s]/g, "")
       .replace(/\s+/g, "_");
-    if (!base) return `field_${fallbackIndex + 1}`;
-    return base;
+    const trimmed = base.replace(/_+/g, "_").replace(/^_|_$/g, "");
+    if (!trimmed) return `field_${fallbackIndex + 1}`;
+    return trimmed;
+  }
+
+  /** Ensures no two fields share the same id (excluding current index when replacing). */
+  function makeUniqueFieldId(
+    base: string,
+    fields: FormFieldConfig[],
+    excludeIndex: number,
+  ): string {
+    if (!base) return `field_${excludeIndex + 1}`;
+    let candidate = base;
+    let suffix = 2;
+    while (
+      fields.some((f, i) => i !== excludeIndex && f.id === candidate)
+    ) {
+      candidate = `${base}_${suffix}`;
+      suffix++;
+    }
+    return candidate;
+  }
+
+  /** When a field id changes, update conditional rules that pointed at the old id. */
+  function remapVisibilityWhenFieldId(
+    fields: FormFieldConfig[],
+    oldId: string,
+    newId: string,
+  ): FormFieldConfig[] {
+    if (oldId === newId) return fields;
+    return fields.map((f) => {
+      const vis = (f as FormFieldConfig & { visibility?: { whenFieldId?: string; equals?: string } }).visibility;
+      if (vis?.whenFieldId === oldId) {
+        return {
+          ...f,
+          visibility: { ...vis, whenFieldId: newId },
+        } as FormFieldConfig;
+      }
+      return f;
+    });
+  }
+
+  function syncFieldIdFromLabel(index: number) {
+    const fields = schemaRef.current.fields;
+    const field = fields[index];
+    if (!field) return;
+    const newLabel = field.label ?? "";
+    const derived = labelToId(newLabel, index);
+    const newId = makeUniqueFieldId(derived, fields, index);
+    const oldId = field.id;
+    if (newId === oldId) return;
+    const next = [...fields];
+    next[index] = {
+      ...next[index],
+      id: newId,
+    };
+    onChange({
+      fields: remapVisibilityWhenFieldId(next, oldId, newId),
+    });
+  }
+
+  function scheduleFieldIdSync(index: number) {
+    const prev = idSyncTimersRef.current.get(index);
+    if (prev) clearTimeout(prev);
+    const t = setTimeout(() => {
+      idSyncTimersRef.current.delete(index);
+      syncFieldIdFromLabel(index);
+    }, ID_SYNC_DEBOUNCE_MS);
+    idSyncTimersRef.current.set(index, t);
+  }
+
+  function flushFieldIdSync(index: number) {
+    const prev = idSyncTimersRef.current.get(index);
+    if (prev) {
+      clearTimeout(prev);
+      idSyncTimersRef.current.delete(index);
+    }
+    syncFieldIdFromLabel(index);
   }
 
   function updateField(index: number, patch: Partial<FormFieldConfig>) {
@@ -47,13 +198,16 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
   }
 
   function addField() {
+    const idx = schema.fields.length;
+    const tentative = labelToId("New Field", idx);
+    const nextId = makeUniqueFieldId(tentative, schema.fields, idx);
     const fields = [
       ...schema.fields,
       {
-        id: `field_${schema.fields.length + 1}`,
+        id: nextId,
         type: "text" as const,
         label: "New Field",
-        order: schema.fields.length + 1,
+        order: idx + 1,
       },
     ];
     onChange({ fields });
@@ -218,20 +372,47 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
         {schema.fields.map((field, index) => {
           const isDragging = dragIndex === index;
           const otherFields = schema.fields.filter((_, i) => i !== index);
+          const preferredControllingField =
+            otherFields.find(
+              (f) =>
+                (f.type === "radio" ||
+                  f.type === "select" ||
+                  f.type === "checkbox") &&
+                Array.isArray(f.options) &&
+                f.options.length > 0,
+            ) ?? otherFields[0];
           const visibility = (field as any).visibility as
             | { whenFieldId: string; equals: string }
             | undefined;
+          const effectiveWhenFieldId =
+            visibility && otherFields.length > 0
+              ? otherFields.some((f) => f.id === visibility.whenFieldId)
+                ? visibility.whenFieldId
+                : (preferredControllingField ?? otherFields[0])!.id
+              : undefined;
           const controlling =
-            visibility && visibility.whenFieldId
-              ? otherFields.find((f) => f.id === visibility.whenFieldId)
+            visibility && effectiveWhenFieldId
+              ? otherFields.find((f) => f.id === effectiveWhenFieldId)
               : undefined;
           const controllingOptions =
             controlling && Array.isArray((controlling as any).options)
-              ? ((controlling as any).options as Array<{ value: string; label: string }>)
+              ? ((controlling as any).options as Array<{
+                  value: string;
+                  label: string;
+                }>)
               : [];
+          const resolvedEquals =
+            controllingOptions.length > 0
+              ? controllingOptions.some(
+                  (o) =>
+                    String(o.value) === String(visibility?.equals ?? ""),
+                )
+                ? visibility!.equals
+                : controllingOptions[0].value
+              : (visibility?.equals ?? "");
           return (
             <div
-              key={`${field.id}-${index}`}
+              key={field.id}
               className={`flex items-start justify-between gap-2 rounded-md border bg-white p-2 transition-shadow ${
                 isDragging
                   ? "border-amber-500 shadow-lg shadow-amber-100"
@@ -261,25 +442,31 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
                   <span className="h-[2px] w-4 rounded bg-current" />
                 </span>
               </button>
-            <div className="flex-1 space-y-2 text-md">
+            <div
+              className="flex-1 space-y-2 text-md"
+              onPointerDownCapture={(e) => {
+                if (dragIndex !== null) e.stopPropagation();
+              }}
+            >
               <RichTextEditor
                 label="Field label (rich text – use toolbar for color, font size, etc.)"
                 value={field.label ?? ""}
                 onChange={(html) => {
                   const newLabel = html as string;
-                  const shouldUpdateId =
-                    !field.id || field.id.startsWith("field_");
-                  updateField(index, {
-                    label: newLabel,
-                    ...(shouldUpdateId
-                      ? { id: labelToId(newLabel, index) }
-                      : {}),
-                  });
+                  updateField(index, { label: newLabel });
+                  scheduleFieldIdSync(index);
                 }}
+                onBlur={() => flushFieldIdSync(index)}
                 placeholder="Question or field label"
                 fontOptions={editorFonts}
                 height={130}
               />
+              <p className="text-[12px] text-zinc-500">
+                Field key (saved on leads / webhooks):{" "}
+                <code className="rounded bg-zinc-100 px-1 font-mono text-[13px] text-zinc-800">
+                  {field.id}
+                </code>
+              </p>
               <div className="flex flex-wrap gap-2 items-center">
                 <select
                   className="rounded border border-zinc-300 px-2 py-1"
@@ -347,20 +534,30 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
                       Hidden fields are not required and won’t block submission.
                     </p>
                   </div>
-                  <label className="inline-flex items-center gap-2 text-[13px] text-zinc-700">
+                  <label
+                    className={`inline-flex items-center gap-2 text-[13px] ${
+                      otherFields.length === 0
+                        ? "cursor-not-allowed text-zinc-400"
+                        : "text-zinc-700"
+                    }`}
+                  >
                     <input
                       type="checkbox"
+                      disabled={otherFields.length === 0}
                       checked={!!visibility}
                       onChange={(e) => {
                         if (!e.target.checked) {
                           updateField(index, { visibility: undefined } as any);
                           return;
                         }
-                        const firstOther = otherFields[0];
-                        const defaultWhen = firstOther?.id ?? "";
+                        if (otherFields.length === 0) return;
+                        const base =
+                          preferredControllingField ?? otherFields[0];
+                        const defaultWhen = base.id;
                         const defaultEquals =
-                          firstOther?.options?.[0]?.value ??
-                          "";
+                          base.options?.[0]?.value != null
+                            ? String(base.options[0].value)
+                            : "";
                         updateField(index, {
                           visibility: {
                             whenFieldId: defaultWhen,
@@ -372,6 +569,12 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
                     <span>Enable</span>
                   </label>
                 </div>
+                {otherFields.length === 0 && (
+                  <p className="mt-2 text-[12px] text-zinc-500">
+                    Add at least one other field above this one, then enable
+                    conditions to pick “Depends on” and “Equals”.
+                  </p>
+                )}
 
                 {visibility && (
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -379,11 +582,14 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
                       <span className="font-medium">Depends on</span>
                       <select
                         className="mt-1 w-full rounded border border-zinc-300 bg-white px-2 py-1 text-[13px]"
-                        value={visibility.whenFieldId}
+                        value={effectiveWhenFieldId ?? ""}
                         onChange={(e) => {
                           const nextWhen = e.target.value;
                           const nextCtrl = otherFields.find((f) => f.id === nextWhen);
-                          const nextEquals = nextCtrl?.options?.[0]?.value ?? "";
+                          const nextEquals =
+                            nextCtrl?.options?.[0]?.value != null
+                              ? String(nextCtrl.options[0].value)
+                              : "";
                           updateField(index, {
                             visibility: { whenFieldId: nextWhen, equals: nextEquals },
                           } as any);
@@ -402,11 +608,11 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
                       {controllingOptions.length > 0 ? (
                         <select
                           className="mt-1 w-full rounded border border-zinc-300 bg-white px-2 py-1 text-[13px]"
-                          value={visibility.equals}
+                          value={resolvedEquals}
                           onChange={(e) =>
                             updateField(index, {
                               visibility: {
-                                whenFieldId: visibility.whenFieldId,
+                                whenFieldId: effectiveWhenFieldId ?? visibility.whenFieldId,
                                 equals: e.target.value,
                               },
                             } as any)
@@ -421,11 +627,11 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
                       ) : (
                         <input
                           className="mt-1 w-full rounded border border-zinc-300 bg-white px-2 py-1 text-[13px]"
-                          value={visibility.equals}
+                          value={resolvedEquals}
                           onChange={(e) =>
                             updateField(index, {
                               visibility: {
-                                whenFieldId: visibility.whenFieldId,
+                                whenFieldId: effectiveWhenFieldId ?? visibility.whenFieldId,
                                 equals: e.target.value,
                               },
                             } as any)
@@ -436,8 +642,14 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
                     </label>
                     <div className="md:col-span-2 text-[12px] text-zinc-500">
                       Example: Show <span className="font-mono">{field.id}</span> when{" "}
-                      <span className="font-mono">{visibility.whenFieldId}</span> equals{" "}
-                      <span className="font-mono">{visibility.equals || "(empty)"}</span>.
+                      <span className="font-mono">
+                        {effectiveWhenFieldId ?? visibility.whenFieldId}
+                      </span>{" "}
+                      equals{" "}
+                      <span className="font-mono">
+                        {String(resolvedEquals ?? "") || "(empty)"}
+                      </span>
+                      .
                     </div>
                   </div>
                 )}

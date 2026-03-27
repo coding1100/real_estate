@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { Node } from "@tiptap/core";
+import { Node as TiptapNode } from "@tiptap/core";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Paragraph from "@tiptap/extension-paragraph";
@@ -23,6 +23,8 @@ interface RichTextEditorProps {
   label?: ReactNode;
   value: string;
   onChange: (value: string) => void;
+  /** Fires when focus leaves this editor (toolbar + content), not when moving within it. */
+  onBlur?: () => void;
   placeholder?: string;
   height?: number;
   fontOptions?: { label: string; cssFamily: string }[];
@@ -50,7 +52,7 @@ const ParagraphWithStyle = Paragraph.extend({
 });
 
 // Custom block node rendered as <div class="tag"><span>...</span></div>
-const TagBlock = Node.create({
+const TagBlock = TiptapNode.create({
   name: "tagBlock",
   group: "block",
   content: "inline*",
@@ -75,6 +77,7 @@ export function RichTextEditor({
   label,
   value,
   onChange,
+  onBlur,
   placeholder = "",
   height = DEFAULT_EDITOR_HEIGHT,
   fontOptions,
@@ -450,7 +453,20 @@ export function RichTextEditor({
   const resolvedHeight = height ?? DEFAULT_EDITOR_HEIGHT;
 
   return (
-    <div className="space-y-1">
+    <div
+      className="space-y-1"
+      onBlur={(e) => {
+        if (!onBlur) return;
+        const next = e.relatedTarget;
+        if (
+          next &&
+          next instanceof globalThis.Node &&
+          e.currentTarget.contains(next)
+        )
+          return;
+        onBlur();
+      }}
+    >
       {label && (
         <label className="mb-1 block text-md font-medium text-zinc-700">
           {label}
