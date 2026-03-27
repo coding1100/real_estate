@@ -9,7 +9,7 @@ import type { FormSchema } from "@/lib/types/form";
 import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
 import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 import { DynamicForm } from "@/components/forms/DynamicForm";
-import { useRecaptcha, RecaptchaScript } from "@/components/forms/Captcha";
+import { useRecaptcha } from "@/components/forms/Captcha";
 import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -205,7 +205,6 @@ export function PropertyFindingStep({
 
   return (
     <div className="relative min-h-screen text-zinc-50 bg-[#d4c8c8]">
-      <RecaptchaScript />
       {MAPS_KEY && (
         <Script
           src={`https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places`}
@@ -697,7 +696,6 @@ export function HomeValueMultistepFlow({
 
   return (
     <section className="relative text-white min-h-[calc(100vh_-_85px)] pt-[120px] max-[768px]:pt-20">
-      <RecaptchaScript />
       {(mainPage.heroImageUrl || step.heroImageUrl) && (
         <div className="pointer-events-none inset-0 fixed top-0 left-0 right-0 bottom-0">
           <Image

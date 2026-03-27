@@ -9,7 +9,7 @@ import {
 } from "@/lib/types/ctaForwarding";
 import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 import { FormField } from "./FormField";
-import { useRecaptcha, RecaptchaScript } from "./Captcha";
+import { useRecaptcha } from "./Captcha";
 import { useToast } from "@/components/ui/use-toast";
 
 type FormStyle = "default" | "questionnaire" | "detailed-perspective";
@@ -167,7 +167,6 @@ export function DynamicForm({
 
   return (
     <>
-      <RecaptchaScript />
       <form
         onSubmit={onSubmit}
         className={`${isDetailedPerspective ? "space-y-3" : "space-y-3"} text-sm ${isQuestionnaire || isDetailedPerspective ? "font-serif" : ""}`}

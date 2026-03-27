@@ -8,7 +8,6 @@ import type { LandingPageContent } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
 import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
 import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
-import { RecaptchaScript } from "@/components/forms/Captcha";
 import { DynamicForm } from "@/components/forms/DynamicForm";
 import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
 
@@ -150,7 +149,6 @@ export function HomeValueExperience({
 
   return (
     <div className="relative min-h-screen text-zinc-50 bg-[#d4c8c8]">
-      <RecaptchaScript />
       {MAPS_KEY && (
         <Script
           src={`https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places`}
