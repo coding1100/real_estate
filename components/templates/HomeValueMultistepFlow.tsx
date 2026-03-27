@@ -700,6 +700,7 @@ export function HomeValueMultistepFlow({
           <HeroBackgroundImage
             src={(step.heroImageUrl || mainPage.heroImageUrl) as string}
             alt={step.headline}
+            priority
             className="object-cover filter brightness-65 max-h-[1000px]"
           />
         </div>
