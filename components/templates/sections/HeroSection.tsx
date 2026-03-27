@@ -246,7 +246,7 @@ export function HeroSection({
               </div>
             </div>
 
-            <div className="relative min-h-[260px] md:min-h-[420px] team-img self-end md:sticky md:bottom-0">
+            <div className="relative min-h-[260px] md:min-h-[420px] team-img self-end md:sticky md:bottom-0 max-[768px]:!relative">
               {teamImageUrl ? (
                 <Image
                   src={teamImageUrl}
