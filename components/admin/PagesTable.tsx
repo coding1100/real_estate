@@ -31,14 +31,9 @@ const THUMB_IFRAME_BASE_H = 720;
 const THUMB_BOX_W = 150;
 const THUMB_BOX_H = 100;
 const THUMB_SCALE = Math.min(THUMB_BOX_W / THUMB_IFRAME_BASE_W, THUMB_BOX_H / THUMB_IFRAME_BASE_H);
-// How many "full iframe" thumbnails are allowed to be active at once.
-// This should cover the number of rows visible in typical viewport heights
-// while still preventing resource exhaustion.
+// How many thumbnail iframes get full opacity / pointer-events at once.
+// Loaded iframes stay mounted (opacity 0 when off-screen) so they never reload on scroll.
 const MAX_ACTIVE_THUMB_IFRAMES = 10;
-
-// Keep a limited number of already-loaded thumbnail iframes mounted so they
-// don't reload on scroll. Evict oldest when exceeding this cap.
-const MAX_WARM_THUMB_IFRAMES = 30;
 
 function ThumbLoaderOverlay({ label }: { label: string }) {
   return (
@@ -58,38 +53,26 @@ function PreviewThumbnail({
   fallbackImageUrl,
   isActive,
   onVisibleChange,
-  keepWarm,
-  onWarmLoaded,
 }: {
   pageId: string;
   previewSrc: string;
   fallbackImageUrl?: string | null;
   isActive: boolean;
   onVisibleChange: (pageId: string, inView: boolean) => void;
-  keepWarm: boolean;
-  onWarmLoaded: (pageId: string) => void;
 }) {
   const holderRef = useRef<HTMLDivElement | null>(null);
   const iframeLoadFallbackRef = useRef<number | null>(null);
-  const iframeReportedWarmRef = useRef(false);
+  /** Once the iframe has loaded, keep it mounted so it never reloads on scroll. */
+  const [persistIframe, setPersistIframe] = useState(false);
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
 
-  const showIframe = isActive || keepWarm;
+  const showIframe = isActive || persistIframe;
 
-  // Only reset when the preview URL changes or the iframe is unmounted (so we
-  // don't clear loaded state when isActive/keepWarm toggles on an already-loaded iframe).
   useEffect(() => {
-    iframeReportedWarmRef.current = false;
+    setPersistIframe(false);
     setIframeLoaded(false);
   }, [previewSrc]);
-
-  useEffect(() => {
-    if (!showIframe) {
-      iframeReportedWarmRef.current = false;
-      setIframeLoaded(false);
-    }
-  }, [showIframe]);
 
   useEffect(() => {
     setImageLoaded(false);
@@ -101,11 +84,8 @@ function PreviewThumbnail({
       iframeLoadFallbackRef.current = null;
     }
     setIframeLoaded(true);
-    if (!iframeReportedWarmRef.current) {
-      iframeReportedWarmRef.current = true;
-      onWarmLoaded(pageId);
-    }
-  }, [pageId, onWarmLoaded]);
+    setPersistIframe(true);
+  }, []);
 
   useEffect(() => {
     if (!showIframe) {
@@ -257,9 +237,6 @@ export function PagesTable({ pages }: PagesTableProps) {
   const previewOpenTimeoutRef = useRef<number | null>(null);
   const visibleThumbsRef = useRef<Record<string, boolean>>({});
   const [activeThumbIds, setActiveThumbIds] = useState<Set<string>>(() => new Set());
-  const warmThumbIdsRef = useRef<Set<string>>(new Set());
-  const warmThumbOrderRef = useRef<string[]>([]);
-  const [warmThumbIds, setWarmThumbIds] = useState<Set<string>>(() => new Set());
   const isUserScrollingRef = useRef(false);
   const scrollIdleTimerRef = useRef<number | null>(null);
 
@@ -396,20 +373,6 @@ export function PagesTable({ pages }: PagesTableProps) {
     },
     [reconcileActiveThumbs],
   );
-
-  const handleWarmLoaded = useCallback((thumbId: string) => {
-    if (warmThumbIdsRef.current.has(thumbId)) return;
-    warmThumbIdsRef.current.add(thumbId);
-    warmThumbOrderRef.current.push(thumbId);
-
-    // Evict oldest warm if we exceed cap.
-    while (warmThumbOrderRef.current.length > MAX_WARM_THUMB_IFRAMES) {
-      const evict = warmThumbOrderRef.current.shift();
-      if (!evict) break;
-      warmThumbIdsRef.current.delete(evict);
-    }
-    setWarmThumbIds(new Set(warmThumbIdsRef.current));
-  }, []);
 
   return (
     <div className="space-y-3">
@@ -625,8 +588,6 @@ export function PagesTable({ pages }: PagesTableProps) {
                                   fallbackImageUrl={page.thumbnailImageUrl}
                                   isActive={activeThumbIds.has(page.id)}
                                   onVisibleChange={handleThumbVisibleChange}
-                                  keepWarm={warmThumbIds.has(page.id)}
-                                  onWarmLoaded={handleWarmLoaded}
                                 />
 
                                 {showLarge && previewOpenId === page.id && (
