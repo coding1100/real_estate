@@ -319,20 +319,20 @@ export function PagesTable({ pages }: PagesTableProps) {
         </div>
       </div>
 
-      <div className="-mx-2 overflow-x-hidden px-2">
-        <table className="w-full table-fixed rounded-lg bg-white text-md shadow-sm">
+      <div className="-mx-2 overflow-x-auto px-2 min-[1400px]:overflow-x-hidden">
+        <table className="min-w-[1080px] min-[1400px]:min-w-0 w-full table-fixed rounded-lg bg-white text-md shadow-sm">
           <thead className="bg-zinc-50 text-[16px] uppercase tracking-[0.15em] text-zinc-500">
             <tr>
               <th className="w-[44px] px-2 py-2 text-left"></th>
-              <th className="w-[160px] px-3 py-2 text-left">Domain</th>
+              <th className="w-[165px] px-3 py-2 text-left">Domain</th>
               <th className="w-[170px] px-3 py-2 text-left">Slug</th>
               <th className="w-[220px] px-3 py-2 text-left">Title</th>
-              <th className="w-[90px] px-3 py-2 text-left">Type</th>
-              <th className="hidden w-[160px] px-3 py-2 text-left lg:table-cell">Mode</th>
-              <th className="w-[110px] px-3 py-2 text-left">Status</th>
-              <th className="hidden w-[170px] px-3 py-2 text-left xl:table-cell">Updated</th>
-              <th className="w-[170px] px-3 py-2 text-left">Preview</th>
-              <th className="w-[110px] px-3 py-2 text-right">Actions</th>
+              <th className="w-[70px] px-3 py-2 text-left">Type</th>
+              <th className="hidden w-[145px] px-3 py-2 text-left 2xl:table-cell">Mode</th>
+              <th className="w-[88px] px-3 py-2 text-left">Status</th>
+              <th className="hidden w-[150px] px-3 py-2 text-left xl:table-cell">Updated</th>
+              <th className="w-[150px] px-3 py-2 text-left">Preview</th>
+              <th className="w-[76px] px-3 py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -387,31 +387,33 @@ export function PagesTable({ pages }: PagesTableProps) {
                           </button>
                         </td>
                         <td className="px-3 py-3 text-zinc-700">
-                          <span className="block truncate text-zinc-500">{domain}</span>
+                          <span className="block max-w-[165px] truncate text-zinc-500">{domain}</span>
                         </td>
                         <td className="px-3 py-3 text-zinc-700">
                           {isMaster ? (
-                            <span className="block truncate">{page.slug}</span>
+                            <span className="block max-w-[170px] truncate">{page.slug}</span>
                           ) : (
                             <SlugEditor pageId={page.id} initialSlug={page.slug} />
                           )}
                         </td>
-                        <td className="px-3 py-3 text-zinc-700 max-w-[260px]">
+                        <td className="px-3 py-3 text-zinc-700">
                           {isMaster ? (
-                            <span className="block truncate">
+                            <span className="block max-w-[220px] overflow-hidden [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] leading-tight break-words">
                               {page.title || page.headline || ""}
                             </span>
                           ) : (
-                            <TitleEditor
-                              pageId={page.id}
-                              initialTitle={page.title || page.headline || ""}
-                            />
+                            <div className="max-w-[220px]">
+                              <TitleEditor
+                                pageId={page.id}
+                                initialTitle={page.title || page.headline || ""}
+                              />
+                            </div>
                           )}
                         </td>
                         <td className="px-3 py-3 text-zinc-700">
                           <span className="capitalize">{page.type}</span>
                         </td>
-                        <td className="hidden px-3 py-3 text-zinc-700 lg:table-cell">
+                        <td className="hidden px-3 py-3 text-zinc-700 2xl:table-cell">
                           <div className="flex flex-col gap-1">
                             <span
                               className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${

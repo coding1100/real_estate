@@ -165,7 +165,7 @@ export function BuyerTemplate({
       ) : (
         <BrandHeader page={page} />
       )}
-      <main className={hasLayoutHeader ? "pt-[100px] flex-1" : "flex-1"}>
+      <main className={hasLayoutHeader ? "pt-[80px] flex-1" : "flex-1"}>
         {isHomeValuePage && page.multistepSteps && page.multistepSteps.length > 0 ? (
           <HomeValueMultistepFlow
             mainPage={page}
