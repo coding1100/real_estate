@@ -1,12 +1,43 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { AddPageDialog } from "@/components/admin/AddPageDialog";
-import { PagesTable, type PageListItem } from "@/components/admin/PagesTable";
+import { PagesTable } from "@/components/admin/PagesTable";
+import type { PageListItem } from "@/components/admin/pageListTypes";
 
 export default async function AdminPagesListPage() {
   const pages = await prisma.landingPage.findMany({
     include: { domain: true },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ domain: { hostname: "asc" } }, { slug: "asc" }],
+  });
+
+  // adminListOrder is read via SQL so ordering works even if `prisma generate`
+  // was not run after adding the column (same pattern as bookmarked below).
+  let adminOrderById = new Map<string, number>();
+  try {
+    const orderRows = (await prisma.$queryRaw<
+      { id: string; adminListOrder: number }[]
+    >`
+      SELECT "id", COALESCE("adminListOrder", 0) AS "adminListOrder"
+      FROM "LandingPage"
+    `) as Array<{ id: string; adminListOrder: number }>;
+    adminOrderById = new Map(
+      orderRows.map((r) => [r.id, Number(r.adminListOrder)]),
+    );
+  } catch (err) {
+    console.error(
+      "[AdminPagesListPage] Failed to load adminListOrder via SQL (column may be missing until migration is applied).",
+      err,
+    );
+    adminOrderById = new Map();
+  }
+
+  pages.sort((a, b) => {
+    const h = a.domain.hostname.localeCompare(b.domain.hostname);
+    if (h !== 0) return h;
+    const ao = adminOrderById.get(a.id) ?? 0;
+    const bo = adminOrderById.get(b.id) ?? 0;
+    if (ao !== bo) return ao - bo;
+    return a.slug.localeCompare(b.slug);
   });
 
   // Bookmark flag may have been added manually in DB and Prisma client may not
@@ -90,6 +121,7 @@ export default async function AdminPagesListPage() {
     thumbnailImageUrl:
       (p as any).heroImageUrl ?? (p as any).ogImageUrl ?? null,
     bookmarked: bookmarkedById.get(p.id) ?? false,
+    adminListOrder: adminOrderById.get(p.id) ?? 0,
   }));
 
   return (

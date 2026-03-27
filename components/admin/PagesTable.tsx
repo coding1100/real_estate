@@ -2,25 +2,30 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Search, Star } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical, Loader2, Search, Star } from "lucide-react";
 import { SlugEditor } from "@/components/admin/SlugEditor";
 import { TitleEditor } from "@/components/admin/TitleEditor";
 import { PageRowActions } from "@/components/admin/PageRowActions";
+import type { PageListItem } from "@/components/admin/pageListTypes";
 
-export interface PageListItem {
-  id: string;
-  slug: string;
-  type: string;
-  status: string;
-  updatedAt: string;
-  headline: string | null;
-  title: string | null;
-  domainHostname: string;
-  domainId: string;
-  multistepStepSlugs: string[] | null;
-  thumbnailImageUrl?: string | null;
-  bookmarked?: boolean;
-}
+export type { PageListItem } from "@/components/admin/pageListTypes";
 
 interface PagesTableProps {
   pages: PageListItem[];
@@ -227,6 +232,174 @@ function PreviewDialogIframe({
   );
 }
 
+function PagesTableRowBody({
+  page,
+  domain,
+  leadingCell,
+  previewSlot,
+}: {
+  page: PageListItem;
+  domain: string;
+  leadingCell: React.ReactNode;
+  previewSlot: React.ReactNode;
+}) {
+  const isMaster =
+    page.slug === "master-seller" || page.slug === "master-buyer";
+  const isMultistep =
+    Array.isArray(page.multistepStepSlugs) &&
+    page.multistepStepSlugs.length > 0;
+
+  return [
+    <td key="lead" className="px-2 py-3">
+      {leadingCell}
+    </td>,
+    <td key="dom" className="px-2 py-2 text-zinc-700">
+      <span className="block max-w-[165px] truncate text-zinc-500">{domain}</span>
+    </td>,
+    <td key="slug" className="px-2 py-2 text-zinc-700">
+      {isMaster ? (
+        <span className="block max-w-[170px] truncate">{page.slug}</span>
+      ) : (
+        <SlugEditor pageId={page.id} initialSlug={page.slug} />
+      )}
+    </td>,
+    <td key="title" className="px-2 py-2 text-zinc-700">
+      {isMaster ? (
+        <span className="block max-w-[220px] overflow-hidden [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] leading-tight break-words">
+          {page.title || page.headline || ""}
+        </span>
+      ) : (
+        <div className="max-w-[220px]">
+          <TitleEditor
+            pageId={page.id}
+            initialTitle={page.title || page.headline || ""}
+          />
+        </div>
+      )}
+    </td>,
+    <td key="type" className="px-2 py-2 text-zinc-700">
+      <span className="capitalize">{page.type}</span>
+    </td>,
+    <td key="mode" className="hidden px-2 py-2 text-zinc-700 2xl:table-cell">
+      <div className="flex flex-col gap-1">
+        <span
+          className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+            isMultistep
+              ? "bg-amber-50 text-amber-800 ring-1 ring-amber-200"
+              : "bg-zinc-100 text-zinc-700 ring-1 ring-zinc-200"
+          }`}
+        >
+          {isMultistep ? "Multistep" : "Single"}
+        </span>
+        {isMultistep &&
+          Array.isArray(page.multistepStepSlugs) &&
+          page.multistepStepSlugs.length > 0 && (
+            <ol className="mt-1 space-y-0.5 text-[11px] text-zinc-500 ml-0">
+              {page.multistepStepSlugs.map((slug, idx) => (
+                <li
+                  key={slug + idx}
+                  className="truncate max-w-[220px] text-[14px]"
+                >
+                  <span className="text-zinc-400">{idx + 1}.</span>{" "}
+                  <span className="font-mono">{slug}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+      </div>
+    </td>,
+    <td key="status" className="px-2 py-2 text-zinc-700">
+      {page.status}
+    </td>,
+    <td key="upd" className="hidden px-3 py-2 text-zinc-500 xl:table-cell">
+      {new Date(page.updatedAt).toISOString().slice(0, 19).replace("T", " ")}
+    </td>,
+    <td key="prev" className="px-3 py-2 text-center">
+      {previewSlot}
+    </td>,
+    <td key="act" className="px-3 py-2 text-right">
+      <PageRowActions
+        pageId={page.id}
+        slug={page.slug}
+        isMaster={isMaster}
+      />
+    </td>,
+  ];
+}
+
+function SortablePagesTableRow({
+  page,
+  domain,
+  previewSlot,
+  onToggleBookmark,
+}: {
+  page: PageListItem;
+  domain: string;
+  previewSlot: React.ReactNode;
+  onToggleBookmark: (pageId: string, next: boolean) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: page.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    ...(isDragging ? { position: "relative" as const, zIndex: 2 } : {}),
+  };
+
+  const leadingCell = (
+    <div className="flex items-center gap-0.5">
+      <button
+        type="button"
+        className="inline-flex h-8 w-8 shrink-0 cursor-grab touch-manipulation items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 active:cursor-grabbing"
+        aria-label="Drag to reorder page under this domain"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" aria-hidden />
+      </button>
+      <button
+        type="button"
+        onClick={() => onToggleBookmark(page.id, !page.bookmarked)}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="inline-flex relative right-[5px] h-8 w-8 items-center justify-center rounded-md hover:bg-zinc-100"
+        title={page.bookmarked ? "Unstar" : "Star"}
+      >
+        <Star
+          className={`h-4 w-4 ${
+            page.bookmarked
+              ? "fill-amber-400 text-amber-500"
+              : "text-zinc-400"
+          }`}
+        />
+      </button>
+    </div>
+  );
+
+  return (
+    <tr
+      ref={setNodeRef}
+      style={style}
+      className={`border-t border-zinc-100 transition-colors hover:bg-zinc-50/80 ${
+        isDragging ? "bg-zinc-50 opacity-95 shadow-sm" : ""
+      }`}
+    >
+      {PagesTableRowBody({
+        page,
+        domain,
+        leadingCell,
+        previewSlot,
+      })}
+    </tr>
+  );
+}
+
 export function PagesTable({ pages }: PagesTableProps) {
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<PageListItem[]>(pages);
@@ -237,8 +410,18 @@ export function PagesTable({ pages }: PagesTableProps) {
   const previewOpenTimeoutRef = useRef<number | null>(null);
   const visibleThumbsRef = useRef<Record<string, boolean>>({});
   const [activeThumbIds, setActiveThumbIds] = useState<Set<string>>(() => new Set());
+  const rowsRef = useRef<PageListItem[]>(pages);
   const isUserScrollingRef = useRef(false);
   const scrollIdleTimerRef = useRef<number | null>(null);
+
+  rowsRef.current = rows;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   useEffect(() => {
     setRows(pages);
@@ -315,6 +498,12 @@ export function PagesTable({ pages }: PagesTableProps) {
     }
     // keep groups ordered alphabetically by domain for predictability
     order.sort((a, b) => a.localeCompare(b));
+    for (const k of order) {
+      const arr = map.get(k);
+      if (arr) {
+        arr.sort((a, b) => a.adminListOrder - b.adminListOrder);
+      }
+    }
     return { order, map };
   }, [filtered]);
 
@@ -374,6 +563,176 @@ export function PagesTable({ pages }: PagesTableProps) {
     [reconcileActiveThumbs],
   );
 
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    const snapshot = rowsRef.current;
+    const pageA = snapshot.find((p) => p.id === activeId);
+    const pageB = snapshot.find((p) => p.id === overId);
+    if (!pageA || !pageB || pageA.domainId !== pageB.domainId) return;
+
+    const domainHostname = pageA.domainHostname;
+    const groupPages = snapshot
+      .filter((p) => p.domainHostname === domainHostname)
+      .sort((a, b) => a.adminListOrder - b.adminListOrder);
+    const oldIndex = groupPages.findIndex((p) => p.id === activeId);
+    const newIndex = groupPages.findIndex((p) => p.id === overId);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(groupPages, oldIndex, newIndex);
+    const pageIds = reordered.map((p) => p.id);
+    const orderMap = new Map(pageIds.map((id, i) => [id, i]));
+
+    setRows((prev) =>
+      prev.map((p) =>
+        orderMap.has(p.id)
+          ? { ...p, adminListOrder: orderMap.get(p.id)! }
+          : p,
+      ),
+    );
+
+    try {
+      const res = await fetch("/api/admin/pages/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domainId: pageA.domainId, pageIds }),
+      });
+      if (!res.ok) throw new Error("reorder failed");
+    } catch {
+      setRows(snapshot);
+    }
+  }, []);
+
+  const renderPreviewSlot = useCallback(
+    (page: PageListItem) => {
+      const previewSrc = `/${encodeURIComponent(page.slug)}?preview=1&domain=${encodeURIComponent(page.domainHostname)}`;
+      const showLarge = previewHoverId === page.id;
+      const POPUP_BOX = 600;
+      const BASE_W = THUMB_IFRAME_BASE_W;
+      const BASE_H = THUMB_IFRAME_BASE_H;
+      const popupScale = Math.min(POPUP_BOX / BASE_W, POPUP_BOX / BASE_H);
+
+      return (
+        <div
+          className="group relative inline-block"
+          onMouseEnter={() => {
+            if (previewClearTimeoutRef.current) {
+              window.clearTimeout(previewClearTimeoutRef.current);
+              previewClearTimeoutRef.current = null;
+            }
+            if (previewOpenTimeoutRef.current) {
+              window.clearTimeout(previewOpenTimeoutRef.current);
+              previewOpenTimeoutRef.current = null;
+            }
+            setPreviewHoverId(page.id);
+            previewOpenTimeoutRef.current = window.setTimeout(() => {
+              setPreviewOpenId(page.id);
+              previewOpenTimeoutRef.current = null;
+            }, 180);
+          }}
+          onMouseLeave={() => {
+            if (previewOpenTimeoutRef.current) {
+              window.clearTimeout(previewOpenTimeoutRef.current);
+              previewOpenTimeoutRef.current = null;
+            }
+            if (previewClearTimeoutRef.current) {
+              window.clearTimeout(previewClearTimeoutRef.current);
+            }
+            previewClearTimeoutRef.current = window.setTimeout(() => {
+              setPreviewHoverId((prev) => (prev === page.id ? null : prev));
+              previewClearTimeoutRef.current = null;
+            }, 120);
+          }}
+        >
+          <PreviewThumbnail
+            pageId={page.id}
+            previewSrc={previewSrc}
+            fallbackImageUrl={page.thumbnailImageUrl}
+            isActive={activeThumbIds.has(page.id)}
+            onVisibleChange={handleThumbVisibleChange}
+          />
+
+          {showLarge && previewOpenId === page.id && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 p-4"
+              onMouseDown={(e) => {
+                if (e.target !== e.currentTarget) return;
+                if (previewClearTimeoutRef.current) {
+                  window.clearTimeout(previewClearTimeoutRef.current);
+                  previewClearTimeoutRef.current = null;
+                }
+                if (previewOpenTimeoutRef.current) {
+                  window.clearTimeout(previewOpenTimeoutRef.current);
+                  previewOpenTimeoutRef.current = null;
+                }
+                setPreviewHoverId(null);
+                setPreviewOpenId(null);
+              }}
+              onMouseEnter={() => {
+                if (previewClearTimeoutRef.current) {
+                  window.clearTimeout(previewClearTimeoutRef.current);
+                  previewClearTimeoutRef.current = null;
+                }
+              }}
+              onMouseLeave={() => {
+                if (previewClearTimeoutRef.current) {
+                  window.clearTimeout(previewClearTimeoutRef.current);
+                  previewClearTimeoutRef.current = null;
+                }
+                setPreviewHoverId((prev) => (prev === page.id ? null : prev));
+                setPreviewOpenId((prev) => (prev === page.id ? null : prev));
+              }}
+            >
+              <div className="relative rounded-md border border-zinc-200 bg-white p-2 shadow-lg">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="text-xs font-medium text-zinc-600">
+                    {page.domainHostname} / {page.slug}
+                  </div>
+                  <button
+                    type="button"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                    aria-label="Close preview"
+                    onClick={() => {
+                      if (previewClearTimeoutRef.current) {
+                        window.clearTimeout(previewClearTimeoutRef.current);
+                        previewClearTimeoutRef.current = null;
+                      }
+                      if (previewOpenTimeoutRef.current) {
+                        window.clearTimeout(previewOpenTimeoutRef.current);
+                        previewOpenTimeoutRef.current = null;
+                      }
+                      setPreviewHoverId(null);
+                      setPreviewOpenId(null);
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <PreviewDialogIframe
+                  previewSrc={previewSrc}
+                  title={`Preview ${page.slug}`}
+                  baseW={BASE_W}
+                  baseH={BASE_H}
+                  scale={popupScale}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    },
+    [
+      previewHoverId,
+      previewOpenId,
+      activeThumbIds,
+      handleThumbVisibleChange,
+    ],
+  );
+
+  const showReorder = !query.trim();
+
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -410,6 +769,11 @@ export function PagesTable({ pages }: PagesTableProps) {
         </div>
       </div>
 
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
       <div className="-mx-2 overflow-x-auto px-2 min-[1400px]:overflow-x-hidden">
         <table className="min-w-[1080px] min-[1400px]:min-w-0 w-full table-fixed rounded-lg bg-white text-md shadow-sm">
           <thead className="bg-zinc-50 text-[16px] uppercase tracking-[0.15em] text-zinc-500">
@@ -449,228 +813,53 @@ export function PagesTable({ pages }: PagesTableProps) {
                     </td>
                   </tr>
 
-                  {pagesForDomain.map((page) => {
-                    const isMaster =
-                      page.slug === "master-seller" || page.slug === "master-buyer";
-                    const isMultistep =
-                      Array.isArray(page.multistepStepSlugs) &&
-                      page.multistepStepSlugs.length > 0;
-
-                    return (
+                  {showReorder ? (
+                    <SortableContext
+                      items={pagesForDomain.map((p) => p.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {pagesForDomain.map((page) => (
+                        <SortablePagesTableRow
+                          key={page.id}
+                          page={page}
+                          domain={domain}
+                          previewSlot={renderPreviewSlot(page)}
+                          onToggleBookmark={toggleBookmark}
+                        />
+                      ))}
+                    </SortableContext>
+                  ) : (
+                    pagesForDomain.map((page) => (
                       <tr
                         key={page.id}
                         className="border-t border-zinc-100 hover:bg-zinc-50/80 transition-colors"
                       >
-                        <td className="px-2 py-3">
-                          <button
-                            type="button"
-                            onClick={() => toggleBookmark(page.id, !page.bookmarked)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-zinc-100"
-                            title={page.bookmarked ? "Unstar" : "Star"}
-                          >
-                            <Star
-                              className={`h-4 w-4 ${
-                                page.bookmarked
-                                  ? "fill-amber-400 text-amber-500"
-                                  : "text-zinc-400"
-                              }`}
-                            />
-                          </button>
-                        </td>
-                        <td className="px-2 py-2 text-zinc-700">
-                          <span className="block max-w-[165px] truncate text-zinc-500">{domain}</span>
-                        </td>
-                        <td className="px-2 py-2 text-zinc-700">
-                          {isMaster ? (
-                            <span className="block max-w-[170px] truncate">{page.slug}</span>
-                          ) : (
-                            <SlugEditor pageId={page.id} initialSlug={page.slug} />
-                          )}
-                        </td>
-                        <td className="px-2 py-2 text-zinc-700">
-                          {isMaster ? (
-                            <span className="block max-w-[220px] overflow-hidden [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] leading-tight break-words">
-                              {page.title || page.headline || ""}
-                            </span>
-                          ) : (
-                            <div className="max-w-[220px]">
-                              <TitleEditor
-                                pageId={page.id}
-                                initialTitle={page.title || page.headline || ""}
-                              />
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-2 py-2 text-zinc-700">
-                          <span className="capitalize">{page.type}</span>
-                        </td>
-                        <td className="hidden px-2 py-2 text-zinc-700 2xl:table-cell">
-                          <div className="flex flex-col gap-1">
-                            <span
-                              className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                                isMultistep
-                                  ? "bg-amber-50 text-amber-800 ring-1 ring-amber-200"
-                                  : "bg-zinc-100 text-zinc-700 ring-1 ring-zinc-200"
-                              }`}
+                        {PagesTableRowBody({
+                          page,
+                          domain,
+                          leadingCell: (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleBookmark(page.id, !page.bookmarked)
+                              }
+                              className="inline-flex relative left-[5px] h-8 w-8 items-center justify-center rounded-md hover:bg-zinc-100"
+                              title={page.bookmarked ? "Unstar" : "Star"}
                             >
-                              {isMultistep ? "Multistep" : "Single"}
-                            </span>
-                            {isMultistep &&
-                              Array.isArray(page.multistepStepSlugs) &&
-                              page.multistepStepSlugs.length > 0 && (
-                                <ol className="mt-1 space-y-0.5 text-[11px] text-zinc-500 ml-0">
-                                  {page.multistepStepSlugs.map((slug, idx) => (
-                                    <li
-                                      key={slug + idx}
-                                      className="truncate max-w-[220px] text-[14px]"
-                                    >
-                                      <span className="text-zinc-400">{idx + 1}.</span>{" "}
-                                      <span className="font-mono">{slug}</span>
-                                    </li>
-                                  ))}
-                                </ol>
-                              )}
-                          </div>
-                        </td>
-                        <td className="px-2 py-2 text-zinc-700">{page.status}</td>
-                        <td className="hidden px-3 py-2 text-zinc-500 xl:table-cell">
-                          {/* Use deterministic UTC formatting to avoid SSR/client hydration mismatches. */}
-                          {new Date(page.updatedAt).toISOString().slice(0, 19).replace("T", " ")}
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          {(() => {
-                            const previewSrc = `/${encodeURIComponent(page.slug)}?preview=1&domain=${encodeURIComponent(page.domainHostname)}`;
-                            const showLarge = previewHoverId === page.id;
-                            const POPUP_BOX = 600;
-                            // Keep popup extremely close to the thumbnail so it's easy to hover.
-                            const GAP = 0;
-                            const BASE_W = THUMB_IFRAME_BASE_W;
-                            const BASE_H = THUMB_IFRAME_BASE_H;
-                            const popupScale = Math.min(POPUP_BOX / BASE_W, POPUP_BOX / BASE_H);
-
-                            return (
-                              <div
-                                className="group relative inline-block"
-                                onMouseEnter={() => {
-                                  if (previewClearTimeoutRef.current) {
-                                    window.clearTimeout(previewClearTimeoutRef.current);
-                                    previewClearTimeoutRef.current = null;
-                                  }
-                                  if (previewOpenTimeoutRef.current) {
-                                    window.clearTimeout(previewOpenTimeoutRef.current);
-                                    previewOpenTimeoutRef.current = null;
-                                  }
-                                  setPreviewHoverId(page.id);
-                                  // Debounce opening the heavy preview iframe to avoid
-                                  // thrashing when the user moves across rows.
-                                  previewOpenTimeoutRef.current = window.setTimeout(() => {
-                                    setPreviewOpenId(page.id);
-                                    previewOpenTimeoutRef.current = null;
-                                  }, 180);
-                                }}
-                                onMouseLeave={() => {
-                                  if (previewOpenTimeoutRef.current) {
-                                    window.clearTimeout(previewOpenTimeoutRef.current);
-                                    previewOpenTimeoutRef.current = null;
-                                  }
-                                  if (previewClearTimeoutRef.current) {
-                                    window.clearTimeout(previewClearTimeoutRef.current);
-                                  }
-                                  previewClearTimeoutRef.current = window.setTimeout(() => {
-                                    setPreviewHoverId((prev) => (prev === page.id ? null : prev));
-                                    previewClearTimeoutRef.current = null;
-                                  }, 120);
-                                }}
-                              >
-                                <PreviewThumbnail
-                                  pageId={page.id}
-                                  previewSrc={previewSrc}
-                                  fallbackImageUrl={page.thumbnailImageUrl}
-                                  isActive={activeThumbIds.has(page.id)}
-                                  onVisibleChange={handleThumbVisibleChange}
-                                />
-
-                                {showLarge && previewOpenId === page.id && (
-                                  <div
-                                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 p-4"
-                                    onMouseDown={(e) => {
-                                      // Close only when clicking the backdrop, not the dialog content.
-                                      if (e.target !== e.currentTarget) return;
-                                      if (previewClearTimeoutRef.current) {
-                                        window.clearTimeout(previewClearTimeoutRef.current);
-                                        previewClearTimeoutRef.current = null;
-                                      }
-                                      if (previewOpenTimeoutRef.current) {
-                                        window.clearTimeout(previewOpenTimeoutRef.current);
-                                        previewOpenTimeoutRef.current = null;
-                                      }
-                                      setPreviewHoverId(null);
-                                      setPreviewOpenId(null);
-                                    }}
-                                    onMouseEnter={() => {
-                                      if (previewClearTimeoutRef.current) {
-                                        window.clearTimeout(previewClearTimeoutRef.current);
-                                        previewClearTimeoutRef.current = null;
-                                      }
-                                    }}
-                                    onMouseLeave={() => {
-                                      if (previewClearTimeoutRef.current) {
-                                        window.clearTimeout(previewClearTimeoutRef.current);
-                                        previewClearTimeoutRef.current = null;
-                                      }
-                                      setPreviewHoverId((prev) => (prev === page.id ? null : prev));
-                                      setPreviewOpenId((prev) => (prev === page.id ? null : prev));
-                                    }}
-                                  >
-                                    <div className="relative rounded-md border border-zinc-200 bg-white p-2 shadow-lg">
-                                      <div className="flex items-start justify-between gap-3 mb-2">
-                                        <div className="text-xs font-medium text-zinc-600">
-                                          {page.domainHostname} / {page.slug}
-                                        </div>
-                                        <button
-                                          type="button"
-                                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
-                                          aria-label="Close preview"
-                                          onClick={() => {
-                                            if (previewClearTimeoutRef.current) {
-                                              window.clearTimeout(previewClearTimeoutRef.current);
-                                              previewClearTimeoutRef.current = null;
-                                            }
-                                            if (previewOpenTimeoutRef.current) {
-                                              window.clearTimeout(previewOpenTimeoutRef.current);
-                                              previewOpenTimeoutRef.current = null;
-                                            }
-                                            setPreviewHoverId(null);
-                                            setPreviewOpenId(null);
-                                          }}
-                                        >
-                                          ✕
-                                        </button>
-                                      </div>
-                                      <PreviewDialogIframe
-                                        previewSrc={previewSrc}
-                                        title={`Preview ${page.slug}`}
-                                        baseW={BASE_W}
-                                        baseH={BASE_H}
-                                        scale={popupScale}
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          <PageRowActions
-                            pageId={page.id}
-                            slug={page.slug}
-                            isMaster={isMaster}
-                          />
-                        </td>
+                              <Star
+                                className={`h-4 w-4 ${
+                                  page.bookmarked
+                                    ? "fill-amber-400 text-amber-500"
+                                    : "text-zinc-400"
+                                }`}
+                              />
+                            </button>
+                          ),
+                          previewSlot: renderPreviewSlot(page),
+                        })}
                       </tr>
-                    );
-                  })}
+                    ))
+                  )}
                 </>
               );
             })}
@@ -687,6 +876,7 @@ export function PagesTable({ pages }: PagesTableProps) {
           </tbody>
         </table>
       </div>
+      </DndContext>
     </div>
   );
 }
