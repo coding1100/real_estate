@@ -52,7 +52,7 @@ export function GoogleAnalytics({ measurementId }: GoogleAnalyticsProps) {
       if ("requestIdleCallback" in window) {
         const idleId = (window as any).requestIdleCallback(
           () => {
-            setTimeout(initializeGa, 1200);
+            setTimeout(initializeGa, 1800);
           },
           { timeout: 5000 },
         );
