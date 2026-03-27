@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormSchema, FormFieldConfig } from "@/lib/types/form";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 
@@ -10,6 +10,8 @@ interface FormEditorProps {
   editorFonts?: { label: string; cssFamily: string }[];
 }
 
+const ID_SYNC_DEBOUNCE_MS = 900;
+
 export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
   const [error, setError] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -17,6 +19,19 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
     value && Array.isArray((value as any).fields)
       ? value
       : { fields: [] };
+
+  const schemaRef = useRef(schema);
+  schemaRef.current = schema;
+  const idSyncTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(
+    new Map(),
+  );
+
+  useEffect(() => {
+    return () => {
+      idSyncTimersRef.current.forEach(clearTimeout);
+      idSyncTimersRef.current.clear();
+    };
+  }, []);
 
   function stripHtml(html: string): string {
     if (!html) return "";
@@ -31,8 +46,84 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
       .toLowerCase()
       .replace(/[^a-z0-9\s]/g, "")
       .replace(/\s+/g, "_");
-    if (!base) return `field_${fallbackIndex + 1}`;
-    return base;
+    const trimmed = base.replace(/_+/g, "_").replace(/^_|_$/g, "");
+    if (!trimmed) return `field_${fallbackIndex + 1}`;
+    return trimmed;
+  }
+
+  /** Ensures no two fields share the same id (excluding current index when replacing). */
+  function makeUniqueFieldId(
+    base: string,
+    fields: FormFieldConfig[],
+    excludeIndex: number,
+  ): string {
+    if (!base) return `field_${excludeIndex + 1}`;
+    let candidate = base;
+    let suffix = 2;
+    while (
+      fields.some((f, i) => i !== excludeIndex && f.id === candidate)
+    ) {
+      candidate = `${base}_${suffix}`;
+      suffix++;
+    }
+    return candidate;
+  }
+
+  /** When a field id changes, update conditional rules that pointed at the old id. */
+  function remapVisibilityWhenFieldId(
+    fields: FormFieldConfig[],
+    oldId: string,
+    newId: string,
+  ): FormFieldConfig[] {
+    if (oldId === newId) return fields;
+    return fields.map((f) => {
+      const vis = (f as FormFieldConfig & { visibility?: { whenFieldId?: string; equals?: string } }).visibility;
+      if (vis?.whenFieldId === oldId) {
+        return {
+          ...f,
+          visibility: { ...vis, whenFieldId: newId },
+        } as FormFieldConfig;
+      }
+      return f;
+    });
+  }
+
+  function syncFieldIdFromLabel(index: number) {
+    const fields = schemaRef.current.fields;
+    const field = fields[index];
+    if (!field) return;
+    const newLabel = field.label ?? "";
+    const derived = labelToId(newLabel, index);
+    const newId = makeUniqueFieldId(derived, fields, index);
+    const oldId = field.id;
+    if (newId === oldId) return;
+    const next = [...fields];
+    next[index] = {
+      ...next[index],
+      id: newId,
+    };
+    onChange({
+      fields: remapVisibilityWhenFieldId(next, oldId, newId),
+    });
+  }
+
+  function scheduleFieldIdSync(index: number) {
+    const prev = idSyncTimersRef.current.get(index);
+    if (prev) clearTimeout(prev);
+    const t = setTimeout(() => {
+      idSyncTimersRef.current.delete(index);
+      syncFieldIdFromLabel(index);
+    }, ID_SYNC_DEBOUNCE_MS);
+    idSyncTimersRef.current.set(index, t);
+  }
+
+  function flushFieldIdSync(index: number) {
+    const prev = idSyncTimersRef.current.get(index);
+    if (prev) {
+      clearTimeout(prev);
+      idSyncTimersRef.current.delete(index);
+    }
+    syncFieldIdFromLabel(index);
   }
 
   function updateField(index: number, patch: Partial<FormFieldConfig>) {
@@ -47,13 +138,16 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
   }
 
   function addField() {
+    const idx = schema.fields.length;
+    const tentative = labelToId("New Field", idx);
+    const nextId = makeUniqueFieldId(tentative, schema.fields, idx);
     const fields = [
       ...schema.fields,
       {
-        id: `field_${schema.fields.length + 1}`,
+        id: nextId,
         type: "text" as const,
         label: "New Field",
-        order: schema.fields.length + 1,
+        order: idx + 1,
       },
     ];
     onChange({ fields });
@@ -231,7 +325,7 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
               : [];
           return (
             <div
-              key={`${field.id}-${index}`}
+              key={field.id}
               className={`flex items-start justify-between gap-2 rounded-md border bg-white p-2 transition-shadow ${
                 isDragging
                   ? "border-amber-500 shadow-lg shadow-amber-100"
@@ -261,25 +355,31 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
                   <span className="h-[2px] w-4 rounded bg-current" />
                 </span>
               </button>
-            <div className="flex-1 space-y-2 text-md">
+            <div
+              className="flex-1 space-y-2 text-md"
+              onPointerDownCapture={(e) => {
+                if (dragIndex !== null) e.stopPropagation();
+              }}
+            >
               <RichTextEditor
                 label="Field label (rich text – use toolbar for color, font size, etc.)"
                 value={field.label ?? ""}
                 onChange={(html) => {
                   const newLabel = html as string;
-                  const shouldUpdateId =
-                    !field.id || field.id.startsWith("field_");
-                  updateField(index, {
-                    label: newLabel,
-                    ...(shouldUpdateId
-                      ? { id: labelToId(newLabel, index) }
-                      : {}),
-                  });
+                  updateField(index, { label: newLabel });
+                  scheduleFieldIdSync(index);
                 }}
+                onBlur={() => flushFieldIdSync(index)}
                 placeholder="Question or field label"
                 fontOptions={editorFonts}
                 height={130}
               />
+              <p className="text-[12px] text-zinc-500">
+                Field key (saved on leads / webhooks):{" "}
+                <code className="rounded bg-zinc-100 px-1 font-mono text-[13px] text-zinc-800">
+                  {field.id}
+                </code>
+              </p>
               <div className="flex flex-wrap gap-2 items-center">
                 <select
                   className="rounded border border-zinc-300 px-2 py-1"
