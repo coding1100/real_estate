@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
+import { deferUntilAfterLcpOrLoad } from "@/lib/deferNonCriticalScript";
 
 const SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
@@ -13,27 +14,93 @@ declare global {
   }
 }
 
+let recaptchaReadyPromise: Promise<void> | null = null;
+
+function injectRecaptchaScript(): Promise<void> {
+  if (!SITE_KEY) return Promise.resolve();
+
+  const selector = `script[data-recaptcha-deferred="${SITE_KEY}"]`;
+
+  return new Promise<void>((resolve, reject) => {
+    if (typeof window !== "undefined" && window.grecaptcha) {
+      resolve(undefined);
+      return;
+    }
+
+    const existing = document.querySelector<HTMLScriptElement>(selector);
+    if (existing) {
+      if (window.grecaptcha) {
+        resolve(undefined);
+        return;
+      }
+      existing.addEventListener("load", () => resolve(undefined), { once: true });
+      existing.addEventListener(
+        "error",
+        () => reject(new Error("reCAPTCHA script failed")),
+        { once: true },
+      );
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = `https://www.google.com/recaptcha/api.js?render=${SITE_KEY}`;
+    script.async = true;
+    script.defer = true;
+    script.setAttribute("data-recaptcha-deferred", SITE_KEY);
+    script.addEventListener("load", () => resolve(), { once: true });
+    script.addEventListener(
+      "error",
+      () => reject(new Error("reCAPTCHA script failed")),
+      { once: true },
+    );
+    document.head.appendChild(script);
+  }).then(() => {
+    if (!SITE_KEY || !window.grecaptcha) return undefined;
+    return new Promise<void>((resolve) => {
+      window.grecaptcha!.ready(() => resolve(undefined));
+    });
+  });
+}
+
+/** Loads api.js if needed (e.g. user submits before deferred prefetch runs). */
+export function ensureRecaptchaReady(): Promise<void> {
+  if (!SITE_KEY) return Promise.resolve();
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.grecaptcha) {
+    return new Promise<void>((resolve) => {
+      window.grecaptcha!.ready(() => resolve());
+    });
+  }
+  if (!recaptchaReadyPromise) {
+    recaptchaReadyPromise = injectRecaptchaScript().catch((e) => {
+      recaptchaReadyPromise = null;
+      throw e;
+    });
+  }
+  return recaptchaReadyPromise;
+}
+
 export function useRecaptcha() {
   const execute = useCallback(async (action: string) => {
     if (!SITE_KEY) {
-      // No site key configured; skip CAPTCHA in development.
       return null;
     }
 
-    if (typeof window === "undefined" || !window.grecaptcha) {
+    try {
+      await ensureRecaptchaReady();
+    } catch {
       return null;
     }
 
-    return new Promise<string | null>((resolve) => {
-      window.grecaptcha!.ready(async () => {
-        try {
-          const token = await window.grecaptcha!.execute(SITE_KEY, { action });
-          resolve(token);
-        } catch {
-          resolve(null);
-        }
-      });
-    });
+    if (!window.grecaptcha) {
+      return null;
+    }
+
+    try {
+      return await window.grecaptcha.execute(SITE_KEY, { action });
+    } catch {
+      return null;
+    }
   }, []);
 
   return { execute };
@@ -44,55 +111,10 @@ export function RecaptchaScript() {
     if (!SITE_KEY) return;
     if (typeof window === "undefined") return;
 
-    const inject = () => {
-      if (document.querySelector(`script[data-recaptcha-deferred="${SITE_KEY}"]`)) {
-        return;
-      }
-      const script = document.createElement("script");
-      script.src = `https://www.google.com/recaptcha/api.js?render=${SITE_KEY}`;
-      script.async = true;
-      script.defer = true;
-      script.setAttribute("data-recaptcha-deferred", SITE_KEY);
-      document.head.appendChild(script);
-    };
-
-    const runAfterLoad = () => {
-      if ("requestIdleCallback" in window) {
-        const idleId = (window as Window & { requestIdleCallback: typeof requestIdleCallback }).requestIdleCallback(
-          () => {
-            inject();
-          },
-          { timeout: 5000 },
-        );
-        return () => {
-          if ("cancelIdleCallback" in window) {
-            (window as Window & { cancelIdleCallback: typeof cancelIdleCallback }).cancelIdleCallback(idleId);
-          }
-        };
-      }
-      const timeoutId = setTimeout(inject, 0);
-      return () => clearTimeout(timeoutId);
-    };
-
-    let cleanup: (() => void) | undefined;
-    if (document.readyState === "complete") {
-      cleanup = runAfterLoad();
-    } else {
-      const onLoad = () => {
-        cleanup = runAfterLoad();
-      };
-      window.addEventListener("load", onLoad, { once: true });
-      return () => {
-        window.removeEventListener("load", onLoad);
-        cleanup?.();
-      };
-    }
-
-    return () => {
-      cleanup?.();
-    };
+    return deferUntilAfterLcpOrLoad(() => {
+      void ensureRecaptchaReady().catch(() => {});
+    });
   }, []);
 
   return null;
 }
-
