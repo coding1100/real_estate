@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect, FormEvent } from "react";
-import Image from "next/image";
 import Script from "next/script";
 import { Search } from "lucide-react";
 import type { LandingPageContent } from "@/lib/types/page";
@@ -10,6 +9,7 @@ import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
 import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 import { DynamicForm } from "@/components/forms/DynamicForm";
 import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
+import { HeroBackgroundImage } from "@/components/templates/HeroBackgroundImage";
 
 type SearchState = "idle" | "found" | "error";
 
@@ -160,13 +160,9 @@ export function HomeValueExperience({
       {/* Hero background image with warm gradient overlay */}
       {page.heroImageUrl && (
         <div className="pointer-events-none inset-0 z-0 max-h-[42vh] min-[768px]:max-h-[500px]">
-          <Image
+          <HeroBackgroundImage
             src={page.heroImageUrl}
             alt={page.headline}
-            fill
-            priority
-            quality={50}
-            sizes="100vw"
             className="object-cover min-[768px]:!max-h-[800px]"
           />
           <div className="absolute inset-0 max-h-[50vh] min-[768px]:h-[800px]" />
