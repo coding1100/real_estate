@@ -296,7 +296,7 @@ export function PropertyFindingStep({
             )}
           </div>
         </div>
-        <div className="mx-auto mt-6 grid max-w-6xl grid-cols-1 gap-6 min-[768px]:mt-[-340px] min-[768px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] min-[768px]:items-start">
+        <div className="mx-auto mt-6 grid max-w-6xl w-full grid-cols-1 gap-6 min-[768px]:mt-[-340px] min-[768px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] min-[768px]:items-start">
           <div className="order-2 min-w-0 overflow-hidden rounded-2xl min-[768px]:order-1 min-[768px]:mt-[230px]">
             {mapSrc ? (
               <div className="relative aspect-[4/3] w-full min-h-[200px] min-[768px]:aspect-auto">
