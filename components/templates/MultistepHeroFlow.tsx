@@ -11,6 +11,7 @@ import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
 import { useRecaptcha } from "@/components/forms/Captcha";
 import { useToast } from "@/components/ui/use-toast";
 import { PropertyFindingStep } from "@/components/templates/HomeValueMultistepFlow";
+import { HeroBackgroundImage } from "@/components/templates/HeroBackgroundImage";
 
 interface LayoutItem {
   i: string;
@@ -253,13 +254,9 @@ export function MultistepHeroFlow({
     >
       {(mainPage.heroImageUrl || step.heroImageUrl) && (
         <div className="pointer-events-none inset-0 fixed top-0 left-0 right-0 bottom-0">
-          <Image
+          <HeroBackgroundImage
             src={(step.heroImageUrl || mainPage.heroImageUrl) as string}
             alt={step.headline}
-            fill
-            priority
-            quality={50}
-            sizes="100vw"
             className="object-cover filter brightness-65"
           />
         </div>
