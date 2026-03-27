@@ -159,7 +159,7 @@ export function HomeValueExperience({
 
       {/* Hero background image with warm gradient overlay */}
       {page.heroImageUrl && (
-        <div className="pointer-events-none inset-0 z-0 max-h-[500px]">
+        <div className="pointer-events-none inset-0 z-0 max-h-[42vh] min-[768px]:max-h-[500px]">
           <Image
             src={page.heroImageUrl}
             alt={page.headline}
@@ -167,19 +167,19 @@ export function HomeValueExperience({
             priority
             quality={50}
             sizes="100vw"
-            className="object-cover !max-h-[800px]"
+            className="object-cover min-[768px]:!max-h-[800px]"
           />
-          <div className="absolute inset-0 h-[800px]" />
+          <div className="absolute inset-0 max-h-[50vh] min-[768px]:h-[800px]" />
         </div>
       )}
 
-      <div className="relative z-10 mx-auto  flex-col px-4 pt-[140px] pb-10 md:px-0 md:pb-12">
+      <div className="relative z-10 mx-auto flex flex-col px-4 pt-[120px] pb-8 min-[768px]:px-6 min-[768px]:pt-[140px] min-[768px]:pb-12 lg:px-8">
         {/* Hero copy + search bar */}
-        <div className="mx-auto  text-center h-[660px] max-w-6xl mx-auto">
+        <div className="mx-auto w-full max-w-6xl text-center min-h-0 max-[767px]:mb-6 min-[768px]:min-h-[min(100vh,660px)]">
           {hasHeroRichText ? (
             <div
-              className="space-y-2 text-amber-50"
-                dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(layout!.leftMainHtml as string) }}
+              className="space-y-2 break-words text-amber-50"
+              dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(layout!.leftMainHtml as string) }}
             />
           ) : (
             <>
@@ -196,9 +196,9 @@ export function HomeValueExperience({
 
           <form
             onSubmit={handleSearch}
-            className="mt-6 flex flex-col items-stretch md:flex-row md:items-center"
+            className="mt-6 flex flex-col items-stretch gap-2 min-[768px]:flex-row min-[768px]:items-center min-[768px]:gap-0"
           >
-            <div className="relative flex-1 text-left">
+            <div className="relative min-w-0 flex-1 text-left">
               <label
                 htmlFor="home-value-experience-address"
                 className="sr-only"
@@ -215,12 +215,12 @@ export function HomeValueExperience({
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="61311 McRoberts Ln, Bend, OR 97702"
-                className="w-full rounded-xl  rounded-tl-[5px] rounded-bl-[5px]  py-2.5 pl-3 pr-9 text-md focus:outline-none focus:ring-0 h-[46px] shadow-sm placeholder:text-[#453D3D] text-[#453D3D] !bg-[#ebe4e2]"
+                className="h-[46px] w-full min-w-0 rounded-xl rounded-b-none py-2.5 pl-3 pr-9 text-base focus:outline-none focus:ring-0 shadow-sm placeholder:text-[#453D3D] text-[#453D3D] !bg-[#ebe4e2] min-[768px]:rounded-br-none min-[768px]:rounded-tr-none min-[768px]:rounded-tl-[5px] min-[768px]:rounded-bl-[5px] min-[768px]:text-md"
               />
             </div>
             <button
               type="submit"
-              className="inline-flex !h-[46px] items-center justify-center rounded-xl bg-[#5B4534] px-6 py-2.5 text-sm font-medium text-amber-50 shadow-md shadow-amber-900/40 transition disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex h-[46px] w-full shrink-0 items-center justify-center rounded-xl rounded-t-none bg-[#5B4534] px-6 py-2.5 text-sm font-medium text-amber-50 shadow-md shadow-amber-900/40 transition disabled:cursor-not-allowed disabled:opacity-70 min-[768px]:w-auto min-[768px]:rounded-xl min-[768px]:rounded-tl-none min-[768px]:rounded-bl-none"
             >
               Next
             </button>
@@ -230,7 +230,7 @@ export function HomeValueExperience({
           )}
         </div>
         <div className="w-full bg-[#cdbfbc]">
-          <div className="mx-auto h-[100px] max-w-6xl px-0 py-[36px]">
+          <div className="mx-auto flex min-h-[100px] max-w-6xl items-center px-4 py-6 min-[768px]:px-6 min-[768px]:py-9 lg:px-8">
             {lowerStripHtml ? (
               <div
                 className="text-[13px] leading-snug text-[#433124]"
@@ -243,21 +243,23 @@ export function HomeValueExperience({
             )}
           </div>
         </div>
-        {/* Main content: map + lead form */}
-        <div className="mt-10 grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] md:items-start mt-[-340px] max-w-6xl  mx-auto">
-          {/* Left: map */}
-          <div className="overflow-hidden rounded-2xl mt-[230px]">
+        {/* Main content: map + lead form (form first on small screens) */}
+        <div className="mx-auto mt-6 grid max-w-6xl grid-cols-1 gap-6 min-[768px]:mt-[-340px] min-[768px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] min-[768px]:items-start">
+          {/* Map */}
+          <div className="order-2 min-w-0 overflow-hidden rounded-2xl min-[768px]:order-1 min-[768px]:mt-[230px]">
             {mapSrc ? (
-              <iframe
-                key={mapSrc}
-                title={result?.address || "Property map"}
-                src={mapSrc}
-                className="h-[320px] w-full md:h-[380px]"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
+              <div className="relative aspect-[4/3] w-full min-h-[200px] min-[768px]:aspect-auto">
+                <iframe
+                  key={mapSrc}
+                  title={result?.address || "Property map"}
+                  src={mapSrc}
+                  className="absolute inset-0 h-full w-full rounded-2xl border-0 min-[768px]:relative min-[768px]:h-[380px]"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
             ) : hasFooterText ? (
-              <div className="flex h-[280px] w-full flex-col items-center justify-center px-3 text-center md:h-[440px]">
+              <div className="flex min-h-[220px] w-full flex-col items-center justify-center px-3 py-8 text-center md:min-h-[440px]">
                 <div
                   className="max-w-lg text-sm text-amber-100/95"
                   dangerouslySetInnerHTML={{
@@ -266,7 +268,7 @@ export function HomeValueExperience({
                 />
               </div>
             ) : (
-              <div className="flex h-[280px] w-full flex-col items-center justify-center gap-3  px-6 text-center md:h-[340px]">
+              <div className="flex min-h-[220px] w-full flex-col items-center justify-center gap-3 px-4 py-8 text-center md:min-h-[340px] md:px-6">
                 <p className="font-serif text-lg font-semibold text-amber-50">
                   Private. Confidential. No automated spam.
                 </p>
@@ -278,10 +280,10 @@ export function HomeValueExperience({
             )}
           </div>
 
-          {/* Right: form card */}
-          <div className="relative">
+          {/* Form card */}
+          <div className="relative order-1 min-w-0 min-[768px]:order-2">
             <div
-              className="rounded-[2px] border border-amber-100/40 bg-amber-50/95 p-5 w-full"
+              className="w-full rounded-[2px] border border-amber-100/40 bg-amber-50/95 p-4 min-[768px]:p-5"
               style={formBgStyle}
             >
               {hasFormHeading ? (
