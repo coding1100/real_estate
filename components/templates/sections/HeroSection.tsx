@@ -10,6 +10,7 @@ import { normalizeCtaTitleKey } from "@/lib/types/ctaForwarding";
 import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 import { DynamicForm } from "@/components/forms/DynamicForm";
 import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
+import { HeroBackgroundImage } from "@/components/templates/HeroBackgroundImage";
 
 type FormStyle =
   | "default"
@@ -151,13 +152,9 @@ export function HeroSection({
       <section className="relative text-white min-h-[calc(100vh_-_85px)] pt-[120px] max-[768px]:pt-20">
         {page.heroImageUrl && (
           <div className="pointer-events-none inset-0 fixed top-0 left-0 right-0 bottom-0">
-            <Image
+            <HeroBackgroundImage
               src={page.heroImageUrl}
               alt={page.headline}
-              fill
-              priority
-              quality={50}
-              sizes="100vw"
               className="object-cover brightness-[0.58]"
             />
           </div>
@@ -279,13 +276,9 @@ export function HeroSection({
     <section className="relative text-white min-h-[calc(100vh_-_85px)] pt-[120px] max-[768px]:pt-20">
       {page.heroImageUrl && (
         <div className="pointer-events-none inset-0 fixed top-0 left-0 right-0 bottom-0">
-          <Image
+          <HeroBackgroundImage
             src={page.heroImageUrl}
             alt={page.headline}
-            fill
-            priority
-            quality={50}
-            sizes="100vw"
             className="object-cover filter brightness-65"
           />
         </div>
