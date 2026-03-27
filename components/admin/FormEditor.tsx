@@ -41,6 +41,11 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
     onChange({ fields });
   }
 
+  function getPlainLabel(field: FormFieldConfig): string {
+    const base = stripHtml(field.label ?? "");
+    return base || field.id;
+  }
+
   function addField() {
     const fields = [
       ...schema.fields,
@@ -212,6 +217,18 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
       <div className="space-y-3">
         {schema.fields.map((field, index) => {
           const isDragging = dragIndex === index;
+          const otherFields = schema.fields.filter((_, i) => i !== index);
+          const visibility = (field as any).visibility as
+            | { whenFieldId: string; equals: string }
+            | undefined;
+          const controlling =
+            visibility && visibility.whenFieldId
+              ? otherFields.find((f) => f.id === visibility.whenFieldId)
+              : undefined;
+          const controllingOptions =
+            controlling && Array.isArray((controlling as any).options)
+              ? ((controlling as any).options as Array<{ value: string; label: string }>)
+              : [];
           return (
             <div
               key={`${field.id}-${index}`}
@@ -318,6 +335,114 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
                   </label>
                 )}
               </div>
+
+              <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[14px] font-medium text-zinc-700">
+                      Conditional visibility (If / Then)
+                    </p>
+                    <p className="text-[12px] text-zinc-500">
+                      Show this field only when another field matches a value.
+                      Hidden fields are not required and won’t block submission.
+                    </p>
+                  </div>
+                  <label className="inline-flex items-center gap-2 text-[13px] text-zinc-700">
+                    <input
+                      type="checkbox"
+                      checked={!!visibility}
+                      onChange={(e) => {
+                        if (!e.target.checked) {
+                          updateField(index, { visibility: undefined } as any);
+                          return;
+                        }
+                        const firstOther = otherFields[0];
+                        const defaultWhen = firstOther?.id ?? "";
+                        const defaultEquals =
+                          firstOther?.options?.[0]?.value ??
+                          "";
+                        updateField(index, {
+                          visibility: {
+                            whenFieldId: defaultWhen,
+                            equals: defaultEquals,
+                          },
+                        } as any);
+                      }}
+                    />
+                    <span>Enable</span>
+                  </label>
+                </div>
+
+                {visibility && (
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <label className="block text-[13px] text-zinc-700">
+                      <span className="font-medium">Depends on</span>
+                      <select
+                        className="mt-1 w-full rounded border border-zinc-300 bg-white px-2 py-1 text-[13px]"
+                        value={visibility.whenFieldId}
+                        onChange={(e) => {
+                          const nextWhen = e.target.value;
+                          const nextCtrl = otherFields.find((f) => f.id === nextWhen);
+                          const nextEquals = nextCtrl?.options?.[0]?.value ?? "";
+                          updateField(index, {
+                            visibility: { whenFieldId: nextWhen, equals: nextEquals },
+                          } as any);
+                        }}
+                      >
+                        {otherFields.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {getPlainLabel(f)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="block text-[13px] text-zinc-700">
+                      <span className="font-medium">Equals</span>
+                      {controllingOptions.length > 0 ? (
+                        <select
+                          className="mt-1 w-full rounded border border-zinc-300 bg-white px-2 py-1 text-[13px]"
+                          value={visibility.equals}
+                          onChange={(e) =>
+                            updateField(index, {
+                              visibility: {
+                                whenFieldId: visibility.whenFieldId,
+                                equals: e.target.value,
+                              },
+                            } as any)
+                          }
+                        >
+                          {controllingOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label || opt.value}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          className="mt-1 w-full rounded border border-zinc-300 bg-white px-2 py-1 text-[13px]"
+                          value={visibility.equals}
+                          onChange={(e) =>
+                            updateField(index, {
+                              visibility: {
+                                whenFieldId: visibility.whenFieldId,
+                                equals: e.target.value,
+                              },
+                            } as any)
+                          }
+                          placeholder="Value to match"
+                        />
+                      )}
+                    </label>
+                    <div className="md:col-span-2 text-[12px] text-zinc-500">
+                      Example: Show <span className="font-mono">{field.id}</span> when{" "}
+                      <span className="font-mono">{visibility.whenFieldId}</span> equals{" "}
+                      <span className="font-mono">{visibility.equals || "(empty)"}</span>.
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {(field.type === "select" || field.type === "radio" || field.type === "checkbox") && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">

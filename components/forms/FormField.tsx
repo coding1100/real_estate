@@ -2,6 +2,7 @@
 
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import type { FormFieldConfig } from "@/lib/types/form";
+import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 
 type FormStyle = "default" | "questionnaire" | "detailed-perspective";
 
@@ -24,10 +25,52 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
     optionalSection,
     boxedStyle,
   } = field;
-  const error = errors[id]?.message as string | undefined;
+  // Some saved form schemas reuse the same id for multiple different field types
+  // (e.g. `id: "p"` for both a radio and a phone input). react-hook-form treats
+  // identical ids as the same field key, which causes duplicate/misplaced
+  // validation errors.
+  //
+  // Convention: use single-letter ids by input type when collisions happen:
+  // - radio => "r"
+  // - phone => "p"
+  // (email commonly already uses "e" in working schemas)
+  const effectiveId =
+    id === "p"
+      ? type === "radio"
+        ? "r"
+        : // phone stays "p"; other types keep their original id.
+          id
+      : id;
+
+  const error = errors[effectiveId]?.message as string | undefined;
+  const normalizedId = id?.toLowerCase?.() ?? "";
+  // Phone validation should apply ONLY to fields explicitly configured as type="phone".
+  // This prevents accidental validation of other fields whose ids may contain "phone".
+  const looksLikePhone = type === "phone";
+
+  function sanitizePhoneInput(value: string): string {
+    // Allow only digits + common separators (spaces, +, -, parentheses).
+    let v = value.replace(/[^0-9+\-()\s]/g, "");
+
+    // Keep '+' only at the beginning (ignoring leading spaces).
+    const leading = v.match(/^\s*/)?.[0] ?? "";
+    const rest = v.slice(leading.length);
+    if (rest.includes("+")) {
+      if (rest[0] !== "+") {
+        v = leading + rest.replace(/\+/g, "");
+      } else {
+        v = leading + "+" + rest.slice(1).replace(/\+/g, "");
+      }
+    }
+
+    // Do NOT truncate digits. Let validation decide based on exact
+    // US length (10 digits or 11 starting with "1").
+    return v;
+  }
+
 
   if (type === "hidden") {
-    return <input type="hidden" {...register(id)} />;
+    return <input type="hidden" {...register(effectiveId)} />;
   }
 
   const baseClass =
@@ -43,17 +86,17 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
   const fieldContent =
     type === "textarea" ? (
       <textarea
-        id={id}
+            id={effectiveId}
         rows={1}
         placeholder={placeholder}
         className={baseClass}
-        {...register(id, { required })}
+            {...register(effectiveId, { required })}
       />
     ) : type === "select" ? (
       <select
-        id={id}
+        id={effectiveId}
         className={baseClass}
-        {...register(id, { required })}
+        {...register(effectiveId, { required })}
         defaultValue=""
       >
         <option value="" disabled>
@@ -76,7 +119,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
                   type="radio"
                   value={opt.value}
                   className="form-radio-check-detailed-hidden sr-only peer"
-                  {...register(id, { required })}
+                  {...register(effectiveId, { required })}
                 />
                 <span className="flex-1 leading-relaxed peer-checked:font-medium">{opt.label}</span>
               </label>
@@ -94,7 +137,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
                 type="radio"
                 value={opt.value}
                 className={radioCheckClass}
-                {...register(id, { required })}
+                  {...register(effectiveId, { required })}
               />
               <span className="min-w-0 break-words">{opt.label}</span>
             </label>
@@ -112,7 +155,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
                   type="checkbox"
                   value={opt.value}
                   className="peer sr-only"
-                  {...register(id, { required })}
+                  {...register(effectiveId, { required })}
                 />
                 <span className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 leading-relaxed shadow-sm transition peer-checked:border-amber-800 peer-checked:bg-amber-50">
                   {opt.label}
@@ -132,7 +175,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
                 type="checkbox"
                 value={opt.value}
                 className={radioCheckClass}
-                {...register(id, { required })}
+                  {...register(effectiveId, { required })}
               />
               <span className="min-w-0 break-words">{opt.label}</span>
             </label>
@@ -140,32 +183,78 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
         </div>
       )
     ) : (
-      <input
-        id={id}
-        type={type === "email" ? "email" : "text"}
-        placeholder={placeholder}
-        className={baseClass}
-        {...register(id, { required })}
-      />
+      (() => {
+        const commonRequired = required ? "This field is required" : false;
+        const reg = (() => {
+          if (looksLikePhone) {
+            return register(id, {
+              required: commonRequired,
+              validate: (value) => {
+                const raw = typeof value === "string" ? value : String(value ?? "");
+                const trimmed = raw.trim();
+                if (!trimmed) return true; // let `required` handle empty values
+
+                // Only allow typical phone characters: digits, spaces, +, -, parentheses
+                if (!/^[0-9+\-()\s]+$/.test(trimmed)) {
+                  return "Phone number can only include digits, spaces, +, -, and parentheses.";
+                }
+                if (trimmed.includes("+") && !trimmed.startsWith("+")) {
+                  return "If using country code, '+' must be at the beginning (e.g., +1 202 555 0132).";
+                }
+
+                const digits = trimmed.replace(/\D/g, "");
+                // US formats:
+                // - 10 digits: 2025550132
+                // - optional country code 1: 12025550132
+                if (digits.length === 10) return true;
+                if (digits.length === 11 && digits.startsWith("1")) return true;
+                return "Please enter a valid phone number (e.g., 202-555-0132 or +1 202 555 0132).";
+              },
+            });
+          }
+
+          return register(effectiveId, { required });
+        })();
+
+        const { onChange: rhfOnChange, ...regRest } = reg;
+        // Only phone gets special validation/sanitization; email stays as generic text.
+        const inputType = looksLikePhone ? "tel" : "text";
+
+        return (
+          <input
+            id={effectiveId}
+            type={inputType}
+            placeholder={placeholder}
+            className={baseClass}
+            {...regRest}
+            onChange={(e) => {
+              if (looksLikePhone) {
+                e.target.value = sanitizePhoneInput(e.target.value);
+              }
+              rhfOnChange?.(e);
+            }}
+          />
+        );
+      })()
     );
 
-  const wrapperClass = type === "radio" || type === "checkbox" ? "space-y-2" : "space-y-1";
+  const wrapperClass = type === "radio" || type === "checkbox" ? "space-y-1" : "space-y-0.5";
   const outerClass = 
     formStyle === "detailed-perspective" && type === "radio"
       ? "space-y-0"
       : type === "radio" || type === "textarea"
-      ? "space-y-3"
-      : "space-y-2";
+      ? "space-y-1.5"
+      : "space-y-1";
 
   if (type === "textarea" && optionalSection) {
     return (
       <div className={outerClass}>
-        <div className="rounded-lg bg-[#fef6f6] backdrop-blur-sm border border-zinc-200/80 shadow-sm p-4 space-y-3">
+        <div className="rounded-lg bg-[#fef6f6] backdrop-blur-sm border border-zinc-200/80 shadow-sm p-3 space-y-2">
           {label && (
-            <p className="text-sm font-semibold text-zinc-800 font-serif" dangerouslySetInnerHTML={{ __html: label }} />
+            <p className="text-sm font-semibold text-zinc-800 font-serif" dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(label) }} />
           )}
           {helperText && (
-            <p className="text-sm text-zinc-700 font-serif" dangerouslySetInnerHTML={{ __html: helperText }} />
+            <p className="text-sm text-zinc-700 font-serif" dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(helperText) }} />
           )}
           <textarea
             id={id}
@@ -185,13 +274,13 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
       <div className={wrapperClass}>
         {label && (
           <label htmlFor={id} className={labelClass}>
-            <span dangerouslySetInnerHTML={{ __html: label }} />
+            <span dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(label) }} />
           </label>
         )}
         {fieldContent}
       </div>
       {helperText && !error && (
-        <p className="text-md text-zinc-500 font-serif" dangerouslySetInnerHTML={{ __html: helperText }} />
+        <p className="text-md text-zinc-500 font-serif" dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(helperText) }} />
       )}
       {error && <p className="text-md text-red-500">{error}</p>}
     </div>

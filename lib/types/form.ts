@@ -14,6 +14,13 @@ export interface FormFieldOption {
   label: string;
 }
 
+export interface FieldVisibilityRule {
+  /** The controlling field id in the same schema. */
+  whenFieldId: string;
+  /** Show this field only when controlling field equals this value. */
+  equals: string;
+}
+
 export interface FormFieldConfig {
   id: string;
   type: FormFieldType;
@@ -27,6 +34,11 @@ export interface FormFieldConfig {
   optionalSection?: boolean;
   /** When true, render this field using a boxed, stacked style (radios/checkboxes) */
   boxedStyle?: boolean;
+  /**
+   * Conditional visibility rule.
+   * When set, the field is only shown when another field matches the rule.
+   */
+  visibility?: FieldVisibilityRule;
 }
 
 export interface FormSchema {

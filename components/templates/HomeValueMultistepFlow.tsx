@@ -6,6 +6,8 @@ import Script from "next/script";
 import { Search } from "lucide-react";
 import type { LandingPageContent } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
+import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
+import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 import { DynamicForm } from "@/components/forms/DynamicForm";
 import { useRecaptcha, RecaptchaScript } from "@/components/forms/Captcha";
 import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
@@ -24,7 +26,8 @@ type FormStyle =
   | "default"
   | "questionnaire"
   | "detailed-perspective"
-  | "next-steps";
+  | "next-steps"
+  | "team-showcase";
 
 interface HeroLayoutConfig {
   formIntro?: string;
@@ -240,7 +243,7 @@ export function PropertyFindingStep({
             <div
               className="space-y-2 text-amber-50"
               dangerouslySetInnerHTML={{
-                __html: layout!.leftMainHtml as string,
+                __html: wrapLegalSignsHtml(layout!.leftMainHtml as string),
               }}
             />
           ) : (
@@ -293,7 +296,7 @@ export function PropertyFindingStep({
             {lowerStripHtml ? (
               <div
                 className="text-[13px] leading-snug text-[#433124]"
-                dangerouslySetInnerHTML={{ __html: lowerStripHtml }}
+                dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(lowerStripHtml) }}
               />
             ) : (
               <p className="text-[13px] leading-snug text-[#433124]">
@@ -318,7 +321,7 @@ export function PropertyFindingStep({
                 <div
                   className="max-w-lg text-sm text-amber-100/95"
                   dangerouslySetInnerHTML={{
-                    __html: layout!.formFooterText as string,
+                    __html: wrapLegalSignsHtml(layout!.formFooterText as string),
                   }}
                 />
               </div>
@@ -344,7 +347,7 @@ export function PropertyFindingStep({
                 <div
                   className="font-serif text-lg font-semibold leading-tight text-amber-900"
                   dangerouslySetInnerHTML={{
-                    __html: layout!.formHeading as string,
+                    __html: wrapLegalSignsHtml(layout!.formHeading as string),
                   }}
                 />
               ) : (
@@ -372,7 +375,7 @@ export function PropertyFindingStep({
                       <div
                         className="mt-2 text-xs text-amber-800/80"
                         dangerouslySetInnerHTML={{
-                          __html: layout!.formIntro as string,
+                          __html: wrapLegalSignsHtml(layout!.formIntro as string),
                         }}
                       />
                     )}
@@ -401,6 +404,7 @@ interface HomeValueMultistepFlowProps {
    */
   layoutData?: LayoutItem[] | null;
   utmHiddenFields?: Record<string, string | undefined>;
+  ctaForwardingRules?: CtaForwardingRule[];
 }
 
 export function HomeValueMultistepFlow({
@@ -408,6 +412,7 @@ export function HomeValueMultistepFlow({
   steps,
   layoutData,
   utmHiddenFields,
+  ctaForwardingRules,
 }: HomeValueMultistepFlowProps) {
   // Normalize steps list and drop any step whose slug matches the entry page
   // slug. This prevents an extra \"copy\" of the entry page from appearing
@@ -718,14 +723,14 @@ export function HomeValueMultistepFlow({
         </div>
       )}
 
-      <div className="mx-auto flex h-full max-w-6xl flex-col justify-start gap-8 px-4 pt-8 pb-6 max-[768px]:px-4 md:gap-10 md:px-0 md:pt-10 md:pb-8">
+      <div className="mx-auto flex h-full max-w-6xl flex-col justify-start gap-8 px-4 pb-6 max-[768px]:px-4 md:gap-10 md:px-0 md:pb-8">
         <div className={gridWrapperClass} style={gridWrapperStyle}>
           <div className={textContainerClass} style={textContainerStyle}>
             <div>
               {layout?.leftMainHtml && (
                 <div
                   className="mt-4 space-y-2"
-                  dangerouslySetInnerHTML={{ __html: layout.leftMainHtml }}
+                  dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(layout.leftMainHtml) }}
                 />
               )}
             </div>
@@ -740,7 +745,7 @@ export function HomeValueMultistepFlow({
                 {formHeading && (
                   <h2
                     className="mb-5 text-xl font-semibold text-zinc-800 font-serif leading-tight text-center md:text-left"
-                    dangerouslySetInnerHTML={{ __html: formHeading }}
+                    dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(formHeading) }}
                   />
                 )}
                 {isProfileOnlyNextSteps ? (
@@ -765,7 +770,7 @@ export function HomeValueMultistepFlow({
                           <div
                             className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
                             dangerouslySetInnerHTML={{
-                              __html: layout.nextStepsSecondHtml,
+                              __html: wrapLegalSignsHtml(layout.nextStepsSecondHtml),
                             }}
                           />
                         ) : (
@@ -802,7 +807,7 @@ export function HomeValueMultistepFlow({
                       >
                         <span
                           dangerouslySetInnerHTML={{
-                            __html: step.ctaText ?? mainPage.ctaText,
+                            __html: wrapLegalSignsHtml(step.ctaText ?? mainPage.ctaText),
                           }}
                         />
                       </button>
@@ -815,7 +820,7 @@ export function HomeValueMultistepFlow({
                         <div
                           className="text-xs text-zinc-700 font-serif leading-relaxed text-center"
                           dangerouslySetInnerHTML={{
-                            __html: layout.formFooterText ?? "",
+                            __html: wrapLegalSignsHtml(layout.formFooterText ?? ""),
                           }}
                         />
                       )}
@@ -863,7 +868,7 @@ export function HomeValueMultistepFlow({
                             <div
                               className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
                               dangerouslySetInnerHTML={{
-                                __html: layout.nextStepsSecondHtml,
+                                __html: wrapLegalSignsHtml(layout.nextStepsSecondHtml),
                               }}
                             />
                           ) : (
@@ -896,7 +901,7 @@ export function HomeValueMultistepFlow({
                             <div
                               className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
                               dangerouslySetInnerHTML={{
-                                __html: layout.formIntro ?? "",
+                                __html: wrapLegalSignsHtml(layout.formIntro ?? ""),
                               }}
                             />
                           )}
@@ -913,7 +918,7 @@ export function HomeValueMultistepFlow({
                           >
                             <span
                               dangerouslySetInnerHTML={{
-                                __html: step.ctaText ?? mainPage.ctaText,
+                                __html: wrapLegalSignsHtml(step.ctaText ?? mainPage.ctaText),
                               }}
                             />
                           </button>
@@ -926,7 +931,7 @@ export function HomeValueMultistepFlow({
                             <div
                               className="text-xs text-zinc-700 font-serif leading-relaxed text-center"
                               dangerouslySetInnerHTML={{
-                                __html: layout.formFooterText ?? "",
+                                __html: wrapLegalSignsHtml(layout.formFooterText ?? ""),
                               }}
                             />
                           )}
@@ -952,13 +957,13 @@ export function HomeValueMultistepFlow({
                     {formHeading && (
                       <h2
                         className="text-xl font-semibold text-zinc-800 font-serif leading-tight"
-                        dangerouslySetInnerHTML={{ __html: formHeading }}
+                        dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(formHeading) }}
                       />
                     )}
                     {layout?.formIntro?.trim() && (
                       <p
                         className="text-sm text-zinc-700 font-serif leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: layout.formIntro }}
+                        dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(layout.formIntro) }}
                       />
                     )}
                     <>
@@ -982,6 +987,9 @@ export function HomeValueMultistepFlow({
                         }
                         onNextStep={isLastStep ? undefined : handleNextStep}
                         skipValidationForNextStep={false}
+                        ctaForwardingRules={
+                          isLastStep ? ctaForwardingRules : undefined
+                        }
                       />
                       <SocialLinksBar
                         base={mainPage.domain}
@@ -993,7 +1001,7 @@ export function HomeValueMultistepFlow({
                   <div className="space-y-4 relative flex flex-col justify-center">
                     <div className="w-full px-[25px] pt-[30px] pb-[70px] break-all relative border border-[#cbb1a7ab] pr-[44%] flex flex-col justify-center max-[768px]:pr-4 max-[768px]:pb-4">
                       {layout?.profileImageUrl && (
-                        <div className="absolute h-[265px] w-[220px] -bottom-[0px] -right-[54px] text-transparent rounded-[2px] max-[768px]:relative max-[768px]:h-40 max-[768px]:w-full max-[768px]:bottom-auto max-[768px]:right-auto max-[768px]:mx-0 max-[768px]:mb-3">
+                        <div className="absolute h-[300px] w-[220px]  -bottom-[0px] -right-[54px] text-transparent rounded-[2px] max-[768px]:relative max-[768px]:h-40 max-[768px]:w-full max-[768px]:bottom-auto max-[768px]:right-auto max-[768px]:mx-0 max-[768px]:mb-3">
                           <Image
                             src={layout.profileImageUrl as string}
                             alt={(layout?.profileName as string) || "Profile"}
@@ -1007,7 +1015,7 @@ export function HomeValueMultistepFlow({
                         <div
                           className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
                           dangerouslySetInnerHTML={{
-                            __html: layout.profileSectionHtml,
+                            __html: wrapLegalSignsHtml(layout.profileSectionHtml),
                           }}
                         />
                       ) : (
@@ -1055,7 +1063,7 @@ export function HomeValueMultistepFlow({
                 {layout?.formFooterText?.trim() && (
                   <div
                     className="mt-4 text-sm text-zinc-700 font-serif leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: layout.formFooterText }}
+                    dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(layout.formFooterText) }}
                   />
                 )}
               </div>
@@ -1071,7 +1079,7 @@ export function HomeValueMultistepFlow({
                 {formHeading && (
                   <h2
                     className="mb-4 text-base font-semibold border-b border-[#eadbd3] dot font-serif"
-                    dangerouslySetInnerHTML={{ __html: formHeading }}
+                    dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(formHeading) }}
                   />
                 )}
                 {formSchema && formSchema.fields?.length > 0 ? (
@@ -1088,6 +1096,9 @@ export function HomeValueMultistepFlow({
                       }
                       onNextStep={isLastStep ? undefined : handleNextStep}
                       skipValidationForNextStep={false}
+                      ctaForwardingRules={
+                        isLastStep ? ctaForwardingRules : undefined
+                      }
                     />
                     <SocialLinksBar
                       base={mainPage.domain}
@@ -1104,7 +1115,7 @@ export function HomeValueMultistepFlow({
                   >
                     <span
                       dangerouslySetInnerHTML={{
-                        __html: step.ctaText ?? mainPage.ctaText,
+                        __html: wrapLegalSignsHtml(step.ctaText ?? mainPage.ctaText),
                       }}
                     />
                   </button>
@@ -1112,8 +1123,8 @@ export function HomeValueMultistepFlow({
 
                 {layout?.formIntro?.trim() && (
                   <div
-                    className={`mt-4 text-md text-zinc-500 space-y-2 font-serif text-center`}
-                    dangerouslySetInnerHTML={{ __html: layout.formIntro }}
+                    className={`mt-2 text-md text-zinc-500 space-y-2 font-serif text-center`}
+                    dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(layout.formIntro) }}
                   />
                 )}
               </div>
