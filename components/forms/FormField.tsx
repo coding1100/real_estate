@@ -6,6 +6,9 @@ import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 
 type FormStyle = "default" | "questionnaire" | "detailed-perspective";
 
+// Pragmatic email check (aligned with typical HTML5 email input behavior).
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 interface FormFieldProps {
   field: FormFieldConfig;
   register: UseFormRegister<Record<string, any>>;
@@ -43,10 +46,10 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
       : id;
 
   const error = errors[effectiveId]?.message as string | undefined;
-  const normalizedId = id?.toLowerCase?.() ?? "";
   // Phone validation should apply ONLY to fields explicitly configured as type="phone".
   // This prevents accidental validation of other fields whose ids may contain "phone".
   const looksLikePhone = type === "phone";
+  const looksLikeEmail = type === "email";
 
   function sanitizePhoneInput(value: string): string {
     // Allow only digits + common separators (spaces, +, -, parentheses).
@@ -187,7 +190,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
         const commonRequired = required ? "This field is required" : false;
         const reg = (() => {
           if (looksLikePhone) {
-            return register(id, {
+            return register(effectiveId, {
               required: commonRequired,
               validate: (value) => {
                 const raw = typeof value === "string" ? value : String(value ?? "");
@@ -213,12 +216,26 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
             });
           }
 
+          if (looksLikeEmail) {
+            return register(effectiveId, {
+              required: commonRequired,
+              validate: (value) => {
+                const raw = typeof value === "string" ? value : String(value ?? "");
+                const trimmed = raw.trim();
+                if (!trimmed) return true;
+                if (!EMAIL_PATTERN.test(trimmed)) {
+                  return "Please enter a valid email address.";
+                }
+                return true;
+              },
+            });
+          }
+
           return register(effectiveId, { required });
         })();
 
         const { onChange: rhfOnChange, ...regRest } = reg;
-        // Only phone gets special validation/sanitization; email stays as generic text.
-        const inputType = looksLikePhone ? "tel" : "text";
+        const inputType = looksLikePhone ? "tel" : looksLikeEmail ? "email" : "text";
 
         return (
           <input
@@ -273,7 +290,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
     <div className={outerClass}>
       <div className={wrapperClass}>
         {label && (
-          <label htmlFor={id} className={labelClass}>
+          <label htmlFor={effectiveId} className={labelClass}>
             <span dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(label) }} />
           </label>
         )}
