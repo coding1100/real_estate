@@ -257,6 +257,7 @@ export function MultistepHeroFlow({
           <HeroBackgroundImage
             src={(step.heroImageUrl || mainPage.heroImageUrl) as string}
             alt={step.headline}
+            priority
             className="object-cover filter brightness-65"
           />
         </div>
