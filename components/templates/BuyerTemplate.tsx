@@ -34,6 +34,7 @@ function BrandHeader({ page }: { page: LandingPageContent }) {
               alt={page.domain.displayName}
               width={180}
               height={62}
+              loading="lazy"
               className="h-[60px] w-auto object-contain max-[768px]:max-h-10 max-[768px]:max-w-[120px]"
             />
           ) : (
@@ -49,6 +50,7 @@ function BrandHeader({ page }: { page: LandingPageContent }) {
               alt="Right logo"
               width={150}
               height={24}
+              loading="lazy"
               className="max-h-[55px] w-auto object-contain max-[768px]:max-h-8 max-[768px]:max-w-[100px]"
             />
           ) : (
@@ -57,6 +59,7 @@ function BrandHeader({ page }: { page: LandingPageContent }) {
               alt="Engel & Völkers"
               width={150}
               height={24}
+              loading="lazy"
               className="h-6 w-auto object-contain max-[768px]:max-h-5 max-[768px]:max-w-[90px]"
             />
           )}

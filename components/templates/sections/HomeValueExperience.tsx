@@ -176,6 +176,7 @@ export function HomeValueExperience({
             alt={page.headline}
             fill
             priority
+            quality={50}
             sizes="100vw"
             className="object-cover !max-h-[800px]"
           />
