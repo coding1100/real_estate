@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Search, Star } from "lucide-react";
+import { Loader2, Search, Star } from "lucide-react";
 import { SlugEditor } from "@/components/admin/SlugEditor";
 import { TitleEditor } from "@/components/admin/TitleEditor";
 import { PageRowActions } from "@/components/admin/PageRowActions";
@@ -40,6 +40,18 @@ const MAX_ACTIVE_THUMB_IFRAMES = 10;
 // don't reload on scroll. Evict oldest when exceeding this cap.
 const MAX_WARM_THUMB_IFRAMES = 30;
 
+function ThumbLoaderOverlay({ label }: { label: string }) {
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-zinc-50/95"
+      aria-hidden
+    >
+      <Loader2 className="h-6 w-6 animate-spin text-zinc-400" aria-hidden />
+      <span className="sr-only">{label}</span>
+    </div>
+  );
+}
+
 function PreviewThumbnail({
   pageId,
   previewSrc,
@@ -58,6 +70,68 @@ function PreviewThumbnail({
   onWarmLoaded: (pageId: string) => void;
 }) {
   const holderRef = useRef<HTMLDivElement | null>(null);
+  const iframeLoadFallbackRef = useRef<number | null>(null);
+  const iframeReportedWarmRef = useRef(false);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const showIframe = isActive || keepWarm;
+
+  // Only reset when the preview URL changes or the iframe is unmounted (so we
+  // don't clear loaded state when isActive/keepWarm toggles on an already-loaded iframe).
+  useEffect(() => {
+    iframeReportedWarmRef.current = false;
+    setIframeLoaded(false);
+  }, [previewSrc]);
+
+  useEffect(() => {
+    if (!showIframe) {
+      iframeReportedWarmRef.current = false;
+      setIframeLoaded(false);
+    }
+  }, [showIframe]);
+
+  useEffect(() => {
+    setImageLoaded(false);
+  }, [fallbackImageUrl]);
+
+  const markIframeLoaded = useCallback(() => {
+    if (iframeLoadFallbackRef.current !== null) {
+      window.clearTimeout(iframeLoadFallbackRef.current);
+      iframeLoadFallbackRef.current = null;
+    }
+    setIframeLoaded(true);
+    if (!iframeReportedWarmRef.current) {
+      iframeReportedWarmRef.current = true;
+      onWarmLoaded(pageId);
+    }
+  }, [pageId, onWarmLoaded]);
+
+  useEffect(() => {
+    if (!showIframe) {
+      if (iframeLoadFallbackRef.current !== null) {
+        window.clearTimeout(iframeLoadFallbackRef.current);
+        iframeLoadFallbackRef.current = null;
+      }
+      return;
+    }
+    if (iframeLoadFallbackRef.current !== null) {
+      window.clearTimeout(iframeLoadFallbackRef.current);
+    }
+    iframeLoadFallbackRef.current = window.setTimeout(() => {
+      markIframeLoaded();
+    }, 12000);
+    return () => {
+      if (iframeLoadFallbackRef.current !== null) {
+        window.clearTimeout(iframeLoadFallbackRef.current);
+        iframeLoadFallbackRef.current = null;
+      }
+    };
+  }, [showIframe, previewSrc, markIframeLoaded]);
+
+  const showThumbLoader =
+    (showIframe && !iframeLoaded) ||
+    (!showIframe && !!fallbackImageUrl && !imageLoaded);
 
   useEffect(() => {
     const el = holderRef.current;
@@ -81,14 +155,17 @@ function PreviewThumbnail({
   return (
     <div
       ref={holderRef}
-      className="mx-auto h-[86px] w-[150px] overflow-hidden rounded border border-zinc-200 bg-zinc-50"
+      className="relative mx-auto h-[86px] w-[150px] overflow-hidden rounded border border-zinc-200 bg-zinc-50"
       aria-label={`Preview thumbnail for ${pageId}`}
     >
-      {(isActive || keepWarm) && (
+      {showThumbLoader && (
+        <ThumbLoaderOverlay label="Loading preview thumbnail" />
+      )}
+      {showIframe && (
         <iframe
           title={`Preview thumbnail ${pageId}`}
           src={previewSrc}
-          onLoad={() => onWarmLoaded(pageId)}
+          onLoad={markIframeLoaded}
           style={{
             width: THUMB_IFRAME_BASE_W,
             height: THUMB_IFRAME_BASE_H,
@@ -102,19 +179,70 @@ function PreviewThumbnail({
           className="block"
         />
       )}
-      {!isActive && !keepWarm && (fallbackImageUrl ? (
-        <img
-          src={fallbackImageUrl}
-          alt={`Preview thumbnail ${pageId}`}
-          loading="lazy"
-          className="h-full w-full object-contain bg-zinc-50"
-          draggable={false}
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center text-xs text-zinc-500">
-          Loading…
+      {!showIframe &&
+        (fallbackImageUrl ? (
+          <img
+            src={fallbackImageUrl}
+            alt={`Preview thumbnail ${pageId}`}
+            loading="lazy"
+            onLoad={() => setImageLoaded(true)}
+            className="h-full w-full object-contain bg-zinc-50"
+            draggable={false}
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-zinc-500">
+            <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+            <span className="text-xs">Loading…</span>
+          </div>
+        ))}
+    </div>
+  );
+}
+
+function PreviewDialogIframe({
+  previewSrc,
+  title,
+  baseW,
+  baseH,
+  scale,
+}: {
+  previewSrc: string;
+  title: string;
+  baseW: number;
+  baseH: number;
+  scale: number;
+}) {
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setLoaded(false);
+  }, [previewSrc]);
+
+  return (
+    <div className="relative h-[338px] w-[600px] overflow-hidden rounded-sm bg-zinc-50">
+      {!loaded && (
+        <div
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-zinc-50"
+          role="status"
+          aria-live="polite"
+        >
+          <Loader2 className="h-9 w-9 animate-spin text-zinc-400" aria-hidden />
+          <span className="text-xs text-zinc-500">Loading preview…</span>
         </div>
-      ))}
+      )}
+      <iframe
+        title={title}
+        src={previewSrc}
+        onLoad={() => setLoaded(true)}
+        style={{
+          width: baseW,
+          height: baseH,
+          border: 0,
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+        }}
+        className="block"
+      />
     </div>
   );
 }
@@ -558,20 +686,13 @@ export function PagesTable({ pages }: PagesTableProps) {
                                           ✕
                                         </button>
                                       </div>
-                                      <div className="h-[338px] w-[600px] overflow-hidden rounded-sm bg-white">
-                                      <iframe
-                                        title={`Preview 600x600 ${page.slug}`}
-                                        src={previewSrc}
-                                        style={{
-                                          width: BASE_W,
-                                          height: BASE_H,
-                                          border: 0,
-                                          transform: `scale(${popupScale})`,
-                                          transformOrigin: "top left",
-                                        }}
-                                        className="block"
+                                      <PreviewDialogIframe
+                                        previewSrc={previewSrc}
+                                        title={`Preview ${page.slug}`}
+                                        baseW={BASE_W}
+                                        baseH={BASE_H}
+                                        scale={popupScale}
                                       />
-                                    </div>
                                     </div>
                                   </div>
                                 )}
