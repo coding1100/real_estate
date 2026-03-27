@@ -156,7 +156,7 @@ export function HeroSection({
               alt={page.headline}
               fill
               priority
-              quality={60}
+              quality={50}
               sizes="100vw"
               className="object-cover brightness-[0.58]"
             />
@@ -252,6 +252,7 @@ export function HeroSection({
                   src={teamImageUrl}
                   alt="Team"
                   fill
+                  loading="lazy"
                   sizes="(max-width: 768px) 100vw, 40vw"
                   className="object-contain object-bottom"
                 />
@@ -283,7 +284,7 @@ export function HeroSection({
             alt={page.headline}
             fill
             priority
-            quality={55}
+            quality={50}
             sizes="100vw"
             className="object-cover filter brightness-65"
           />
@@ -400,6 +401,7 @@ export function HeroSection({
                                 }
                                 alt={(layout?.profileName as string) || "Profile"}
                                 fill
+                                loading="lazy"
                                 className="object-cover rounded-[4px]"
                               />
                             </div>
@@ -485,6 +487,7 @@ export function HeroSection({
                                   }
                                   alt={(layout?.profileName as string) || "Profile"}
                                   fill
+                                  loading="lazy"
                                   className="object-cover rounded-[4px]"
                                 />
                               </div>
@@ -616,6 +619,7 @@ export function HeroSection({
                                 src={layout.profileImageUrl as string}
                                 alt={(layout?.profileName as string) || "Profile"}
                                 fill
+                                loading="lazy"
                                 className=" max-[768px]:!w-auto"
                                 style={{ borderRadius: "2px" }}
                               />

@@ -229,7 +229,7 @@ export function PropertyFindingStep({
             alt={page.headline}
             fill
             priority
-            quality={55}
+            quality={50}
             sizes="100vw"
             className="object-cover !max-h-[800px]"
           />
@@ -717,6 +717,7 @@ export function HomeValueMultistepFlow({
             alt={step.headline}
             fill
             priority
+            quality={50}
             sizes="100vw"
             className="object-cover filter brightness-65 max-h-[1000px]"
           />
@@ -761,6 +762,7 @@ export function HomeValueMultistepFlow({
                             }
                             alt={(layout?.profileName as string) || "Profile"}
                             fill
+                            loading="lazy"
                             className="object-cover rounded-[4px]"
                           />
                         </div>
@@ -859,6 +861,7 @@ export function HomeValueMultistepFlow({
                               }
                               alt={(layout?.profileName as string) || "Profile"}
                               fill
+                              loading="lazy"
                               className="object-cover rounded-[4px]"
                             />
                           </div>
@@ -1006,6 +1009,7 @@ export function HomeValueMultistepFlow({
                             src={layout.profileImageUrl as string}
                             alt={(layout?.profileName as string) || "Profile"}
                             fill
+                            loading="lazy"
                             className="object-cover max-[768px]:!w-auto"
                             style={{ borderRadius: "2px" }}
                           />

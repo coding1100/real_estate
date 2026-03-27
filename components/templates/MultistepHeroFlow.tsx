@@ -259,6 +259,7 @@ export function MultistepHeroFlow({
             alt={step.headline}
             fill
             priority
+            quality={50}
             sizes="100vw"
             className="object-cover filter brightness-65"
           />
@@ -315,6 +316,7 @@ export function MultistepHeroFlow({
                             }
                             alt={(layout?.profileName as string) || "Profile"}
                             fill
+                            loading="lazy"
                             className="object-cover rounded-[4px]"
                           />
                         </div>
@@ -410,6 +412,7 @@ export function MultistepHeroFlow({
                               }
                               alt={(layout?.profileName as string) || "Profile"}
                               fill
+                              loading="lazy"
                               className="object-cover rounded-[4px]"
                             />
                           </div>
@@ -558,6 +561,7 @@ export function MultistepHeroFlow({
                             src={layout.profileImageUrl as string}
                             alt={(layout?.profileName as string) || "Profile"}
                             fill
+                            loading="lazy"
                             className="object-cover max-[768px]:!w-auto"
                           />
                         </div>
