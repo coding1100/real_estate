@@ -45,9 +45,9 @@ export function PageRowActions({ pageId, slug, isMaster }: PageRowActionsProps) 
   }, [open]);
 
   return (
-    <div className="relative inline-flex items-center justify-end">
+    <div className="relative inline-flex items-center justify-end flex-col gap-2">
       {isMaster && (
-        <span className="mr-2 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 ring-1 ring-amber-200">
+        <span className="mr-2 rounded-full text-center bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 ring-1 ring-amber-200">
           Master template
         </span>
       )}

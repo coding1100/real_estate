@@ -265,7 +265,7 @@ export function MultistepHeroFlow({
         </div>
       )}
 
-      <div className="mx-auto flex h-full max-w-6xl flex-col justify-start gap-8 px-4 pb-6 max-[768px]:px-4 md:gap-10 md:px-0 md:pb-8">
+      <div className="mx-auto flex h-full max-w-6xl flex-col justify-start pt-[30px] gap-8 px-4 pb-6 max-[768px]:px-4 md:gap-10 md:px-0 md:pb-8">
         <div className={gridWrapperClass} style={gridWrapperStyle}>
           <div className={textContainerClass} style={textContainerStyle}>
             <div>
