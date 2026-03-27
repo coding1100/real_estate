@@ -688,7 +688,7 @@ export function PagesTable({ pages }: PagesTableProps) {
               <div className="relative rounded-md border border-zinc-200 bg-white p-2 shadow-lg">
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div className="text-xs font-medium text-zinc-600">
-                    {page.domainHostname} / {page.slug}
+                    {page.domainHostname}/{page.slug}
                   </div>
                   <button
                     type="button"
