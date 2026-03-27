@@ -1,9 +1,10 @@
 import { getAdminUiSettings } from "@/lib/uiSettings";
 import { ToastSettingsForm } from "@/components/admin/ToastSettingsForm";
 import { EditorFontSettingsForm } from "@/components/admin/EditorFontSettingsForm";
+import { CtaForwardingSettingsForm } from "@/components/admin/CtaForwardingSettingsForm";
 
 export default async function AdminSettingsPage() {
-  const { theme, editorFonts } = await getAdminUiSettings();
+  const { theme, editorFonts, settings } = await getAdminUiSettings();
 
   return (
     <div className="space-y-4">
@@ -21,6 +22,11 @@ export default async function AdminSettingsPage() {
       <div className="grid gap-6 lg:grid-cols-2">
       <div className="col-span-2">
           <EditorFontSettingsForm initialFonts={editorFonts} />
+        </div>
+        <div className="col-span-2">
+          <CtaForwardingSettingsForm
+            initialRules={settings.ctaForwardingRules ?? []}
+          />
         </div>
         <div className="col-span-2">
           <ToastSettingsForm initialTheme={theme} />

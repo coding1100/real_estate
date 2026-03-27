@@ -5,6 +5,10 @@ import {
   EditorFontOption,
   DEFAULT_EDITOR_FONTS,
 } from "@/lib/uiSettings";
+import {
+  type CtaForwardingRule,
+  sanitizeCtaTitle,
+} from "@/lib/types/ctaForwarding";
 
 export async function GET() {
   const { settings, theme } = await getAdminUiSettings();
@@ -29,9 +33,13 @@ export async function PATCH(req: NextRequest) {
     toastAlertTitle: string;
     toastAlertBody: string;
     editorFonts: EditorFontOption[];
+    ctaForwardingRules: CtaForwardingRule[];
   }>;
 
-  const allowed: Record<string, string | number | EditorFontOption[] | undefined> =
+  const allowed: Record<
+    string,
+    string | number | EditorFontOption[] | CtaForwardingRule[] | undefined
+  > =
     {};
   if (typeof body.toastSuccessBg === "string") {
     allowed.toastSuccessBg = body.toastSuccessBg;
@@ -120,6 +128,22 @@ export async function PATCH(req: NextRequest) {
     // Store exactly what the client sends (after trimming/validation).
     // Built-in fonts are guaranteed/merged when reading settings.
     allowed.editorFonts = sanitized;
+  }
+
+  if (Array.isArray(body.ctaForwardingRules)) {
+    const sanitized: CtaForwardingRule[] = [];
+    for (const item of body.ctaForwardingRules) {
+      const ctaTitle = sanitizeCtaTitle(
+        typeof item?.ctaTitle === "string" ? item.ctaTitle : "",
+      );
+      const forwardUrl =
+        typeof item?.forwardUrl === "string" ? item.forwardUrl.trim() : "";
+      if (!ctaTitle || !/^https?:\/\//i.test(forwardUrl)) {
+        continue;
+      }
+      sanitized.push({ ctaTitle, forwardUrl });
+    }
+    allowed.ctaForwardingRules = sanitized;
   }
 
   const { settings, theme } = await updateAdminUiSettings(allowed);

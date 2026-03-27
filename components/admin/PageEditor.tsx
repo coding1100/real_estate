@@ -560,7 +560,13 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                     <p className="text-xs text-zinc-500">
                       Choose how the hero form is presented.
                     </p>
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div
+                      className={`grid gap-4 ${
+                        (heroLayout.formStyle as string) === "team-showcase"
+                          ? "md:grid-cols-1"
+                          : "md:grid-cols-2"
+                      }`}
+                    >
                       <div className="space-y-3">
                         <div>
                           <label className="mb-1 block text-sm font-medium text-zinc-700">
@@ -576,7 +582,8 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                                   | "questionnaire"
                                   | "detailed-perspective"
                                   | "next-steps"
-                                  | "property-finding",
+                                  | "property-finding"
+                                  | "team-showcase",
                               })
                             }
                           >
@@ -595,6 +602,9 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                               <option value="property-finding">
                                 Property finding page (home-value search + map layout)
                               </option>
+                            <option value="team-showcase">
+                              Team showcase (image-led hero with integrated form)
+                            </option>
                           </select>
                         </div>
                         <div className="space-y-3">
@@ -625,16 +635,18 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                               label="Form background"
                             />
                           </div>
-                        <RichTextEditor
-                          label="Form intro text (right column, rich text)"
-                          value={heroLayout.formIntro ?? ""}
-                          onChange={(html) =>
-                            updateHeroLayout({ formIntro: html as any })
-                          }
-                          placeholder="Explain what the visitor receives after submitting the form."
-                          height={286}
-                          fontOptions={editorFonts}
-                        />
+                        {(heroLayout.formStyle as string) !== "team-showcase" && (
+                          <RichTextEditor
+                            label="Form intro text (right column, rich text)"
+                            value={heroLayout.formIntro ?? ""}
+                            onChange={(html) =>
+                              updateHeroLayout({ formIntro: html as any })
+                            }
+                            placeholder="Explain what the visitor receives after submitting the form."
+                            height={286}
+                            fontOptions={editorFonts}
+                          />
+                        )}
                       </div>
                     </div>
 
@@ -668,6 +680,41 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                             }
                             placeholder="Optional footer text shown below the form or map (e.g. disclaimer, attribution, confidentiality)."
                             fontOptions={editorFonts}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {(heroLayout.formStyle as string) === "team-showcase" && (
+                      <div className="mt-4 space-y-4 border-t border-dashed border-zinc-200 pt-3">
+                        <p className="text-xs font-medium text-zinc-600">
+                          Team showcase assets
+                        </p>
+                        <div className="grid gap-4 md:grid-cols-[40%_40%_17%] md:items-start">
+                          <RichTextEditor
+                            label="Trust line below CTA/form (rich text)"
+                            value={(heroLayout.teamTrustHtml as string) ?? ""}
+                            onChange={(html) =>
+                              updateHeroLayout({ teamTrustHtml: html as string })
+                            }
+                            placeholder="Private. Accurate. No obligation."
+                            fontOptions={editorFonts}
+                          />
+                          <RichTextEditor
+                            label="Team info overlay (rich text)"
+                            value={(heroLayout.teamInfoHtml as string) ?? ""}
+                            onChange={(html) =>
+                              updateHeroLayout({ teamInfoHtml: html as string })
+                            }
+                            placeholder="TEAM ENGEL & VOLKERS<br/>Tom Graup, REALTOR | Marcel Dolak, REALTOR"
+                            fontOptions={editorFonts}
+                          />
+                          <ImageUploader
+                            label="Team image (right side)"
+                            value={(heroLayout.teamImageUrl as string) ?? null}
+                            onChange={(url) =>
+                              updateHeroLayout({ teamImageUrl: url ?? undefined })
+                            }
                           />
                         </div>
                       </div>
@@ -725,6 +772,22 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                     <p className="text-xs text-zinc-500">
                       Full-width footer content shown at the very bottom of the page. Leave empty to hide the footer.
                     </p>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-zinc-700">
+                          Footer background color
+                        </label>
+                        <HexAlphaColorField
+                          value={(heroLayout.footerBgColor as string) ?? ""}
+                          onChange={(hex) =>
+                            updateHeroLayout({ footerBgColor: hex as string })
+                          }
+                          fallback="#f5f0e9ff"
+                          placeholder="#f5f0e9ff"
+                          label="Footer background"
+                        />
+                      </div>
+                    </div>
                     <RichTextEditor
                       label="Footer (rich text)"
                       value={(page as any).footerHtml ?? ""}

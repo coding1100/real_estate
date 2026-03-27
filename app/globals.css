@@ -289,6 +289,14 @@ pre span{
   margin: 0;
 }
 
+.signs {
+  vertical-align: super;
+  /* margin-left: .02em; */
+  /* font-size: .72em; */
+  line-height: 1;
+  /* display: inline-block; */
+}
+
 @media (max-width: 768px) {
   .hero-grid-wrapper {
     grid-template-columns: 1fr !important;
@@ -334,4 +342,11 @@ margin-left: 0px;
   position: absolute;
   top: 16px;
   left: 20px;
+}
+.team-img{
+  position: fixed;
+    bottom: 0px;
+    right: 0px;
+    min-width: 400px;
+    min-height: 400px;
 }

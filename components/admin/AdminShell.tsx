@@ -92,6 +92,8 @@ export function AdminShell({ children, userEmail, toastTheme }: AdminShellProps)
                 <Link
                   key={item.href}
                   href={item.href}
+                  title={item.label}
+                  aria-label={item.label}
                   className={`flex items-center gap-2 rounded-lg px-2 py-2 text-md font-medium transition-colors min-h-[40px] ${
                     isActive
                       ? "bg-zinc-900 text-zinc-50 shadow-sm"
@@ -128,6 +130,8 @@ export function AdminShell({ children, userEmail, toastTheme }: AdminShellProps)
                     <Link
                       key={item.href}
                       href={item.href}
+                      title={item.label}
+                      aria-label={item.label}
                       className={`flex items-center gap-2 rounded-md px-2 py-2 text-md font-medium transition-colors ${
                         isActive
                           ? "bg-zinc-900 text-zinc-50 shadow-sm"

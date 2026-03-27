@@ -10,9 +10,12 @@ import Image from "next/image";
 import { getDefaultBlocksForPage } from "@/lib/blocks/defaultBlocks";
 import { HomeValueExperience } from "./sections/HomeValueExperience";
 import { HomeValueMultistepFlow } from "./HomeValueMultistepFlow";
+import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
+import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 
 interface SellerTemplateProps {
   page: LandingPageContent;
+  ctaForwardingRules?: CtaForwardingRule[];
   utm?: {
     source?: string;
     medium?: string;
@@ -63,7 +66,11 @@ function BrandHeader({ page }: { page: LandingPageContent }) {
   );
 }
 
-export function SellerTemplate({ page, utm }: SellerTemplateProps) {
+export function SellerTemplate({
+  page,
+  utm,
+  ctaForwardingRules,
+}: SellerTemplateProps) {
   const heroFormSchema = page.formSchema ?? {
     fields: [],
   };
@@ -119,6 +126,8 @@ export function SellerTemplate({ page, utm }: SellerTemplateProps) {
     .trim();
 
   const showFooter = footerTextContent.length > 0;
+  const footerBgColor =
+    ((heroConfig as any).footerBgColor as string | undefined) || "#f7f3f0";
 
   // Blockquote style should reflect the hero configuration used for the
   // currently visible content. For multistep pages we follow the first step's
@@ -153,13 +162,14 @@ export function SellerTemplate({ page, utm }: SellerTemplateProps) {
       ) : (
         <BrandHeader page={page} />
       )}
-      <main className={hasLayoutHeader ? "pt-[100px] flex-1" : "flex-1"}>
+      <main className={hasLayoutHeader ? "pt-[80px] flex-1" : "flex-1"}>
         {isHomeValuePage && page.multistepSteps && page.multistepSteps.length > 0 ? (
           <HomeValueMultistepFlow
             mainPage={page}
             steps={page.multistepSteps}
             layoutData={layoutData as any}
             utmHiddenFields={utmHiddenFields}
+            ctaForwardingRules={ctaForwardingRules}
           />
         ) : isHomeValuePage ? (
           <HomeValueExperience
@@ -167,6 +177,7 @@ export function SellerTemplate({ page, utm }: SellerTemplateProps) {
             layout={heroConfig as any}
             formSchema={heroFormSchema as any}
             utmHiddenFields={utmHiddenFields}
+            ctaForwardingRules={ctaForwardingRules}
           />
         ) : page.multistepSteps && page.multistepSteps.length > 0 ? (
           <MultistepHeroFlow
@@ -174,6 +185,7 @@ export function SellerTemplate({ page, utm }: SellerTemplateProps) {
             steps={page.multistepSteps}
             layoutData={layoutData as any}
             utmHiddenFields={utmHiddenFields}
+            ctaForwardingRules={ctaForwardingRules}
           />
         ) : (
           <HeroSection
@@ -183,6 +195,7 @@ export function SellerTemplate({ page, utm }: SellerTemplateProps) {
             layoutData={layoutData as any}
             heroElements={heroElements}
             utmHiddenFields={utmHiddenFields}
+            ctaForwardingRules={ctaForwardingRules}
             visibleBlocks={{
               showHeadline: hasBlock("heroHeadline"),
               showSubheadline: hasBlock("heroSubheadline"),
@@ -193,11 +206,18 @@ export function SellerTemplate({ page, utm }: SellerTemplateProps) {
         )}
       </main>
       {showFooter && (
-        <footer className="mt-10 border-t border-zinc-200 bg-[#f7f3f0] relative z-50">
-          <div className="mx-auto max-w-6xl px-3 py-3 md:px-3">
+        <footer
+          className="mt-10 border-t relative z-50"
+          style={{
+            backgroundColor: footerBgColor,
+          }}
+        >
+          <div className="mx-auto max-w-6xl px-3 py-3 md:px-3 relative">
             <div
               className="prose prose-sm max-w-none text-zinc-700"
-              dangerouslySetInnerHTML={{ __html: page.footerHtml as string }}
+              dangerouslySetInnerHTML={{
+                __html: wrapLegalSignsHtml(page.footerHtml as string),
+              }}
             />
           </div>
         </footer>
