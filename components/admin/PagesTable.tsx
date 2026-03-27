@@ -477,17 +477,17 @@ export function PagesTable({ pages }: PagesTableProps) {
                             />
                           </button>
                         </td>
-                        <td className="px-3 py-3 text-zinc-700">
+                        <td className="px-2 py-2 text-zinc-700">
                           <span className="block max-w-[165px] truncate text-zinc-500">{domain}</span>
                         </td>
-                        <td className="px-3 py-3 text-zinc-700">
+                        <td className="px-2 py-2 text-zinc-700">
                           {isMaster ? (
                             <span className="block max-w-[170px] truncate">{page.slug}</span>
                           ) : (
                             <SlugEditor pageId={page.id} initialSlug={page.slug} />
                           )}
                         </td>
-                        <td className="px-3 py-3 text-zinc-700">
+                        <td className="px-2 py-2 text-zinc-700">
                           {isMaster ? (
                             <span className="block max-w-[220px] overflow-hidden [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] leading-tight break-words">
                               {page.title || page.headline || ""}
@@ -501,10 +501,10 @@ export function PagesTable({ pages }: PagesTableProps) {
                             </div>
                           )}
                         </td>
-                        <td className="px-3 py-3 text-zinc-700">
+                        <td className="px-2 py-2 text-zinc-700">
                           <span className="capitalize">{page.type}</span>
                         </td>
-                        <td className="hidden px-3 py-3 text-zinc-700 2xl:table-cell">
+                        <td className="hidden px-2 py-2 text-zinc-700 2xl:table-cell">
                           <div className="flex flex-col gap-1">
                             <span
                               className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
@@ -518,7 +518,7 @@ export function PagesTable({ pages }: PagesTableProps) {
                             {isMultistep &&
                               Array.isArray(page.multistepStepSlugs) &&
                               page.multistepStepSlugs.length > 0 && (
-                                <ol className="mt-1 space-y-0.5 text-[11px] text-zinc-500">
+                                <ol className="mt-1 space-y-0.5 text-[11px] text-zinc-500 ml-0">
                                   {page.multistepStepSlugs.map((slug, idx) => (
                                     <li
                                       key={slug + idx}
@@ -532,7 +532,7 @@ export function PagesTable({ pages }: PagesTableProps) {
                               )}
                           </div>
                         </td>
-                        <td className="px-3 py-3 text-zinc-700">{page.status}</td>
+                        <td className="px-2 py-2 text-zinc-700">{page.status}</td>
                         <td className="hidden px-3 py-2 text-zinc-500 xl:table-cell">
                           {/* Use deterministic UTC formatting to avoid SSR/client hydration mismatches. */}
                           {new Date(page.updatedAt).toISOString().slice(0, 19).replace("T", " ")}
