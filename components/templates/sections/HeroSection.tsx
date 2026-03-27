@@ -279,6 +279,7 @@ export function HeroSection({
           <HeroBackgroundImage
             src={page.heroImageUrl}
             alt={page.headline}
+            priority
             className="object-cover filter brightness-65"
           />
         </div>
