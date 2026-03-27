@@ -63,7 +63,7 @@ export function GoogleAnalytics({ measurementId }: GoogleAnalyticsProps) {
         };
       }
 
-      const timeoutId = setTimeout(initializeGa, 1800);
+      const timeoutId = setTimeout(initializeGa, 2800);
       return () => clearTimeout(timeoutId);
     };
 
