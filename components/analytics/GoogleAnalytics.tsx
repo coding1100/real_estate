@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { deferUntilAfterLcpOrLoad } from "@/lib/deferNonCriticalScript";
 
 interface GoogleAnalyticsProps {
   measurementId?: string | null;
@@ -28,9 +29,11 @@ export function GoogleAnalytics({ measurementId }: GoogleAnalyticsProps) {
       if (window.__ga4LoadedIds?.has(measurementId)) return;
 
       window.dataLayer = window.dataLayer || [];
-      window.gtag = window.gtag || function gtag(...args: unknown[]) {
-        window.dataLayer.push(args);
-      };
+      window.gtag =
+        window.gtag ||
+        function gtag(...args: unknown[]) {
+          window.dataLayer.push(args);
+        };
       window.gtag("js", new Date());
       window.gtag("config", measurementId);
 
@@ -48,44 +51,8 @@ export function GoogleAnalytics({ measurementId }: GoogleAnalyticsProps) {
       window.__ga4LoadedIds?.add(measurementId);
     };
 
-    const runAfterLoad = () => {
-      if ("requestIdleCallback" in window) {
-        const idleId = (window as any).requestIdleCallback(
-          () => {
-            setTimeout(initializeGa, 3800);
-          },
-          { timeout: 5000 },
-        );
-        return () => {
-          if ("cancelIdleCallback" in window) {
-            (window as any).cancelIdleCallback(idleId);
-          }
-        };
-      }
-
-      const timeoutId = setTimeout(initializeGa, 3800);
-      return () => clearTimeout(timeoutId);
-    };
-
-    let cleanup: (() => void) | undefined;
-    if (document.readyState === "complete") {
-      cleanup = runAfterLoad();
-    } else {
-      const onLoad = () => {
-        cleanup = runAfterLoad();
-      };
-      window.addEventListener("load", onLoad, { once: true });
-      return () => {
-        window.removeEventListener("load", onLoad);
-        cleanup?.();
-      };
-    }
-
-    return () => {
-      cleanup?.();
-    };
+    return deferUntilAfterLcpOrLoad(initializeGa);
   }, [measurementId]);
 
   return null;
 }
-
