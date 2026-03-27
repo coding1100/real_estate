@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 const SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
@@ -40,14 +40,59 @@ export function useRecaptcha() {
 }
 
 export function RecaptchaScript() {
-  if (!SITE_KEY) return null;
+  useEffect(() => {
+    if (!SITE_KEY) return;
+    if (typeof window === "undefined") return;
 
-  return (
-    <script
-      src={`https://www.google.com/recaptcha/api.js?render=${SITE_KEY}`}
-      async
-      defer
-    />
-  );
+    const inject = () => {
+      if (document.querySelector(`script[data-recaptcha-deferred="${SITE_KEY}"]`)) {
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = `https://www.google.com/recaptcha/api.js?render=${SITE_KEY}`;
+      script.async = true;
+      script.defer = true;
+      script.setAttribute("data-recaptcha-deferred", SITE_KEY);
+      document.head.appendChild(script);
+    };
+
+    const runAfterLoad = () => {
+      if ("requestIdleCallback" in window) {
+        const idleId = (window as Window & { requestIdleCallback: typeof requestIdleCallback }).requestIdleCallback(
+          () => {
+            inject();
+          },
+          { timeout: 5000 },
+        );
+        return () => {
+          if ("cancelIdleCallback" in window) {
+            (window as Window & { cancelIdleCallback: typeof cancelIdleCallback }).cancelIdleCallback(idleId);
+          }
+        };
+      }
+      const timeoutId = setTimeout(inject, 0);
+      return () => clearTimeout(timeoutId);
+    };
+
+    let cleanup: (() => void) | undefined;
+    if (document.readyState === "complete") {
+      cleanup = runAfterLoad();
+    } else {
+      const onLoad = () => {
+        cleanup = runAfterLoad();
+      };
+      window.addEventListener("load", onLoad, { once: true });
+      return () => {
+        window.removeEventListener("load", onLoad);
+        cleanup?.();
+      };
+    }
+
+    return () => {
+      cleanup?.();
+    };
+  }, []);
+
+  return null;
 }
 
