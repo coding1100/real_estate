@@ -221,7 +221,7 @@ export function HeroSection({
                       </button>
                     )}
                     {!teamFallbackForwardUrl && (
-                      <p className="text-xs text-amber-900/80">
+                      <p className="text-xs text-[#ff3c3cee]">
                         Configure a CTA forwarding rule in Settings to make this
                         CTA redirect.
                       </p>
