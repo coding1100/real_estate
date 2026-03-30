@@ -87,26 +87,7 @@ export default async function AdminDashboardPage() {
             High-intent funnels across all domains.
           </p>
         </div>
-
-        {/* Leads card */}
-        <div className="relative overflow-hidden rounded-sm bg-white p-4 shadow-sm ring-1 ring-emerald-100">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[14px] font-medium uppercase tracking-[0.18em] text-emerald-700">
-                Leads
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-emerald-900">
-                {leadsCount}
-              </p>
-            </div>
-            <div className="rounded-full bg-emerald-50 px-3 py-1 text-[16px] font-medium text-emerald-700">
-              Pipeline
-            </div>
-          </div>
-          <p className="mt-3 text-[14px] text-emerald-800">
-            Total inquiries captured from all live campaigns.
-          </p>
-        </div>
+        
       </div>
 
       {/* Master templates section (same layout as /admin/templates) */}

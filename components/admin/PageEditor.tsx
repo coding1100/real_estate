@@ -760,6 +760,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                           }
                           placeholder="Message shown after successful submit."
                           height={286}
+                          fontOptions={editorFonts}
                         />
                       </div>
                     </div>
