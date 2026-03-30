@@ -36,8 +36,15 @@ export async function POST(req: NextRequest) {
               }),
         },
         (error, uploaded) => {
-          if (error) reject(error);
-          else resolve(uploaded);
+          if (error) {
+            reject(error);
+            return;
+          }
+          if (!uploaded?.secure_url) {
+            reject(new Error("Cloudinary upload returned no secure_url"));
+            return;
+          }
+          resolve({ secure_url: uploaded.secure_url });
         },
       );
       stream.end(buffer);
