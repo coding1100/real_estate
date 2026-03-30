@@ -6,6 +6,8 @@ import {
   DEFAULT_EDITOR_FONTS,
 } from "@/lib/uiSettings";
 import {
+  type CtaForwardingDocument,
+  type CtaForwardingNotifyEmail,
   type CtaForwardingRule,
   sanitizeCtaTitle,
 } from "@/lib/types/ctaForwarding";
@@ -38,9 +40,12 @@ export async function PATCH(req: NextRequest) {
 
   const allowed: Record<
     string,
-    string | number | EditorFontOption[] | CtaForwardingRule[] | undefined
-  > =
-    {};
+    | string
+    | number
+    | EditorFontOption[]
+    | CtaForwardingRule[]
+    | undefined
+  > = {};
   if (typeof body.toastSuccessBg === "string") {
     allowed.toastSuccessBg = body.toastSuccessBg;
   }
@@ -138,10 +143,72 @@ export async function PATCH(req: NextRequest) {
       );
       const forwardUrl =
         typeof item?.forwardUrl === "string" ? item.forwardUrl.trim() : "";
-      if (!ctaTitle || !/^https?:\/\//i.test(forwardUrl)) {
+      const forwardEnabled =
+        typeof item?.forwardEnabled === "boolean"
+          ? item.forwardEnabled
+          : !!forwardUrl;
+      if (!ctaTitle) {
         continue;
       }
-      sanitized.push({ ctaTitle, forwardUrl });
+      if (forwardUrl && !/^https?:\/\//i.test(forwardUrl)) {
+        continue;
+      }
+      const rawDocuments = Array.isArray(item.documents)
+        ? item.documents
+        : [];
+      const documents: CtaForwardingDocument[] = rawDocuments
+        .map((doc) => {
+          if (!doc) return null;
+          const name =
+            typeof doc.name === "string" ? doc.name.trim() : "";
+          const url =
+            typeof doc.url === "string" ? doc.url.trim() : "";
+          if (!name || !url || !/^https?:\/\//i.test(url)) return null;
+          const result: CtaForwardingDocument = {
+            name,
+            url,
+          };
+          if (typeof doc.autoSend === "boolean") {
+            result.autoSend = doc.autoSend;
+          }
+          if (typeof doc.mimeType === "string" && doc.mimeType.trim()) {
+            result.mimeType = doc.mimeType.trim();
+          }
+          return result;
+        })
+        .filter(Boolean) as CtaForwardingDocument[];
+
+      const rawNotifyEmails = Array.isArray(item.notifyEmails)
+        ? item.notifyEmails
+        : [];
+      const notifyEmails: CtaForwardingNotifyEmail[] = rawNotifyEmails
+        .map((entry) => {
+          if (!entry) return null;
+          const email =
+            typeof entry.email === "string" ? entry.email.trim() : "";
+          if (!email || !email.includes("@")) return null;
+          const result: CtaForwardingNotifyEmail = { email };
+          if (typeof entry.enabled === "boolean") {
+            result.enabled = entry.enabled;
+          }
+          const kindRaw =
+            typeof entry.kind === "string"
+              ? entry.kind.trim().toLowerCase()
+              : undefined;
+          if (kindRaw === "cc" || kindRaw === "bcc") {
+            result.kind = kindRaw;
+          }
+          return result;
+        })
+        .filter(Boolean) as CtaForwardingNotifyEmail[];
+
+      sanitized.push({
+        ctaTitle,
+        forwardEnabled,
+        ...(forwardUrl ? { forwardUrl } : {}),
+        ...(documents.length ? { documents } : {}),
+        ...(notifyEmails.length ? { notifyEmails } : {}),
+      });
     }
     allowed.ctaForwardingRules = sanitized;
   }

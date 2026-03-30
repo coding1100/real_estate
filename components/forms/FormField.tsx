@@ -78,9 +78,9 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
 
   const baseClass =
     formStyle === "detailed-perspective"
-      ? "block w-full rounded-md border border-zinc-300 px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 font-serif bg-white"
-      : "block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm text-[#453d3d] focus:outline-none focus:ring-1 focus:ring-zinc-900 font-serif";
-  const labelClass = "block text-sm font-medium text-zinc-800 font-serif";
+      ? "block w-full rounded-md border border-zinc-300 px-3 py-2.5 text-md shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 font-serif bg-white"
+      : "block w-full rounded-md border border-zinc-300 px-3 py-2 text-md shadow-sm text-[#453d3d] focus:outline-none focus:ring-1 focus:ring-zinc-900 font-serif";
+  const labelClass = "block text-md font-medium text-zinc-800 font-serif";
 
   const radioCheckClass =
     "form-radio-check h-4 w-4 min-w-4 rounded-sm border border-zinc-400 bg-white appearance-none cursor-pointer mt-[5px] " +
@@ -114,7 +114,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
     ) : type === "radio" ? (
       (boxedStyle === true ||
         (boxedStyle === undefined && formStyle === "detailed-perspective")) ? (
-        <ul className="space-y-3 pt-2 text-sm text-zinc-800 font-serif detailed-perspective-radio-list">
+        <ul className="space-y-3 pt-2 text-md text-zinc-800 font-serif detailed-perspective-radio-list">
           {options?.map((opt) => (
             <li key={opt.value} className="relative pl-5">
               <label className="flex items-start cursor-pointer group">
@@ -134,7 +134,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
           {options?.map((opt) => (
             <label
               key={opt.value}
-              className="inline-flex items-center gap-2 text-sm text-zinc-800 font-serif cursor-pointer min-w-0"
+              className="inline-flex items-center gap-2 text-md text-zinc-800 font-serif cursor-pointer min-w-0"
             >
               <input
                 type="radio"
@@ -150,7 +150,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
     ) : type === "checkbox" ? (
       (boxedStyle === true ||
         (boxedStyle === undefined && formStyle === "detailed-perspective")) ? (
-        <ul className="space-y-3 pt-2 text-sm text-zinc-800 font-serif">
+        <ul className="space-y-3 pt-2 text-md text-zinc-800 font-serif">
           {options?.map((opt) => (
             <li key={opt.value}>
               <label className="flex cursor-pointer">
@@ -172,7 +172,7 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
           {options?.map((opt) => (
             <label
               key={opt.value}
-              className="inline-flex items-start items-center gap-2 text-sm text-zinc-800 font-serif cursor-pointer min-w-0"
+              className="inline-flex items-start items-center gap-2 text-md text-zinc-800 font-serif cursor-pointer min-w-0"
             >
               <input
                 type="checkbox"
@@ -268,10 +268,10 @@ export function FormField({ field, register, errors, formStyle = "default" }: Fo
       <div className={outerClass}>
         <div className="rounded-lg bg-[#fef6f6] backdrop-blur-sm border border-zinc-200/80 shadow-sm p-3 space-y-2">
           {label && (
-            <p className="text-sm font-semibold text-zinc-800 font-serif" dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(label) }} />
+            <p className="text-md font-semibold text-zinc-800 font-serif" dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(label) }} />
           )}
           {helperText && (
-            <p className="text-sm text-zinc-700 font-serif" dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(helperText) }} />
+            <p className="text-md text-zinc-700 font-serif" dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(helperText) }} />
           )}
           <textarea
             id={id}
