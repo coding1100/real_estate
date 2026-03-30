@@ -290,11 +290,9 @@ pre span{
 }
 
 .signs {
-  vertical-align: super;
-  /* margin-left: .02em; */
-  /* font-size: .72em; */
+  position: relative;
   line-height: 1;
-  /* display: inline-block; */
+  top: -3px;
 }
 
 @media (max-width: 768px) {

@@ -119,7 +119,7 @@ export function DynamicForm({
         const matchingRule = (ctaForwardingRules ?? []).find(
           (rule) => normalizeCtaTitleKey(rule.ctaTitle) === normalizedCtaText,
         );
-        if (matchingRule?.forwardUrl) {
+        if (matchingRule?.forwardEnabled !== false && matchingRule?.forwardUrl) {
           window.location.assign(matchingRule.forwardUrl);
         }
       } catch (e) {
@@ -160,16 +160,16 @@ export function DynamicForm({
   const isQuestionnaire = formStyle === "questionnaire";
   const isDetailedPerspective = formStyle === "detailed-perspective";
   const buttonClass = isDetailedPerspective && !ctaBgColor
-    ? "inline-flex w-full items-center justify-center rounded-md bg-amber-800 px-4 py-2.5 text-sm font-medium text-amber-50 shadow-md hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60 font-serif"
+    ? "inline-flex w-full items-center justify-center rounded-md bg-amber-800 px-4 py-2.5 text-md font-medium text-amber-50 shadow-md hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60 font-serif"
     : isQuestionnaire && !ctaBgColor
-    ? "inline-flex w-full items-center justify-center rounded-md bg-amber-800 px-4 py-2.5 text-sm font-medium text-amber-50 shadow-md hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60 font-serif"
-    : "inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60";
+    ? "inline-flex w-full items-center justify-center rounded-md bg-amber-800 px-4 py-2.5 text-md font-medium text-amber-50 shadow-md hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60 font-serif"
+    : "inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-md font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60";
 
   return (
     <>
       <form
         onSubmit={onSubmit}
-        className={`${isDetailedPerspective ? "space-y-3" : "space-y-3"} text-sm ${isQuestionnaire || isDetailedPerspective ? "font-serif" : ""}`}
+        className={`${isDetailedPerspective ? "space-y-3" : "space-y-3"} text-md ${isQuestionnaire || isDetailedPerspective ? "font-serif" : ""}`}
         style={formInlineStyle}
       >
         {/* Honeypot field for bots */}
@@ -191,7 +191,7 @@ export function DynamicForm({
           />
         ))}
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && <p className="text-md text-red-500">{error}</p>}
 
         <button
           type={onNextStep && skipValidationForNextStep ? "button" : "submit"}
@@ -219,7 +219,7 @@ export function DynamicForm({
         )}
         {postCtaText && (
           <div
-            className="text-sm text-zinc-700 font-serif leading-relaxed"
+            className="text-md text-zinc-700 font-serif leading-relaxed"
             dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(postCtaText) }}
           />
         )}

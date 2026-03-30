@@ -4,6 +4,7 @@ import { verifyRecaptchaToken } from "@/lib/captcha";
 import { dispatchLeadToWebhooks } from "@/lib/webhooks";
 import { dispatchLeadToFollowUpBoss } from "@/lib/followupboss";
 import { sendLeadNotifications } from "@/lib/notifications";
+import type { Prisma } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,7 +36,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify reCAPTCHA (if configured)
-    let captchaResult: any;
+    let captchaResult: {
+      ok: boolean;
+      score?: number;
+      skipped?: boolean;
+      raw?: Record<string, unknown>;
+    };
     try {
       captchaResult = await verifyRecaptchaToken(recaptchaToken ?? null);
     } catch (e) {
@@ -111,7 +117,7 @@ export async function POST(req: NextRequest) {
         domainId: domainRow.id,
         pageId: page.id,
         type: String(type),
-        formData: mergedFormData as any,
+        formData: mergedFormData as Prisma.InputJsonValue,
         utmSource: typeof utm_source === "string" ? utm_source : undefined,
         utmMedium: typeof utm_medium === "string" ? utm_medium : undefined,
         utmCampaign: typeof utm_campaign === "string" ? utm_campaign : undefined,
@@ -122,8 +128,8 @@ export async function POST(req: NextRequest) {
     await Promise.allSettled([
       dispatchLeadToWebhooks(lead.id),
       dispatchLeadToFollowUpBoss(lead.id),
+      sendLeadNotifications(lead.id),
     ]);
-    void sendLeadNotifications(lead.id);
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (error) {
