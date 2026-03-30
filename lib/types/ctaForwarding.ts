@@ -1,6 +1,30 @@
+export interface CtaForwardingDocument {
+  name: string;
+  url: string;
+  autoSend?: boolean;
+  mimeType?: string;
+}
+
+export interface CtaForwardingNotifyEmail {
+  email: string;
+  enabled?: boolean;
+  kind?: "cc" | "bcc";
+}
+
 export interface CtaForwardingRule {
   ctaTitle: string;
-  forwardUrl: string;
+  forwardUrl?: string;
+  forwardEnabled?: boolean;
+  /**
+   * Optional list of documents associated with this CTA.
+   * Used by Settings UI to show per-CTA document rows (auto-send, icons, etc.).
+   */
+  documents?: CtaForwardingDocument[];
+  /**
+   * Optional list of notification recipients associated with this CTA.
+   * When present, this can be used to override or extend domain-level notifyEmail.
+   */
+  notifyEmails?: CtaForwardingNotifyEmail[];
 }
 
 export function sanitizeCtaTitle(value: string): string {

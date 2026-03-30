@@ -19,11 +19,21 @@ export async function POST(req: NextRequest) {
   const buffer = Buffer.from(arrayBuffer);
 
   try {
-    const result = await new Promise<any>((resolve, reject) => {
+    // Use Cloudinary "image" type for images, "raw" for documents (PDF, DOC, etc.).
+    const isImage = file.type.startsWith("image/");
+    const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
-          folder: "real-estate",
-          resource_type: "image",
+          folder: isImage ? "real-estate" : "real-estate-docs",
+          resource_type: isImage ? "image" : "raw",
+          // For documents, let Cloudinary derive a filename from the original
+          // while keeping the asset public and avoiding ACL issues.
+          ...(isImage
+            ? {}
+            : {
+                use_filename: true,
+                unique_filename: true,
+              }),
         },
         (error, uploaded) => {
           if (error) reject(error);
@@ -33,10 +43,11 @@ export async function POST(req: NextRequest) {
       stream.end(buffer);
     });
 
-    return NextResponse.json(
-      { url: result.secure_url as string },
-      { status: 200 },
-    );
+    return NextResponse.json({
+      url: result.secure_url,
+      mimeType: file.type || null,
+      originalName: file.name || null,
+    });
   } catch (e) {
     console.error("Cloudinary upload failed", e);
     return NextResponse.json(

@@ -144,7 +144,11 @@ export function HeroSection({
   const normalizedPageCtaKey = normalizeCtaTitleKey(page.ctaText ?? "");
   const teamFallbackForwardUrl = (ctaForwardingRules ?? []).find((rule) => {
     const normalizedRule = normalizeCtaTitleKey(rule.ctaTitle);
-    return normalizedRule.length > 0 && normalizedRule === normalizedPageCtaKey;
+    return (
+      normalizedRule.length > 0 &&
+      normalizedRule === normalizedPageCtaKey &&
+      rule.forwardEnabled !== false
+    );
   })?.forwardUrl;
 
   if (isTeamShowcase) {

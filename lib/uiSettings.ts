@@ -1,7 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import type { EditorFontOption } from "@/lib/editorFonts";
 import { DEFAULT_EDITOR_FONTS } from "@/lib/editorFonts";
-import { type CtaForwardingRule, sanitizeCtaTitle } from "@/lib/types/ctaForwarding";
+import {
+  type CtaForwardingDocument,
+  type CtaForwardingNotifyEmail,
+  type CtaForwardingRule,
+  sanitizeCtaTitle,
+} from "@/lib/types/ctaForwarding";
 
 const SINGLETON_ID = "singleton";
 
@@ -83,11 +88,87 @@ function normalizeCtaForwardingRules(
         ? (item as any).ctaTitle
         : "",
     );
-    const forwardUrl = typeof (item as any).forwardUrl === "string"
-      ? (item as any).forwardUrl.trim()
-      : "";
-    if (!ctaTitle || !/^https?:\/\//i.test(forwardUrl)) continue;
-    normalized.push({ ctaTitle, forwardUrl });
+    const forwardUrl =
+      typeof (item as any).forwardUrl === "string"
+        ? (item as any).forwardUrl.trim()
+        : "";
+    const forwardEnabled =
+      typeof (item as any).forwardEnabled === "boolean"
+        ? (item as any).forwardEnabled
+        : !!forwardUrl;
+    if (!ctaTitle) continue;
+    if (forwardUrl && !/^https?:\/\//i.test(forwardUrl)) continue;
+
+    const rawDocuments = Array.isArray((item as any).documents)
+      ? ((item as any).documents as unknown[])
+      : [];
+    const documents: CtaForwardingDocument[] =
+      rawDocuments
+        .map((doc) => {
+          if (!doc || typeof doc !== "object") return null;
+          const name =
+            typeof (doc as any).name === "string"
+              ? (doc as any).name.trim()
+              : "";
+          const url =
+            typeof (doc as any).url === "string"
+              ? (doc as any).url.trim()
+              : "";
+          if (!name || !url || !/^https?:\/\//i.test(url)) return null;
+          const autoSend =
+            typeof (doc as any).autoSend === "boolean"
+              ? (doc as any).autoSend
+              : undefined;
+          const mimeType =
+            typeof (doc as any).mimeType === "string"
+              ? (doc as any).mimeType.trim()
+              : undefined;
+          return {
+            name,
+            url,
+            ...(autoSend !== undefined ? { autoSend } : {}),
+            ...(mimeType ? { mimeType } : {}),
+          };
+        })
+        .filter(Boolean) as CtaForwardingDocument[];
+
+    const rawNotifyEmails = Array.isArray((item as any).notifyEmails)
+      ? ((item as any).notifyEmails as unknown[])
+      : [];
+    const notifyEmails: CtaForwardingNotifyEmail[] =
+      rawNotifyEmails
+        .map((entry) => {
+          if (!entry || typeof entry !== "object") return null;
+          const email =
+            typeof (entry as any).email === "string"
+              ? (entry as any).email.trim()
+              : "";
+          if (!email || !email.includes("@")) return null;
+          const enabledRaw =
+            typeof (entry as any).enabled === "boolean"
+              ? (entry as any).enabled
+              : undefined;
+          const kindRaw =
+            typeof (entry as any).kind === "string"
+              ? (entry as any).kind.trim().toLowerCase()
+              : undefined;
+          const kind: "cc" | "bcc" | undefined =
+            kindRaw === "cc" || kindRaw === "bcc" ? (kindRaw as any) : undefined;
+          return {
+            email,
+            ...(enabledRaw === undefined ? {} : { enabled: enabledRaw }),
+            ...(kind ? { kind } : {}),
+          };
+        })
+        .filter(Boolean) as CtaForwardingNotifyEmail[];
+
+    normalized.push({
+      ctaTitle,
+      forwardEnabled,
+      ...(forwardUrl ? { forwardUrl } : {}),
+      ...(documents.length ? { documents } : {}),
+      ...(notifyEmails.length ? { notifyEmails } : {}),
+    });
   }
   return normalized;
 }
