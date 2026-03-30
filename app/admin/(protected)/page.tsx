@@ -45,7 +45,7 @@ export default async function AdminDashboardPage() {
       <h1 className="text-lg font-semibold tracking-tight text-zinc-900">
         Dashboard
       </h1>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         {/* Domains card */}
         <div className="relative overflow-hidden rounded-sm bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 p-[1px] shadow-sm">
           <div className="relative h-full rounded-[10px] bg-zinc-950/95 px-4 py-4 text-zinc-50">
