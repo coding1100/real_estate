@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import {
   Bricolage_Grotesque,
   Alegreya_Sans,
@@ -100,7 +101,9 @@ export default async function RootLayout({
       <body
         className={`${bodyFont.variable} ${headingFont.variable} ${displayFont.variable} ${alegreyaSansFont.variable} ${poiretFont.variable} ${interFont.variable} ${cormorantFont.variable} ${libreBaskervilleFont.variable} ${latoFont.variable} antialiased`}
       >
-        <TopLoader />
+        <Suspense fallback={null}>
+          <TopLoader />
+        </Suspense>
         {children}
       </body>
     </html>
