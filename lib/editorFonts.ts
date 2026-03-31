@@ -14,8 +14,8 @@ export interface EditorFontOption {
 
 export const DEFAULT_EDITOR_FONTS: EditorFontOption[] = [
   {
-    label: "Playfair Display",
-    cssFamily: '"Playfair Display", "Times New Roman", serif',
+    label: "Source Sans 3",
+    cssFamily: '"Source Sans 3", "Times New Roman", serif',
   },
   {
     label: "Inter",

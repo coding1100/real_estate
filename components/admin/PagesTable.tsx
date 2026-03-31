@@ -19,7 +19,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Loader2, Search, Star } from "lucide-react";
+import { Eye, GripVertical, Loader2, Search, Star } from "lucide-react";
 import { SlugEditor } from "@/components/admin/SlugEditor";
 import { TitleEditor } from "@/components/admin/TitleEditor";
 import { PageRowActions } from "@/components/admin/PageRowActions";
@@ -58,12 +58,14 @@ function PreviewThumbnail({
   fallbackImageUrl,
   isActive,
   onVisibleChange,
+  onOpenPreview,
 }: {
   pageId: string;
   previewSrc: string;
   fallbackImageUrl?: string | null;
   isActive: boolean;
   onVisibleChange: (pageId: string, inView: boolean) => void;
+  onOpenPreview: () => void;
 }) {
   const holderRef = useRef<HTMLDivElement | null>(null);
   const iframeLoadFallbackRef = useRef<number | null>(null);
@@ -140,8 +142,9 @@ function PreviewThumbnail({
   return (
     <div
       ref={holderRef}
-      className="relative mx-auto h-[86px] w-[150px] overflow-hidden rounded border border-zinc-200 bg-zinc-50"
+      className="relative mx-auto h-[86px] w-[150px] overflow-hidden rounded border border-zinc-200 bg-zinc-50 cursor-pointer"
       aria-label={`Preview thumbnail for ${pageId}`}
+      onClick={onOpenPreview}
     >
       {showThumbLoader && (
         <ThumbLoaderOverlay label="Loading preview thumbnail" />
@@ -404,10 +407,7 @@ export function PagesTable({ pages }: PagesTableProps) {
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<PageListItem[]>(pages);
   const [starredFirst, setStarredFirst] = useState(false);
-  const [previewHoverId, setPreviewHoverId] = useState<string | null>(null);
   const [previewOpenId, setPreviewOpenId] = useState<string | null>(null);
-  const previewClearTimeoutRef = useRef<number | null>(null);
-  const previewOpenTimeoutRef = useRef<number | null>(null);
   const visibleThumbsRef = useRef<Record<string, boolean>>({});
   const [activeThumbIds, setActiveThumbIds] = useState<Set<string>>(() => new Set());
   const rowsRef = useRef<PageListItem[]>(pages);
@@ -426,17 +426,6 @@ export function PagesTable({ pages }: PagesTableProps) {
   useEffect(() => {
     setRows(pages);
   }, [pages]);
-
-  useEffect(() => {
-    return () => {
-      if (previewClearTimeoutRef.current) {
-        window.clearTimeout(previewClearTimeoutRef.current);
-      }
-      if (previewOpenTimeoutRef.current) {
-        window.clearTimeout(previewOpenTimeoutRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     function onScroll() {
@@ -608,81 +597,37 @@ export function PagesTable({ pages }: PagesTableProps) {
   const renderPreviewSlot = useCallback(
     (page: PageListItem) => {
       const previewSrc = `/${encodeURIComponent(page.slug)}?preview=1&domain=${encodeURIComponent(page.domainHostname)}`;
-      const showLarge = previewHoverId === page.id;
       const POPUP_BOX = 600;
       const BASE_W = THUMB_IFRAME_BASE_W;
       const BASE_H = THUMB_IFRAME_BASE_H;
       const popupScale = Math.min(POPUP_BOX / BASE_W, POPUP_BOX / BASE_H);
 
       return (
-        <div
-          className="group relative inline-block"
-          onMouseEnter={() => {
-            if (previewClearTimeoutRef.current) {
-              window.clearTimeout(previewClearTimeoutRef.current);
-              previewClearTimeoutRef.current = null;
-            }
-            if (previewOpenTimeoutRef.current) {
-              window.clearTimeout(previewOpenTimeoutRef.current);
-              previewOpenTimeoutRef.current = null;
-            }
-            setPreviewHoverId(page.id);
-            previewOpenTimeoutRef.current = window.setTimeout(() => {
-              setPreviewOpenId(page.id);
-              previewOpenTimeoutRef.current = null;
-            }, 180);
-          }}
-          onMouseLeave={() => {
-            if (previewOpenTimeoutRef.current) {
-              window.clearTimeout(previewOpenTimeoutRef.current);
-              previewOpenTimeoutRef.current = null;
-            }
-            if (previewClearTimeoutRef.current) {
-              window.clearTimeout(previewClearTimeoutRef.current);
-            }
-            previewClearTimeoutRef.current = window.setTimeout(() => {
-              setPreviewHoverId((prev) => (prev === page.id ? null : prev));
-              previewClearTimeoutRef.current = null;
-            }, 120);
-          }}
-        >
+        <div className="group relative inline-block">
           <PreviewThumbnail
             pageId={page.id}
             previewSrc={previewSrc}
             fallbackImageUrl={page.thumbnailImageUrl}
             isActive={activeThumbIds.has(page.id)}
             onVisibleChange={handleThumbVisibleChange}
+            onOpenPreview={() => setPreviewOpenId(page.id)}
           />
+          <button
+            type="button"
+            onClick={() => setPreviewOpenId(page.id)}
+            className="absolute right-1 top-1 inline-flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 bg-white/95 text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900"
+            aria-label={`Open preview for ${page.slug}`}
+            title="Preview"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
 
-          {showLarge && previewOpenId === page.id && (
+          {previewOpenId === page.id && (
             <div
               className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 p-4"
               onMouseDown={(e) => {
                 if (e.target !== e.currentTarget) return;
-                if (previewClearTimeoutRef.current) {
-                  window.clearTimeout(previewClearTimeoutRef.current);
-                  previewClearTimeoutRef.current = null;
-                }
-                if (previewOpenTimeoutRef.current) {
-                  window.clearTimeout(previewOpenTimeoutRef.current);
-                  previewOpenTimeoutRef.current = null;
-                }
-                setPreviewHoverId(null);
                 setPreviewOpenId(null);
-              }}
-              onMouseEnter={() => {
-                if (previewClearTimeoutRef.current) {
-                  window.clearTimeout(previewClearTimeoutRef.current);
-                  previewClearTimeoutRef.current = null;
-                }
-              }}
-              onMouseLeave={() => {
-                if (previewClearTimeoutRef.current) {
-                  window.clearTimeout(previewClearTimeoutRef.current);
-                  previewClearTimeoutRef.current = null;
-                }
-                setPreviewHoverId((prev) => (prev === page.id ? null : prev));
-                setPreviewOpenId((prev) => (prev === page.id ? null : prev));
               }}
             >
               <div className="relative rounded-md border border-zinc-200 bg-white p-2 shadow-lg">
@@ -695,15 +640,6 @@ export function PagesTable({ pages }: PagesTableProps) {
                     className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
                     aria-label="Close preview"
                     onClick={() => {
-                      if (previewClearTimeoutRef.current) {
-                        window.clearTimeout(previewClearTimeoutRef.current);
-                        previewClearTimeoutRef.current = null;
-                      }
-                      if (previewOpenTimeoutRef.current) {
-                        window.clearTimeout(previewOpenTimeoutRef.current);
-                        previewOpenTimeoutRef.current = null;
-                      }
-                      setPreviewHoverId(null);
                       setPreviewOpenId(null);
                     }}
                   >
@@ -724,7 +660,6 @@ export function PagesTable({ pages }: PagesTableProps) {
       );
     },
     [
-      previewHoverId,
       previewOpenId,
       activeThumbIds,
       handleThumbVisibleChange,
