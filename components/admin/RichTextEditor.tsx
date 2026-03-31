@@ -82,11 +82,25 @@ export function RichTextEditor({
   height = DEFAULT_EDITOR_HEIGHT,
   fontOptions,
 }: RichTextEditorProps) {
-  const defaultRoboto =
-    'Roboto, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  const defaultSourceSans =
+    '"Source Sans 3", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   const tagFontFamily =
     "Bricolage Grotesque, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-  const [currentFontFamily, setCurrentFontFamily] = useState("default");
+  const sourceSansOption =
+    (fontOptions || []).find((f) => f.label === "Source Sans 3") || {
+      label: "Source Sans 3",
+      cssFamily: defaultSourceSans,
+    };
+  const mergedFontOptions = (() => {
+    const options = fontOptions || [];
+    if (options.some((f) => f.cssFamily === sourceSansOption.cssFamily)) {
+      return options;
+    }
+    return [sourceSansOption, ...options];
+  })();
+  const [currentFontFamily, setCurrentFontFamily] = useState(
+    sourceSansOption.cssFamily,
+  );
   const [currentFontSize, setCurrentFontSize] = useState("14px");
   const [currentLineHeight, setCurrentLineHeight] = useState("1");
   const lastEmittedHtml = useRef<string | null>(null);
@@ -280,7 +294,7 @@ export function RichTextEditor({
       attributes: {
         class:
           "prose prose-sm max-w-none focus:outline-none p-3 min-h-[140px]",
-        style: `font-family: ${defaultRoboto};`,
+        style: `font-family: ${sourceSansOption.cssFamily};`,
       },
       transformPastedHTML(html) {
         // Strip editor-specific attributes that can break editing behavior,
@@ -402,13 +416,14 @@ export function RichTextEditor({
       const activeFont = attrs.fontFamily || "";
       if (
         activeFont &&
-        (fontOptions || []).some((f) => f.cssFamily === activeFont)
+        ((fontOptions || []).some((f) => f.cssFamily === activeFont) ||
+          activeFont === sourceSansOption.cssFamily)
       ) {
         setCurrentFontFamily(activeFont);
       } else if (activeFont === tagFontFamily) {
         setCurrentFontFamily(tagFontFamily);
       } else {
-        setCurrentFontFamily("default");
+        setCurrentFontFamily(sourceSansOption.cssFamily);
       }
       setCurrentFontSize(attrs.fontSize || "14px");
 
@@ -434,7 +449,7 @@ export function RichTextEditor({
       editor.off("selectionUpdate", updateFromSelection);
       editor.off("transaction", updateFromSelection);
     };
-  }, [editor]);
+  }, [editor, fontOptions, sourceSansOption.cssFamily]);
 
   useEffect(() => {
     if (!editor) return;
@@ -720,17 +735,12 @@ export function RichTextEditor({
             onChange={(e) => {
               const val = e.target.value;
               if (!editor) return;
-              if (val === "default") {
-                editor.chain().focus().unsetFontFamily().run();
-              } else {
-                editor.chain().focus().setFontFamily(val).run();
-              }
+              editor.chain().focus().setFontFamily(val).run();
               setCurrentFontFamily(val);
             }}
           >
-            <option value="default">Default font</option>
-            {(fontOptions || []).map((font) => (
-              <option key={font.label} value={font.cssFamily}>
+            {mergedFontOptions.map((font) => (
+              <option key={`${font.label}-${font.cssFamily}`} value={font.cssFamily}>
                 {font.label}
               </option>
             ))}
