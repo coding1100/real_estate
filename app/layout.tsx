@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import {
-  Roboto,
   Bricolage_Grotesque,
   Alegreya_Sans,
   Poiret_One,
@@ -12,6 +11,7 @@ import {
 } from "next/font/google";
 import type { EditorFontOption } from "@/lib/editorFonts";
 import { getAdminUiSettings, getEnabledEditorFonts } from "@/lib/uiSettings";
+import TopLoader from "@/components/shared/TopLoader";
 import "./globals.css";
 
 const headingFont = Source_Sans_3({
@@ -20,10 +20,10 @@ const headingFont = Source_Sans_3({
   weight: ["400", "500", "600", "700"],
 });
 
-const bodyFont = Roboto({
+const bodyFont = Source_Sans_3({
   variable: "--font-body",
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const displayFont = Bricolage_Grotesque({
@@ -100,6 +100,7 @@ export default async function RootLayout({
       <body
         className={`${bodyFont.variable} ${headingFont.variable} ${displayFont.variable} ${alegreyaSansFont.variable} ${poiretFont.variable} ${interFont.variable} ${cormorantFont.variable} ${libreBaskervilleFont.variable} ${latoFont.variable} antialiased`}
       >
+        <TopLoader />
         {children}
       </body>
     </html>

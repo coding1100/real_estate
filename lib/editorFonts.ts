@@ -14,8 +14,8 @@ export interface EditorFontOption {
 
 export const DEFAULT_EDITOR_FONTS: EditorFontOption[] = [
   {
-    label: "Source Sans 3",
-    cssFamily: '"Source Sans 3", "Times New Roman", serif',
+    label: "Playfair Display",
+    cssFamily: '"Playfair Display", "Times New Roman", serif',
   },
   {
     label: "Inter",
@@ -55,5 +55,12 @@ export function isBuiltInEditorFont(font: EditorFontOption): boolean {
 export function getEnabledEditorFonts(
   fonts: EditorFontOption[],
 ): EditorFontOption[] {
-  return fonts.filter((f) => f.enabled !== false);
+  const seen = new Set<string>();
+  return fonts.filter((f) => {
+    if (f.enabled === false) return false;
+    const key = `${f.label}__${f.cssFamily}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
