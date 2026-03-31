@@ -57,6 +57,7 @@ export default async function EditPage({ params }: EditPageProps) {
     dbId: page.id,
     domainId: page.domainId,
     id: page.id,
+    title: page.title,
     slug: page.slug,
     status: page.status,
     multistepStepSlugs: (page as any).multistepStepSlugs ?? null,

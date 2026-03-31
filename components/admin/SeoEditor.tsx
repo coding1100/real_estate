@@ -27,7 +27,7 @@ export function SeoEditor({
   onChange,
   values,
 }: SeoEditorProps) {
-  const seoTitle = values.seoTitle ?? title;
+  const seoTitle = values.seoTitle ?? "";
   const seoDescription = values.seoDescription ?? description;
   const canonical = values.canonicalUrl ?? url;
   const noIndex = values.noIndex ?? false;
@@ -49,11 +49,12 @@ export function SeoEditor({
     <div className="space-y-4">
       <div>
         <label className="mb-1 block text-md font-medium text-zinc-700">
-          Page Title
+          SEO Page Title
         </label>
         <input
           className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
           value={seoTitle}
+          placeholder={title || "SEO page title"}
           onChange={(e) =>
             onChange({
               seoTitle: e.target.value,

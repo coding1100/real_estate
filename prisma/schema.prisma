@@ -89,6 +89,7 @@ model LandingPage {
   successMessage String   @default("Thank you!")
   deliverableUrl String?
   footerHtml     String?
+  notes          String?
 
   // Form
   useCustomForm Boolean @default(false)

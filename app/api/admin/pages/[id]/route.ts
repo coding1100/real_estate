@@ -9,6 +9,32 @@ type RouteContext = {
   }>;
 };
 
+function deriveSlugFromCanonicalUrl(canonicalUrl: string): string | null {
+  const raw = canonicalUrl.trim();
+  if (!raw) return null;
+
+  let pathname = "";
+  try {
+    if (raw.startsWith("/")) {
+      pathname = raw;
+    } else if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) {
+      pathname = new URL(raw).pathname;
+    } else {
+      pathname = new URL(`https://${raw}`).pathname;
+    }
+  } catch {
+    return null;
+  }
+
+  const normalized = pathname
+    .trim()
+    .replace(/\/+/g, "/")
+    .replace(/^\/+|\/+$/g, "")
+    .toLowerCase();
+
+  return normalized.length > 0 ? normalized : null;
+}
+
 export async function PATCH(req: NextRequest, ctx: RouteContext) {
   const session = await getServerAuthSession();
   if (!session) {
@@ -17,11 +43,30 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
 
   const body = await req.json();
   const { id } = await ctx.params;
+  const hasNotesInBody = Object.prototype.hasOwnProperty.call(body, "notes");
+  let normalizedNotesValue: string | null = null;
+
+  if (hasNotesInBody) {
+    if (body.notes === null) {
+      normalizedNotesValue = null;
+    } else if (typeof body.notes === "string") {
+      const normalizedNotes = body.notes.trim();
+      normalizedNotesValue = normalizedNotes.length > 0 ? normalizedNotes : null;
+    } else {
+      return NextResponse.json(
+        { error: "notes must be a string or null." },
+        { status: 400 },
+      );
+    }
+    // Save notes through SQL to avoid Prisma client/schema mismatch issues.
+    delete body.notes;
+  }
+
   let existingPage;
   try {
     existingPage = await prisma.landingPage.findUnique({
       where: { id },
-      select: { domainId: true },
+      select: { domainId: true, canonicalUrl: true },
     });
   } catch (error: unknown) {
     const code =
@@ -57,6 +102,21 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
   }
   if (!existingPage) {
     return NextResponse.json({ error: "Page not found." }, { status: 404 });
+  }
+
+  // Keep slug aligned with canonical URL only when canonical is actually changed.
+  if (
+    Object.prototype.hasOwnProperty.call(body, "canonicalUrl") &&
+    typeof body.canonicalUrl === "string"
+  ) {
+    const incomingCanonical = body.canonicalUrl.trim();
+    const existingCanonical = (existingPage.canonicalUrl ?? "").trim();
+    if (incomingCanonical !== existingCanonical) {
+      const derivedSlug = deriveSlugFromCanonicalUrl(body.canonicalUrl);
+      if (derivedSlug) {
+        body.slug = derivedSlug;
+      }
+    }
   }
 
   // Basic validation for slug updates
@@ -187,6 +247,37 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
         WHERE "id" = ${id}
       `;
       delete body.bookmarked;
+    }
+
+    if (hasNotesInBody) {
+      try {
+        await prisma.$executeRaw`
+          UPDATE "LandingPage"
+          SET "notes" = ${normalizedNotesValue}, "updatedAt" = NOW()
+          WHERE "id" = ${id}
+        `;
+      } catch (error: unknown) {
+        const code =
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          typeof (error as { code?: unknown }).code === "string"
+            ? (error as { code: string }).code
+            : null;
+
+        // Postgres undefined_column (usually migration not applied).
+        if (code === "42703") {
+          return NextResponse.json(
+            {
+              error:
+                'Notes column is not available in the database yet. Run migrations (e.g. "npx prisma migrate deploy") and try again.',
+            },
+            { status: 500 },
+          );
+        }
+
+        throw error;
+      }
     }
 
     // Update the page
