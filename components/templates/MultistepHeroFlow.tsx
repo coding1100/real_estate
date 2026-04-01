@@ -175,6 +175,7 @@ export function MultistepHeroFlow({
         domain: mainPage.domain.hostname,
         slug: mainPage.slug,
         type: mainPage.type,
+        _ctaText: step.ctaText ?? mainPage.ctaText ?? "",
         website: "",
       };
       if (Object.keys(accumulatedData).length > 0) {
