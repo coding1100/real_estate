@@ -19,8 +19,13 @@ export async function POST(req: NextRequest) {
       ...formData
     } = body ?? {};
 
-    // Honeypot check: if filled, silently accept but do nothing
-    if (website) {
+    const honeypotValue =
+      typeof website === "string"
+        ? website.replace(/&nbsp;/gi, " ").replace(/\u00A0/g, " ").trim()
+        : "";
+    // Honeypot check: if filled, silently accept but do nothing.
+    // Ignore whitespace-only noise values.
+    if (honeypotValue.length > 0) {
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
@@ -110,6 +115,10 @@ export async function POST(req: NextRequest) {
       } catch {
         // ignore invalid JSON
       }
+    } else if (_multistepData && typeof _multistepData === "object") {
+      const parsed = _multistepData as Record<string, unknown>;
+      const lastStepKey = "step" + (Object.keys(parsed).length);
+      mergedFormData = { ...parsed, [lastStepKey]: restForm };
     }
 
     const lead = await prisma.lead.create({

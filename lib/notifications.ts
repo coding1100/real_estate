@@ -203,10 +203,12 @@ export async function sendLeadNotifications(leadId: string) {
       const formData = (lead.formData as Record<string, unknown>) ?? {};
       const rule = findCtaRule(rules, page.ctaText, formData);
       if (!rule) {
+        const ctaCandidates = collectCtaCandidates(formData);
         console.warn("[notifications] Document email skipped: CTA rule not found", {
           leadId: lead.id,
           pageSlug: page.slug,
           ctaText: page.ctaText,
+          ctaCandidates,
         });
       }
       const docs = (rule?.documents ?? []).filter(
