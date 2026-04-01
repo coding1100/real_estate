@@ -9,7 +9,12 @@ const DEFAULT_INITIAL_BACKOFF_MS = 750;
 const MAX_BACKOFF_MS = 10_000;
 
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
-const SKIPPED_FORM_KEYS = new Set(["recaptchatoken", "website", "multistepdata"]);
+const SKIPPED_FORM_KEYS = new Set([
+  "recaptchatoken",
+  "website",
+  "multistepdata",
+  "ctatext",
+]);
 const CONTACT_FIELD_KEYS = new Set([
   "name",
   "fullname",
@@ -140,6 +145,20 @@ function flattenFormData(value: unknown, path: string[] = []): FlattenedField[] 
     if (!asText) return [];
     const key = path.join(".");
     const normalizedKey = normalizeKey(path[path.length - 1] ?? key);
+
+    if (
+      typeof value === "string" &&
+      (normalizedKey === "multistepdata" || /^step\d+$/i.test(path[path.length - 1] ?? "")) &&
+      (asText.startsWith("{") || asText.startsWith("["))
+    ) {
+      try {
+        const parsed = JSON.parse(asText) as unknown;
+        return flattenFormData(parsed, path);
+      } catch {
+        // keep as plain text if JSON parse fails
+      }
+    }
+
     if (SKIPPED_FORM_KEYS.has(normalizedKey)) return [];
     return [{ key, path, normalizedKey, value: asText }];
   }
@@ -522,8 +541,15 @@ function buildPayload(
   const campaign = buildCampaign(lead, source);
 
   if (!person) {
+    const flattened = flattenFormData(lead.formData);
+    const sampleKeys = [...new Set(flattened.map((f) => f.key))].slice(0, 15);
     console.warn(
       `[followupboss] Skipping lead ${lead.id}: no identifiable person fields (name/email/phone).`,
+      {
+        page: lead.page.slug,
+        fieldCount: flattened.length,
+        sampleKeys,
+      },
     );
     return null;
   }
