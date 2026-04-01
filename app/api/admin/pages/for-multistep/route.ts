@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
       select: {
         id: true,
         slug: true,
+        title: true,
         headline: true,
         type: true,
       },
@@ -36,6 +37,7 @@ export async function GET(req: NextRequest) {
       pages: pages.map((p) => ({
         id: p.id,
         slug: p.slug,
+        title: p.title ?? "",
         headline: p.headline ?? "",
         type: p.type,
       })),
