@@ -687,7 +687,7 @@ export function MultistepHeroFlow({
                             alt={(layout?.profileName as string) || "Profile"}
                             fill
                             loading="lazy"
-                            className="max-[768px]:!w-auto !h-auto"
+                            className="max-[768px]:!w-auto !h-auto rounded-[4px]"
                           />
                         </div>
                       )}
