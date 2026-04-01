@@ -229,9 +229,12 @@ export async function sendLeadNotifications(leadId: string) {
           .filter((n) => n.kind !== "cc")
           .map((n) => n.email);
 
-        const to = leadEmail ? [leadEmail] : [];
+        const primaryTo = leadEmail || cc[0] || bcc[0] || null;
+        const to = primaryTo ? [primaryTo] : [];
+        const ccFinal = cc.filter((email) => email !== primaryTo);
+        const bccFinal = bcc.filter((email) => email !== primaryTo);
 
-        if (to.length === 0 && cc.length === 0 && bcc.length === 0) {
+        if (to.length === 0 && ccFinal.length === 0 && bccFinal.length === 0) {
           console.warn("[notifications] Document email skipped: no recipients found", {
             leadId: lead.id,
             pageSlug: page.slug,
@@ -258,9 +261,9 @@ export async function sendLeadNotifications(leadId: string) {
 
           await resend.emails.send({
             from: resolveFromAddress(domain.notifyEmail),
-            ...(to.length ? { to } : {}),
-            ...(cc.length ? { cc } : {}),
-            ...(bcc.length ? { bcc } : {}),
+            to,
+            ...(ccFinal.length ? { cc: ccFinal } : {}),
+            ...(bccFinal.length ? { bcc: bccFinal } : {}),
             subject: `Your requested documents from ${domain.displayName ?? domain.hostname}`,
             text: textBody,
             attachments,
@@ -269,8 +272,8 @@ export async function sendLeadNotifications(leadId: string) {
           console.log("[notifications] Document email send summary", {
             leadId: lead.id,
             to,
-            cc,
-            bcc,
+            cc: ccFinal,
+            bcc: bccFinal,
             docsCount: docs.length,
             successCount: 1,
             failedCount: 0,
