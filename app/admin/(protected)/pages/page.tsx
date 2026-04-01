@@ -44,6 +44,7 @@ export default async function AdminPagesListPage() {
   // be regenerated yet. Read it via SQL to keep /admin/pages accurate.
   const ids = pages.map((p) => p.id);
   let bookmarkedById = new Map<string, boolean>();
+  let notesById = new Map<string, string | null>();
   if (ids.length > 0) {
     try {
       const rows = (await prisma.$queryRaw<
@@ -57,6 +58,20 @@ export default async function AdminPagesListPage() {
     } catch (err) {
       console.error("[AdminPagesListPage] Failed to load bookmarks via SQL", err);
       bookmarkedById = new Map();
+    }
+
+    try {
+      const noteRows = (await prisma.$queryRaw<
+        { id: string; notes: string | null }[]
+      >`
+        SELECT "id", "notes"
+        FROM "LandingPage"
+        WHERE "id" IN (${Prisma.join(ids)})
+      `) as Array<{ id: string; notes: string | null }>;
+      notesById = new Map(noteRows.map((r) => [r.id, r.notes ?? null]));
+    } catch (err) {
+      console.error("[AdminPagesListPage] Failed to load notes via SQL", err);
+      notesById = new Map();
     }
   }
 
@@ -118,6 +133,9 @@ export default async function AdminPagesListPage() {
     domainHostname: p.domain.hostname,
     domainId: p.domainId,
     multistepStepSlugs: ((p as any).multistepStepSlugs as string[] | null) ?? null,
+    notes: notesById.has(p.id)
+      ? (notesById.get(p.id) ?? null)
+      : (((p as any).notes as string | null) ?? null),
     thumbnailImageUrl:
       (p as any).heroImageUrl ?? (p as any).ogImageUrl ?? null,
     bookmarked: bookmarkedById.get(p.id) ?? false,

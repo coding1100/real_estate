@@ -19,8 +19,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Loader2, Search, Star } from "lucide-react";
-import { SlugEditor } from "@/components/admin/SlugEditor";
+import { Eye, GripVertical, Loader2, Search, Star } from "lucide-react";
 import { TitleEditor } from "@/components/admin/TitleEditor";
 import { PageRowActions } from "@/components/admin/PageRowActions";
 import type { PageListItem } from "@/components/admin/pageListTypes";
@@ -39,6 +38,29 @@ const THUMB_SCALE = Math.min(THUMB_BOX_W / THUMB_IFRAME_BASE_W, THUMB_BOX_H / TH
 // How many thumbnail iframes get full opacity / pointer-events at once.
 // Loaded iframes stay mounted (opacity 0 when off-screen) so they never reload on scroll.
 const MAX_ACTIVE_THUMB_IFRAMES = 10;
+const PACIFIC_TIMEZONE = "America/Los_Angeles";
+
+function formatPacificDateTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const formatted = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: PACIFIC_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(date);
+  return `${formatted} PST`;
+}
+
+function truncateNotes(value: string, max = 25): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= max) return normalized;
+  return `${normalized.slice(0, max - 1)}…`;
+}
 
 function ThumbLoaderOverlay({ label }: { label: string }) {
   return (
@@ -58,12 +80,14 @@ function PreviewThumbnail({
   fallbackImageUrl,
   isActive,
   onVisibleChange,
+  onOpenPreview,
 }: {
   pageId: string;
   previewSrc: string;
   fallbackImageUrl?: string | null;
   isActive: boolean;
   onVisibleChange: (pageId: string, inView: boolean) => void;
+  onOpenPreview: () => void;
 }) {
   const holderRef = useRef<HTMLDivElement | null>(null);
   const iframeLoadFallbackRef = useRef<number | null>(null);
@@ -140,8 +164,9 @@ function PreviewThumbnail({
   return (
     <div
       ref={holderRef}
-      className="relative mx-auto h-[86px] w-[150px] overflow-hidden rounded border border-zinc-200 bg-zinc-50"
+      className="relative mx-auto h-[86px] w-[150px] overflow-hidden rounded border border-zinc-200 bg-zinc-50 cursor-pointer"
       aria-label={`Preview thumbnail for ${pageId}`}
+      onClick={onOpenPreview}
     >
       {showThumbLoader && (
         <ThumbLoaderOverlay label="Loading preview thumbnail" />
@@ -237,11 +262,13 @@ function PagesTableRowBody({
   domain,
   leadingCell,
   previewSlot,
+  onOpenNotes,
 }: {
   page: PageListItem;
   domain: string;
   leadingCell: React.ReactNode;
   previewSlot: React.ReactNode;
+  onOpenNotes: (page: PageListItem) => void;
 }) {
   const isMaster =
     page.slug === "master-seller" || page.slug === "master-buyer";
@@ -255,13 +282,6 @@ function PagesTableRowBody({
     </td>,
     <td key="dom" className="px-2 py-2 text-zinc-700">
       <span className="block max-w-[165px] truncate text-zinc-500">{domain}</span>
-    </td>,
-    <td key="slug" className="px-2 py-2 text-zinc-700">
-      {isMaster ? (
-        <span className="block max-w-[170px] truncate">{page.slug}</span>
-      ) : (
-        <SlugEditor pageId={page.id} initialSlug={page.slug} />
-      )}
     </td>,
     <td key="title" className="px-2 py-2 text-zinc-700">
       {isMaster ? (
@@ -311,8 +331,36 @@ function PagesTableRowBody({
     <td key="status" className="px-2 py-2 text-zinc-700">
       {page.status}
     </td>,
+    <td key="notes" className="px-2 py-2 text-zinc-700">
+      <div className="max-w-[240px]">
+        {page.notes && page.notes.trim().length > 0 ? (
+          <>
+            <p className="text-sm text-zinc-700 break-words">
+              {truncateNotes(page.notes)}
+            </p>
+            <button
+              type="button"
+              onClick={() => onOpenNotes(page)}
+              className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-zinc-600 underline underline-offset-2 hover:text-zinc-900"
+            >
+              <Eye className="h-3 w-3" />
+              Read more
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onOpenNotes(page)}
+            className="inline-flex items-center gap-1 text-xs font-medium text-zinc-500 underline underline-offset-2 hover:text-zinc-800"
+          >
+            <Eye className="h-3 w-3" />
+            Add note
+          </button>
+        )}
+      </div>
+    </td>,
     <td key="upd" className="hidden px-3 py-2 text-zinc-500 xl:table-cell">
-      {new Date(page.updatedAt).toISOString().slice(0, 19).replace("T", " ")}
+      {formatPacificDateTime(page.updatedAt)}
     </td>,
     <td key="prev" className="px-3 py-2 text-center">
       {previewSlot}
@@ -332,11 +380,13 @@ function SortablePagesTableRow({
   domain,
   previewSlot,
   onToggleBookmark,
+  onOpenNotes,
 }: {
   page: PageListItem;
   domain: string;
   previewSlot: React.ReactNode;
   onToggleBookmark: (pageId: string, next: boolean) => void;
+  onOpenNotes: (page: PageListItem) => void;
 }) {
   const {
     attributes,
@@ -395,6 +445,7 @@ function SortablePagesTableRow({
         domain,
         leadingCell,
         previewSlot,
+        onOpenNotes,
       })}
     </tr>
   );
@@ -404,10 +455,11 @@ export function PagesTable({ pages }: PagesTableProps) {
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<PageListItem[]>(pages);
   const [starredFirst, setStarredFirst] = useState(false);
-  const [previewHoverId, setPreviewHoverId] = useState<string | null>(null);
   const [previewOpenId, setPreviewOpenId] = useState<string | null>(null);
-  const previewClearTimeoutRef = useRef<number | null>(null);
-  const previewOpenTimeoutRef = useRef<number | null>(null);
+  const [notesOpenId, setNotesOpenId] = useState<string | null>(null);
+  const [notesDraft, setNotesDraft] = useState("");
+  const [notesSaving, setNotesSaving] = useState(false);
+  const [notesError, setNotesError] = useState<string | null>(null);
   const visibleThumbsRef = useRef<Record<string, boolean>>({});
   const [activeThumbIds, setActiveThumbIds] = useState<Set<string>>(() => new Set());
   const rowsRef = useRef<PageListItem[]>(pages);
@@ -426,17 +478,6 @@ export function PagesTable({ pages }: PagesTableProps) {
   useEffect(() => {
     setRows(pages);
   }, [pages]);
-
-  useEffect(() => {
-    return () => {
-      if (previewClearTimeoutRef.current) {
-        window.clearTimeout(previewClearTimeoutRef.current);
-      }
-      if (previewOpenTimeoutRef.current) {
-        window.clearTimeout(previewOpenTimeoutRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     function onScroll() {
@@ -469,7 +510,8 @@ export function PagesTable({ pages }: PagesTableProps) {
           return (
             p.slug.toLowerCase().includes(q) ||
             p.domainHostname.toLowerCase().includes(q) ||
-            title.toLowerCase().includes(q)
+            title.toLowerCase().includes(q) ||
+            (p.notes ?? "").toLowerCase().includes(q)
           );
         });
 
@@ -506,6 +548,61 @@ export function PagesTable({ pages }: PagesTableProps) {
     }
     return { order, map };
   }, [filtered]);
+
+  function openNotesDialog(page: PageListItem) {
+    setNotesOpenId(page.id);
+    setNotesDraft(page.notes ?? "");
+    setNotesError(null);
+  }
+
+  function closeNotesDialog() {
+    if (notesSaving) return;
+    setNotesOpenId(null);
+    setNotesDraft("");
+    setNotesError(null);
+  }
+
+  async function saveNotes() {
+    if (!notesOpenId) return;
+    setNotesSaving(true);
+    setNotesError(null);
+    const notesToSave = notesDraft.trim();
+
+    try {
+      const res = await fetch(`/api/admin/pages/${notesOpenId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          notes: notesToSave.length > 0 ? notesToSave : null,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+      if (!res.ok) {
+        setNotesError(
+          (data && typeof data.error === "string" && data.error) ||
+            "Failed to save notes.",
+        );
+        setNotesSaving(false);
+        return;
+      }
+      setRows((prev) =>
+        prev.map((p) =>
+          p.id === notesOpenId
+            ? { ...p, notes: notesToSave.length > 0 ? notesToSave : null }
+            : p,
+        ),
+      );
+      setNotesSaving(false);
+      setNotesOpenId(null);
+      setNotesDraft("");
+      setNotesError(null);
+    } catch {
+      setNotesError("Failed to save notes.");
+      setNotesSaving(false);
+    }
+  }
 
   async function toggleBookmark(pageId: string, next: boolean) {
     setRows((prev) =>
@@ -608,81 +705,37 @@ export function PagesTable({ pages }: PagesTableProps) {
   const renderPreviewSlot = useCallback(
     (page: PageListItem) => {
       const previewSrc = `/${encodeURIComponent(page.slug)}?preview=1&domain=${encodeURIComponent(page.domainHostname)}`;
-      const showLarge = previewHoverId === page.id;
       const POPUP_BOX = 600;
       const BASE_W = THUMB_IFRAME_BASE_W;
       const BASE_H = THUMB_IFRAME_BASE_H;
       const popupScale = Math.min(POPUP_BOX / BASE_W, POPUP_BOX / BASE_H);
 
       return (
-        <div
-          className="group relative inline-block"
-          onMouseEnter={() => {
-            if (previewClearTimeoutRef.current) {
-              window.clearTimeout(previewClearTimeoutRef.current);
-              previewClearTimeoutRef.current = null;
-            }
-            if (previewOpenTimeoutRef.current) {
-              window.clearTimeout(previewOpenTimeoutRef.current);
-              previewOpenTimeoutRef.current = null;
-            }
-            setPreviewHoverId(page.id);
-            previewOpenTimeoutRef.current = window.setTimeout(() => {
-              setPreviewOpenId(page.id);
-              previewOpenTimeoutRef.current = null;
-            }, 180);
-          }}
-          onMouseLeave={() => {
-            if (previewOpenTimeoutRef.current) {
-              window.clearTimeout(previewOpenTimeoutRef.current);
-              previewOpenTimeoutRef.current = null;
-            }
-            if (previewClearTimeoutRef.current) {
-              window.clearTimeout(previewClearTimeoutRef.current);
-            }
-            previewClearTimeoutRef.current = window.setTimeout(() => {
-              setPreviewHoverId((prev) => (prev === page.id ? null : prev));
-              previewClearTimeoutRef.current = null;
-            }, 120);
-          }}
-        >
+        <div className="group relative inline-block">
           <PreviewThumbnail
             pageId={page.id}
             previewSrc={previewSrc}
             fallbackImageUrl={page.thumbnailImageUrl}
             isActive={activeThumbIds.has(page.id)}
             onVisibleChange={handleThumbVisibleChange}
+            onOpenPreview={() => setPreviewOpenId(page.id)}
           />
+          <button
+            type="button"
+            onClick={() => setPreviewOpenId(page.id)}
+            className="absolute right-1 top-1 inline-flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 bg-white/95 text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900"
+            aria-label={`Open preview for ${page.slug}`}
+            title="Preview"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
 
-          {showLarge && previewOpenId === page.id && (
+          {previewOpenId === page.id && (
             <div
               className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 p-4"
               onMouseDown={(e) => {
                 if (e.target !== e.currentTarget) return;
-                if (previewClearTimeoutRef.current) {
-                  window.clearTimeout(previewClearTimeoutRef.current);
-                  previewClearTimeoutRef.current = null;
-                }
-                if (previewOpenTimeoutRef.current) {
-                  window.clearTimeout(previewOpenTimeoutRef.current);
-                  previewOpenTimeoutRef.current = null;
-                }
-                setPreviewHoverId(null);
                 setPreviewOpenId(null);
-              }}
-              onMouseEnter={() => {
-                if (previewClearTimeoutRef.current) {
-                  window.clearTimeout(previewClearTimeoutRef.current);
-                  previewClearTimeoutRef.current = null;
-                }
-              }}
-              onMouseLeave={() => {
-                if (previewClearTimeoutRef.current) {
-                  window.clearTimeout(previewClearTimeoutRef.current);
-                  previewClearTimeoutRef.current = null;
-                }
-                setPreviewHoverId((prev) => (prev === page.id ? null : prev));
-                setPreviewOpenId((prev) => (prev === page.id ? null : prev));
               }}
             >
               <div className="relative rounded-md border border-zinc-200 bg-white p-2 shadow-lg">
@@ -695,15 +748,6 @@ export function PagesTable({ pages }: PagesTableProps) {
                     className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
                     aria-label="Close preview"
                     onClick={() => {
-                      if (previewClearTimeoutRef.current) {
-                        window.clearTimeout(previewClearTimeoutRef.current);
-                        previewClearTimeoutRef.current = null;
-                      }
-                      if (previewOpenTimeoutRef.current) {
-                        window.clearTimeout(previewOpenTimeoutRef.current);
-                        previewOpenTimeoutRef.current = null;
-                      }
-                      setPreviewHoverId(null);
                       setPreviewOpenId(null);
                     }}
                   >
@@ -724,7 +768,6 @@ export function PagesTable({ pages }: PagesTableProps) {
       );
     },
     [
-      previewHoverId,
       previewOpenId,
       activeThumbIds,
       handleThumbVisibleChange,
@@ -775,16 +818,16 @@ export function PagesTable({ pages }: PagesTableProps) {
         onDragEnd={handleDragEnd}
       >
       <div className="-mx-2 overflow-x-auto px-2 min-[1400px]:overflow-x-hidden">
-        <table className="min-w-[1080px] min-[1400px]:min-w-0 w-full table-fixed rounded-lg bg-white text-md shadow-sm">
+        <table className="min-w-[1220px] min-[1400px]:min-w-0 w-full table-fixed rounded-lg bg-white text-md shadow-sm">
           <thead className="bg-zinc-50 text-[16px] uppercase tracking-[0.15em] text-zinc-500">
             <tr>
               <th className="w-[44px] px-2 py-2 text-left"></th>
               <th className="w-[165px] px-3 py-2 text-left">Domain</th>
-              <th className="w-[170px] px-3 py-2 text-left">Slug</th>
               <th className="w-[220px] px-3 py-2 text-left">Title</th>
               <th className="w-[70px] px-3 py-2 text-left">Type</th>
               <th className="hidden w-[145px] px-3 py-2 text-left 2xl:table-cell">Mode</th>
               <th className="w-[88px] px-3 py-2 text-left">Status</th>
+              <th className="w-[240px] px-3 py-2 text-left">Notes</th>
               <th className="hidden w-[150px] px-3 py-2 text-left xl:table-cell">Updated</th>
               <th className="w-[150px] px-3 py-2 text-left">Preview</th>
               <th className="w-[76px] px-3 py-2 text-right">Actions</th>
@@ -825,6 +868,7 @@ export function PagesTable({ pages }: PagesTableProps) {
                           domain={domain}
                           previewSlot={renderPreviewSlot(page)}
                           onToggleBookmark={toggleBookmark}
+                          onOpenNotes={openNotesDialog}
                         />
                       ))}
                     </SortableContext>
@@ -856,6 +900,7 @@ export function PagesTable({ pages }: PagesTableProps) {
                             </button>
                           ),
                           previewSlot: renderPreviewSlot(page),
+                          onOpenNotes: openNotesDialog,
                         })}
                       </tr>
                     ))
@@ -876,6 +921,65 @@ export function PagesTable({ pages }: PagesTableProps) {
           </tbody>
         </table>
       </div>
+      {notesOpenId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4"
+          onMouseDown={(e) => {
+            if (e.target !== e.currentTarget) return;
+            closeNotesDialog();
+          }}
+        >
+          <div className="w-full max-w-2xl rounded-md border border-zinc-200 bg-white p-4 shadow-lg">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-zinc-900">
+                  Page notes
+                </h3>
+                <p className="text-xs text-zinc-500">
+                  Add or edit notes for this page.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeNotesDialog}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                aria-label="Close notes dialog"
+                disabled={notesSaving}
+              >
+                ✕
+              </button>
+            </div>
+            <textarea
+              value={notesDraft}
+              onChange={(e) => setNotesDraft(e.target.value)}
+              rows={10}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              placeholder="Write page notes..."
+            />
+            {notesError && (
+              <p className="mt-2 text-xs text-red-600">{notesError}</p>
+            )}
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeNotesDialog}
+                disabled={notesSaving}
+                className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveNotes}
+                disabled={notesSaving}
+                className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+              >
+                {notesSaving ? "Saving..." : "Save notes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </DndContext>
     </div>
   );

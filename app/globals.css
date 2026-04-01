@@ -201,6 +201,13 @@ ul,ol{
     white-space: pre;
   }
 
+  /* Make linked text clearly visible while editing */
+  .ProseMirror a {
+    color: #2563eb !important;
+    text-decoration: underline !important;
+    text-underline-offset: 2px;
+  }
+
 
 
 .tag{
@@ -347,4 +354,42 @@ margin-left: 0px;
     right: 0px;
     min-width: 400px;
     min-height: 400px;
+}
+
+/* Global top page loading bar */
+.top-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  --c: no-repeat linear-gradient(#171717 0 0);
+  background: var(--c), var(--c), #9ca3af;
+  background-size: 60% 100%;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.top-loader--loading {
+  animation: top-loader-run 3s linear infinite;
+  opacity: 1;
+}
+
+.top-loader--complete {
+  animation: none;
+  background-position: 250% 0, 250% 0;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+@keyframes top-loader-run {
+  0% {
+    background-position: -150% 0, -150% 0;
+  }
+  66% {
+    background-position: 250% 0, -150% 0;
+  }
+  100% {
+    background-position: 250% 0, 250% 0;
+  }
 }

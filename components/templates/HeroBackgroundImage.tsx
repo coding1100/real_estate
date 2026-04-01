@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useLayoutEffect, useState } from "react";
+import type { CSSProperties } from "react";
 
 /** Aligns with Tailwind `md:` / `max-[768px]` usage in hero sections. */
 const MOBILE_MQ = "(max-width: 768px)";
@@ -12,6 +13,7 @@ type HeroBackgroundImageProps = {
   src: string;
   alt: string;
   className?: string;
+  style?: CSSProperties;
   priority?: boolean;
   sizes?: string;
 };
@@ -24,6 +26,7 @@ export function HeroBackgroundImage({
   src,
   alt,
   className,
+  style,
   priority = true,
   sizes = "100vw",
 }: HeroBackgroundImageProps) {
@@ -48,6 +51,7 @@ export function HeroBackgroundImage({
       quality={quality}
       sizes={sizes}
       className={className}
+      style={style}
     />
   );
 }

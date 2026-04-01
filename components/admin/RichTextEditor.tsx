@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { Link2 } from "lucide-react";
 import { Node as TiptapNode } from "@tiptap/core";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -82,13 +83,37 @@ export function RichTextEditor({
   height = DEFAULT_EDITOR_HEIGHT,
   fontOptions,
 }: RichTextEditorProps) {
-  const defaultRoboto =
-    'Roboto, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  const defaultSourceSans =
+    '"Source Sans 3", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   const tagFontFamily =
     "Bricolage Grotesque, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-  const [currentFontFamily, setCurrentFontFamily] = useState("default");
+  const sourceSansOption = {
+    label: "Source Sans 3",
+    cssFamily: defaultSourceSans,
+  };
+  const mergedFontOptions = (() => {
+    const options = [
+      sourceSansOption,
+      ...(fontOptions || []).filter((f) => f.label !== "Source Sans 3"),
+    ];
+    const seen = new Set<string>();
+    return options.filter((font) => {
+      const key = `${font.label}__${font.cssFamily}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+  })();
+  const [currentFontFamily, setCurrentFontFamily] = useState(
+    sourceSansOption.cssFamily,
+  );
   const [currentFontSize, setCurrentFontSize] = useState("14px");
   const [currentLineHeight, setCurrentLineHeight] = useState("1");
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
+  const [linkDraft, setLinkDraft] = useState("");
+  const [linkError, setLinkError] = useState<string | null>(null);
   const lastEmittedHtml = useRef<string | null>(null);
   const lastSelectionRef = useRef<{ from: number; to: number } | null>(null);
 
@@ -113,6 +138,48 @@ export function RichTextEditor({
       );
     }
     return "#000000";
+  };
+
+  const normalizeLinkHref = (rawHref: string): string | null => {
+    const value = rawHref.trim();
+    if (!value) return null;
+    if (/^(https?:\/\/|mailto:|tel:)/i.test(value)) return value;
+    // Treat plain domains/paths as https links for frontend safety/usability.
+    return `https://${value.replace(/^\/+/, "")}`;
+  };
+
+  const applyLinkFromDialog = () => {
+    if (!editor) return;
+    const href = normalizeLinkHref(linkDraft);
+    if (!href) {
+      setLinkError("Please enter a valid URL.");
+      return;
+    }
+    const chain = editor.chain().focus();
+    if (lastSelectionRef.current) {
+      chain.setTextSelection(lastSelectionRef.current);
+    }
+    chain
+      .extendMarkRange("link")
+      .setLink({
+        href,
+        target: "_blank",
+        rel: "noopener noreferrer",
+      })
+      .run();
+    setLinkError(null);
+    setShowLinkDialog(false);
+  };
+
+  const removeLinkFromDialog = () => {
+    if (!editor) return;
+    const chain = editor.chain().focus();
+    if (lastSelectionRef.current) {
+      chain.setTextSelection(lastSelectionRef.current);
+    }
+    chain.unsetLink().run();
+    setLinkError(null);
+    setShowLinkDialog(false);
   };
 
   const editor = useEditor({
@@ -280,7 +347,7 @@ export function RichTextEditor({
       attributes: {
         class:
           "prose prose-sm max-w-none focus:outline-none p-3 min-h-[140px]",
-        style: `font-family: ${defaultRoboto};`,
+        style: `font-family: ${sourceSansOption.cssFamily};`,
       },
       transformPastedHTML(html) {
         // Strip editor-specific attributes that can break editing behavior,
@@ -402,13 +469,14 @@ export function RichTextEditor({
       const activeFont = attrs.fontFamily || "";
       if (
         activeFont &&
-        (fontOptions || []).some((f) => f.cssFamily === activeFont)
+        ((fontOptions || []).some((f) => f.cssFamily === activeFont) ||
+          activeFont === sourceSansOption.cssFamily)
       ) {
         setCurrentFontFamily(activeFont);
       } else if (activeFont === tagFontFamily) {
         setCurrentFontFamily(tagFontFamily);
       } else {
-        setCurrentFontFamily("default");
+        setCurrentFontFamily(sourceSansOption.cssFamily);
       }
       setCurrentFontSize(attrs.fontSize || "14px");
 
@@ -434,7 +502,7 @@ export function RichTextEditor({
       editor.off("selectionUpdate", updateFromSelection);
       editor.off("transaction", updateFromSelection);
     };
-  }, [editor]);
+  }, [editor, fontOptions, sourceSansOption.cssFamily]);
 
   useEffect(() => {
     if (!editor) return;
@@ -473,7 +541,7 @@ export function RichTextEditor({
         </label>
       )}
       <div className="overflow-hidden rounded-md border border-zinc-300 bg-white text-sm shadow-sm blk-set">
-        <div className="tiptap-toolbar flex flex-wrap items-center gap-1 border-b border-zinc-200 bg-zinc-50 px-3 py-1.5">
+        <div className="tiptap-toolbar relative flex flex-wrap items-center gap-1 border-b border-zinc-200 bg-zinc-50 px-3 py-1.5">
           {/* Undo / Redo */}
           <button
             type="button"
@@ -633,6 +701,33 @@ export function RichTextEditor({
             HL
           </button>
 
+          {/* Link (single icon button with dialog) */}
+          <button
+            type="button"
+            title="Add or edit hyperlink"
+            aria-label="Add or edit hyperlink"
+            onMouseDown={() => {
+              const sel = editor?.state.selection;
+              if (sel) lastSelectionRef.current = { from: sel.from, to: sel.to };
+            }}
+            onClick={() => {
+              if (!editor) return;
+              const currentHref = (
+                editor.getAttributes("link") as { href?: string }
+              ).href;
+              setLinkDraft(currentHref || "https://");
+              setLinkError(null);
+              setShowLinkDialog(true);
+            }}
+            className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded ${
+              editor?.isActive("link")
+                ? "bg-zinc-900 text-white"
+                : "text-zinc-700 hover:bg-zinc-200"
+            }`}
+          >
+            <Link2 className="h-3.5 w-3.5" />
+          </button>
+
           {/* Symbols */}
           <button
             type="button"
@@ -720,17 +815,12 @@ export function RichTextEditor({
             onChange={(e) => {
               const val = e.target.value;
               if (!editor) return;
-              if (val === "default") {
-                editor.chain().focus().unsetFontFamily().run();
-              } else {
-                editor.chain().focus().setFontFamily(val).run();
-              }
+              editor.chain().focus().setFontFamily(val).run();
               setCurrentFontFamily(val);
             }}
           >
-            <option value="default">Default font</option>
-            {(fontOptions || []).map((font) => (
-              <option key={font.label} value={font.cssFamily}>
+            {mergedFontOptions.map((font) => (
+              <option key={`${font.label}-${font.cssFamily}`} value={font.cssFamily}>
                 {font.label}
               </option>
             ))}
@@ -931,6 +1021,51 @@ export function RichTextEditor({
           >
             Clear
           </button>
+          {showLinkDialog && (
+            <div className="absolute left-2 top-[calc(100%+6px)] z-20 w-[320px] rounded-md border border-zinc-200 bg-white p-3 shadow-lg">
+              <p className="mb-2 text-xs font-medium text-zinc-700">
+                Hyperlink
+              </p>
+              <input
+                type="text"
+                value={linkDraft}
+                onChange={(e) => setLinkDraft(e.target.value)}
+                placeholder="https://example.com"
+                className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              />
+              {linkError && (
+                <p className="mt-1 text-[11px] text-red-600">{linkError}</p>
+              )}
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={removeLinkFromDialog}
+                  className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                >
+                  Remove link
+                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLinkError(null);
+                      setShowLinkDialog(false);
+                    }}
+                    className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={applyLinkFromDialog}
+                    className="rounded-md bg-zinc-900 px-2 py-1 text-xs font-medium text-white hover:bg-zinc-800"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         <div
           style={{ minHeight: resolvedHeight }}
