@@ -636,7 +636,7 @@ export function HeroSection({
                       <div className="space-y-4 relative flex flex-col justify-center">
                         <div className="w-full px-[25px] pt-[30px] pb-[70px] break-all relative border border-[#cbb1a7ab] pr-[44%] flex flex-col justify-center max-[768px]:pr-4 max-[768px]:pb-4">
                           {layout?.profileImageUrl && (
-                            <div className="absolute h-[290px] w-[240px] -bottom-[6px] -right-[62px] overflow-hidden rounded-[4px] max-[768px]:relative max-[768px]:h-40 max-[768px]:w-full max-[768px]:bottom-auto max-[768px]:right-auto max-[768px]:mx-0 max-[768px]:mb-3">
+                            <div className="absolute h-[290px] w-[240px] -bottom-[6px] rounded-[4px] -right-[62px] overflow-hidden rounded-[4px] max-[768px]:relative max-[768px]:h-40 max-[768px]:w-full max-[768px]:bottom-auto max-[768px]:right-auto max-[768px]:mx-0 max-[768px]:mb-3">
                               <Image
                                 src={layout.profileImageUrl as string}
                                 alt={(layout?.profileName as string) || "Profile"}
