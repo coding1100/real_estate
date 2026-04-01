@@ -39,6 +39,7 @@ interface HeroLayoutConfig {
   profileEmail?: string;
   formPostCtaText?: string;
   formFooterText?: string;
+  heroImageBrightness?: number;
 }
 
 interface LayoutItem {
@@ -76,6 +77,19 @@ export function HeroSection({
   utmHiddenFields,
   ctaForwardingRules,
 }: HeroSectionProps) {
+  const normalizeBrightness = (
+    value: unknown,
+    fallback: number,
+  ): number => {
+    const parsed =
+      typeof value === "number"
+        ? value
+        : typeof value === "string"
+          ? Number(value)
+          : Number.NaN;
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.min(1, Math.max(0.2, parsed));
+  };
   const formHeading = layout?.formHeading?.trim() ?? "";
   const formBgColor = layout?.formBgColor;
   const formTextSize = layout?.formTextSize;
@@ -150,6 +164,14 @@ export function HeroSection({
       rule.forwardEnabled !== false
     );
   })?.forwardUrl;
+  const teamHeroBrightness = normalizeBrightness(
+    layout?.heroImageBrightness,
+    0.58,
+  );
+  const defaultHeroBrightness = normalizeBrightness(
+    layout?.heroImageBrightness,
+    0.65,
+  );
 
   if (isTeamShowcase) {
     return (
@@ -159,7 +181,8 @@ export function HeroSection({
             <HeroBackgroundImage
               src={page.heroImageUrl}
               alt={page.headline}
-              className="object-cover brightness-[0.58]"
+              className="object-cover"
+              style={{ filter: `brightness(${teamHeroBrightness})` }}
             />
           </div>
         )}
@@ -284,7 +307,8 @@ export function HeroSection({
             src={page.heroImageUrl}
             alt={page.headline}
             priority
-            className="object-cover filter brightness-65"
+            className="object-cover"
+            style={{ filter: `brightness(${defaultHeroBrightness})` }}
           />
         </div>
       )}

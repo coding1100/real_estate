@@ -51,6 +51,10 @@ interface HeroLayoutConfig {
   formPostCtaText?: string;
   formFooterText?: string;
   heroLowerStripHtml?: string;
+  teamImageUrl?: string;
+  teamInfoHtml?: string;
+  teamTrustHtml?: string;
+  heroImageBrightness?: number;
 }
 
 interface MultistepHeroFlowProps {
@@ -102,6 +106,7 @@ export function MultistepHeroFlow({
   const isDetailedPerspective = layout?.formStyle === "detailed-perspective";
   const isNextSteps = layout?.formStyle === "next-steps";
   const isPropertyFinding = layout?.formStyle === "property-finding";
+  const isTeamShowcase = layout?.formStyle === "team-showcase";
   const isProfileOnlyNextSteps =
     isNextSteps &&
     ((((layout as any)?.nextStepsSecondOnly as boolean | undefined) === true) ||
@@ -109,6 +114,20 @@ export function MultistepHeroFlow({
   const isLastStep = currentStep === steps.length - 1;
   const isFirstStep = currentStep === 0;
   const isThankYouStep = isLastStep && isNextSteps;
+  const teamImageUrl = layout?.teamImageUrl;
+  const teamInfoHtml = layout?.teamInfoHtml;
+  const teamTrustHtml = layout?.teamTrustHtml;
+  const normalizeBrightness = (value: unknown, fallback: number): number => {
+    const parsed =
+      typeof value === "number"
+        ? value
+        : typeof value === "string"
+          ? Number(value)
+          : Number.NaN;
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.min(1, Math.max(0.2, parsed));
+  };
+  const heroBrightness = normalizeBrightness(layout?.heroImageBrightness, 0.58);
 
   const textLayout = stepLayoutData?.find(
     (l) => l.i === "text-container" && !l.hidden,
@@ -156,6 +175,7 @@ export function MultistepHeroFlow({
         domain: mainPage.domain.hostname,
         slug: mainPage.slug,
         type: mainPage.type,
+        _ctaText: step.ctaText ?? mainPage.ctaText ?? "",
         website: "",
       };
       if (Object.keys(accumulatedData).length > 0) {
@@ -241,6 +261,114 @@ export function MultistepHeroFlow({
         formSchema={formSchema}
         onNextStep={(values) => handleNextStep(values)}
       />
+    );
+  }
+
+  if (isTeamShowcase) {
+    return (
+      <section className="relative text-white min-h-[calc(100vh_-_85px)] pt-[120px] max-[768px]:pt-20">
+        {(step.heroImageUrl || mainPage.heroImageUrl) && (
+          <div className="pointer-events-none inset-0 fixed top-0 left-0 right-0 bottom-0">
+            <HeroBackgroundImage
+              src={(step.heroImageUrl || mainPage.heroImageUrl) as string}
+              alt={step.headline}
+              style={{ filter: `brightness(${heroBrightness})` }}
+              className="object-cover"
+            />
+          </div>
+        )}
+
+        <div className="mx-auto max-w-6xl px-4 pb-10 md:px-0 md:pb-12 relative z-10">
+          <div className="grid gap-6 md:grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)] items-end">
+            <div className="team-member space-y-4 rounded-[2px] md:p-6">
+              <div
+                className="rounded-[2px] bg-amber-50/95 p-4 text-zinc-900 md:p-5"
+                style={formBgColor ? { backgroundColor: formBgColor } : undefined}
+              >
+                {formHeading ? (
+                  <div
+                    className="mb-3 font-serif text-lg font-semibold leading-tight text-amber-900"
+                    dangerouslySetInnerHTML={{
+                      __html: wrapLegalSignsHtml(formHeading),
+                    }}
+                  />
+                ) : null}
+
+                {formSchema && formSchema.fields?.length ? (
+                  <DynamicForm
+                    key={step.slug || `step-${currentStep}`}
+                    schema={formSchema}
+                    ctaText={step.ctaText}
+                    successMessage={mainPage.successMessage}
+                    ctaBgColor={ctaBgColor}
+                    textSize={formTextSize}
+                    extraHiddenFields={
+                      isLastStep ? extraHiddenFieldsForSubmit : undefined
+                    }
+                    onNextStep={isLastStep ? undefined : handleNextStep}
+                    ctaForwardingRules={
+                      isLastStep ? ctaForwardingRules : undefined
+                    }
+                  />
+                ) : !isLastStep ? (
+                  <button
+                    type="button"
+                    onClick={() => handleNextStep({})}
+                    className="inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800"
+                    style={ctaBgColor ? { backgroundColor: ctaBgColor } : undefined}
+                  >
+                    <span
+                      className="cta-text"
+                      dangerouslySetInnerHTML={{
+                        __html: wrapLegalSignsHtml(step.ctaText ?? mainPage.ctaText),
+                      }}
+                    />
+                  </button>
+                ) : null}
+
+                {teamTrustHtml ? (
+                  <div
+                    className="mt-3 text-xs text-zinc-700"
+                    dangerouslySetInnerHTML={{
+                      __html: wrapLegalSignsHtml(teamTrustHtml),
+                    }}
+                  />
+                ) : null}
+
+                <div className="mt-3">
+                  <SocialLinksBar
+                    base={socialSourcePage.domain}
+                    overrides={socialSourcePage.socialOverrides ?? null}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="relative min-h-[260px] md:min-h-[420px] team-img self-end md:sticky md:bottom-0 max-[768px]:!relative">
+              {teamImageUrl ? (
+                <Image
+                  src={teamImageUrl}
+                  alt="Team"
+                  fill
+                  loading="lazy"
+                  sizes="(max-width: 768px) 100vw, 40vw"
+                  className="object-contain object-bottom"
+                />
+              ) : (
+                <div className="h-full w-full rounded-[2px] border border-white/20 bg-black/25" />
+              )}
+              {teamInfoHtml ? (
+                <div
+                  className="absolute bottom-2 right-2 max-w-[100%] bottom-[10%] right-[10%] rounded-[2px] px-3 py-2 text-right text-xs text-white md:text-sm"
+                  dangerouslySetInnerHTML={{
+                    __html: wrapLegalSignsHtml(teamInfoHtml),
+                  }}
+                />
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </section>
     );
   }
 

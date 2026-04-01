@@ -95,6 +95,7 @@ export function DynamicForm({
         const payload = {
           ...values,
           ...extraHiddenFields,
+          _ctaText: ctaText,
           recaptchaToken: token,
         };
         const res = await fetch(submitUrl, {

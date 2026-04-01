@@ -9,6 +9,7 @@ export interface PageListItem {
   domainHostname: string;
   domainId: string;
   multistepStepSlugs: string[] | null;
+  notes: string | null;
   thumbnailImageUrl?: string | null;
   bookmarked?: boolean;
   adminListOrder: number;

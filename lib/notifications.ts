@@ -62,6 +62,93 @@ function resolveFromAddress(fallback?: string | null): string {
   return "leads@no-reply.example.com";
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function isInternalFieldKey(key: string): boolean {
+  const normalized = key.trim().toLowerCase();
+  if (!normalized) return true;
+  if (normalized === "recaptchatoken") return true;
+  if (normalized === "website") return true;
+  if (normalized === "_multistepdata") return true;
+  if (normalized === "_ctatext") return true;
+  if (normalized.includes("cta")) return true;
+  return false;
+}
+
+function flattenLeadFormDataForEmail(
+  input: Record<string, unknown>,
+  path = "",
+): string[] {
+  const lines: string[] = [];
+  for (const [rawKey, value] of Object.entries(input)) {
+    if (isInternalFieldKey(rawKey)) continue;
+    const key = path ? `${path}.${rawKey}` : rawKey;
+    if (value == null || value === "") continue;
+    if (Array.isArray(value)) {
+      const printable = value
+        .map((item) =>
+          typeof item === "string" || typeof item === "number" || typeof item === "boolean"
+            ? String(item)
+            : JSON.stringify(item),
+        )
+        .join(", ");
+      if (printable) lines.push(`${key}: ${printable}`);
+      continue;
+    }
+    if (isPlainObject(value)) {
+      lines.push(...flattenLeadFormDataForEmail(value, key));
+      continue;
+    }
+    lines.push(`${key}: ${String(value)}`);
+  }
+  return lines;
+}
+
+function collectCtaCandidates(formData: Record<string, unknown>): string[] {
+  const candidates = new Set<string>();
+  const direct = formData._ctaText;
+  if (typeof direct === "string" && direct.trim()) {
+    candidates.add(direct.trim());
+  }
+  const visit = (node: unknown) => {
+    if (!isPlainObject(node) && !Array.isArray(node)) return;
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    for (const [key, value] of Object.entries(node)) {
+      if (typeof value === "string" && key.toLowerCase().includes("cta") && value.trim()) {
+        candidates.add(value.trim());
+      } else if (isPlainObject(value) || Array.isArray(value)) {
+        visit(value);
+      }
+    }
+  };
+  visit(formData);
+  return [...candidates];
+}
+
+function findCtaRule(
+  rules: CtaForwardingRule[],
+  pageCtaText: string | null | undefined,
+  formData: Record<string, unknown>,
+): CtaForwardingRule | undefined {
+  const keys = new Set<string>();
+  const pageKey = normalizeCtaTitleKey(pageCtaText ?? "");
+  if (pageKey) keys.add(pageKey);
+  for (const candidate of collectCtaCandidates(formData)) {
+    const key = normalizeCtaTitleKey(candidate);
+    if (key) keys.add(key);
+  }
+  for (const key of keys) {
+    const match = rules.find((r) => normalizeCtaTitleKey(r.ctaTitle) === key);
+    if (match) return match;
+  }
+  return undefined;
+}
+
 export async function sendLeadNotifications(leadId: string) {
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
@@ -79,14 +166,8 @@ export async function sendLeadNotifications(leadId: string) {
   if (resend && domain.notifyEmail) {
     try {
       const subject = `[New ${lead.type} lead] ${domain.hostname} / ${page.slug}`;
-      const lines: string[] = [];
-      const data = lead.formData as Record<string, unknown>;
-
-      Object.keys(data || {}).forEach((key) => {
-        if (["recaptchaToken", "website"].includes(key)) return;
-        const value = data[key];
-        lines.push(`${key}: ${String(value)}`);
-      });
+      const data = (lead.formData as Record<string, unknown>) ?? {};
+      const lines = flattenLeadFormDataForEmail(data);
 
       const textBody = [
         `New ${lead.type} lead from ${domain.hostname}`,
@@ -119,10 +200,8 @@ export async function sendLeadNotifications(leadId: string) {
 
       const { settings } = await getAdminUiSettings();
       const rules = (settings.ctaForwardingRules ?? []) as CtaForwardingRule[];
-      const normalizedPageCta = normalizeCtaTitleKey(page.ctaText ?? "");
-      const rule = rules.find(
-        (r) => normalizeCtaTitleKey(r.ctaTitle) === normalizedPageCta,
-      );
+      const formData = (lead.formData as Record<string, unknown>) ?? {};
+      const rule = findCtaRule(rules, page.ctaText, formData);
       if (!rule) {
         console.warn("[notifications] Document email skipped: CTA rule not found", {
           leadId: lead.id,
@@ -150,15 +229,9 @@ export async function sendLeadNotifications(leadId: string) {
           .filter((n) => n.kind !== "cc")
           .map((n) => n.email);
 
-        // Send independently to each target recipient so one bad address does not
-        // prevent others from getting the documents.
-        const recipientSet = new Set<string>();
-        if (leadEmail) recipientSet.add(leadEmail);
-        cc.forEach((email) => recipientSet.add(email));
-        bcc.forEach((email) => recipientSet.add(email));
-        const recipients = [...recipientSet];
+        const to = leadEmail ? [leadEmail] : [];
 
-        if (recipients.length === 0) {
+        if (to.length === 0 && cc.length === 0 && bcc.length === 0) {
           console.warn("[notifications] Document email skipped: no recipients found", {
             leadId: lead.id,
             pageSlug: page.slug,
@@ -183,40 +256,25 @@ export async function sendLeadNotifications(leadId: string) {
             contentType: d.mimeType,
           }));
 
-          const sendResults = await Promise.allSettled(
-            recipients.map((to) =>
-              resend.emails.send({
-                from: resolveFromAddress(domain.notifyEmail),
-                to,
-                subject: `Your requested documents from ${domain.displayName ?? domain.hostname}`,
-                text: textBody,
-                attachments,
-              }),
-            ),
-          );
+          await resend.emails.send({
+            from: resolveFromAddress(domain.notifyEmail),
+            ...(to.length ? { to } : {}),
+            ...(cc.length ? { cc } : {}),
+            ...(bcc.length ? { bcc } : {}),
+            subject: `Your requested documents from ${domain.displayName ?? domain.hostname}`,
+            text: textBody,
+            attachments,
+          });
 
-          const failures = sendResults
-            .map((r, i) => ({ result: r, to: recipients[i] }))
-            .filter((x) => x.result.status === "rejected");
           console.log("[notifications] Document email send summary", {
             leadId: lead.id,
-            recipients,
+            to,
+            cc,
+            bcc,
             docsCount: docs.length,
-            successCount: sendResults.length - failures.length,
-            failedCount: failures.length,
+            successCount: 1,
+            failedCount: 0,
           });
-          if (failures.length > 0) {
-            console.error(
-              "[notifications] Document email failures",
-              failures.map((f) => ({
-                to: f.to,
-                reason:
-                  f.result.status === "rejected"
-                    ? String(f.result.reason)
-                    : undefined,
-              })),
-            );
-          }
         }
       }
     } catch (e) {

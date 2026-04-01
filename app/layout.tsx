@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import {
-  Playfair_Display,
-  Roboto,
   Bricolage_Grotesque,
   Alegreya_Sans,
   Poiret_One,
@@ -11,19 +10,21 @@ import {
   Libre_Baskerville,
   Lato,
 } from "next/font/google";
+import type { EditorFontOption } from "@/lib/editorFonts";
 import { getAdminUiSettings, getEnabledEditorFonts } from "@/lib/uiSettings";
+import TopLoader from "@/components/shared/TopLoader";
 import "./globals.css";
 
-const headingFont = Playfair_Display({
+const headingFont = Source_Sans_3({
   variable: "--font-heading",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
-const bodyFont = Roboto({
+const bodyFont = Source_Sans_3({
   variable: "--font-body",
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const displayFont = Bricolage_Grotesque({
@@ -57,12 +58,6 @@ const cormorantFont = Cormorant_Garamond({
   weight: ["400", "500", "600", "700"],
 });
 
-const sourceSansFont = Source_Sans_3({
-  variable: "--font-source-sans-3",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
 const libreBaskervilleFont = Libre_Baskerville({
   variable: "--font-libre-baskerville",
   subsets: ["latin"],
@@ -88,13 +83,14 @@ export default async function RootLayout({
   const { editorFonts } = await getAdminUiSettings();
   const enabledEditorFonts = getEnabledEditorFonts(editorFonts);
   const fontsWithImports = enabledEditorFonts.filter(
-    (f: any) => typeof f.importUrl === "string" && f.importUrl.trim().length > 0,
+    (f: EditorFontOption) =>
+      typeof f.importUrl === "string" && f.importUrl.trim().length > 0,
   );
 
   return (
     <html lang="en">
       <head>
-        {fontsWithImports.map((font: any, index: number) => (
+        {fontsWithImports.map((font: EditorFontOption, index: number) => (
           <link
             key={index}
             rel="stylesheet"
@@ -103,8 +99,11 @@ export default async function RootLayout({
         ))}
       </head>
       <body
-        className={`${bodyFont.variable} ${headingFont.variable} ${displayFont.variable} ${alegreyaSansFont.variable} ${poiretFont.variable} ${interFont.variable} ${cormorantFont.variable} ${sourceSansFont.variable} ${libreBaskervilleFont.variable} ${latoFont.variable} antialiased`}
+        className={`${bodyFont.variable} ${headingFont.variable} ${displayFont.variable} ${alegreyaSansFont.variable} ${poiretFont.variable} ${interFont.variable} ${cormorantFont.variable} ${libreBaskervilleFont.variable} ${latoFont.variable} antialiased`}
       >
+        <Suspense fallback={null}>
+          <TopLoader />
+        </Suspense>
         {children}
       </body>
     </html>

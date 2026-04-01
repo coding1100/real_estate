@@ -30,6 +30,32 @@ interface PageEditorProps {
 
 type Tab = "content" | "form" | "seo" | "layout";
 
+function deriveSlugFromCanonicalUrl(canonicalUrl: string): string | null {
+  const raw = canonicalUrl.trim();
+  if (!raw) return null;
+
+  let pathname = "";
+  try {
+    if (raw.startsWith("/")) {
+      pathname = raw;
+    } else if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) {
+      pathname = new URL(raw).pathname;
+    } else {
+      pathname = new URL(`https://${raw}`).pathname;
+    }
+  } catch {
+    return null;
+  }
+
+  const normalized = pathname
+    .trim()
+    .replace(/\/+/g, "/")
+    .replace(/^\/+|\/+$/g, "")
+    .toLowerCase();
+
+  return normalized.length > 0 ? normalized : null;
+}
+
 export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
   const [tab, setTab] = useState<Tab>("content");
   const [page, setPage] = useState(initialPage);
@@ -284,13 +310,19 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
           <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
             Edit page
           </h1>
-          <p className="text-sm text-zinc-500">
+          <p className="text-xl text-zinc-600">
+            <span className="font-medium text-zinc-800">Title:</span>{" "}
+            {((page as { title?: string | null }).title || page.headline || "").trim() ||
+              "—"}{" "}
+            <span className="capitalize">({page.type})</span>
+          </p>
+          {/* <p className="text-sm text-zinc-500">
             <span className="font-medium text-zinc-700">{page.slug}</span>
             <span className="px-1">·</span>
             {page.domain.hostname}
             <span className="px-1">·</span>
             <span className="capitalize">{page.type}</span>
-          </p>
+          </p> */}
         </div>
         <div className="flex items-center gap-3 max-[768px]:flex-col max-[768px]:items-stretch">
           <span
@@ -548,6 +580,66 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                               update("heroImageUrl", url ?? undefined)
                             }
                           />
+                          <div className="space-y-2 rounded-md border border-zinc-200 bg-zinc-50 p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <label className="block text-sm font-medium text-zinc-700">
+                                Background image brightness
+                              </label>
+                              <div className="inline-flex items-center rounded-full bg-white px-2 py-0.5 text-xs font-medium text-zinc-700 ring-1 ring-zinc-200">
+                                {(() => {
+                                  const value = Number(
+                                    (heroLayout as { heroImageBrightness?: number })
+                                      .heroImageBrightness,
+                                  );
+                                  const normalized = Number.isFinite(value)
+                                    ? Math.min(1, Math.max(0.2, value))
+                                    : 0.58;
+                                  return normalized.toFixed(2);
+                                })()}
+                              </div>
+                            </div>
+                            <input
+                              type="range"
+                              min="0.2"
+                              max="1"
+                              step="0.01"
+                              value={(() => {
+                                const value = Number(
+                                  (heroLayout as { heroImageBrightness?: number })
+                                    .heroImageBrightness,
+                                );
+                                if (Number.isFinite(value)) {
+                                  return Math.min(1, Math.max(0.2, value));
+                                }
+                                return 0.58;
+                              })()}
+                              onChange={(e) =>
+                                updateHeroLayout({
+                                  heroImageBrightness: Number(e.target.value),
+                                })
+                              }
+                              className="w-full accent-zinc-900"
+                            />
+                            <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                              <span>Low</span>
+                              <span>Balanced</span>
+                              <span>High</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-zinc-500">
+                                Use lower values for a darker, richer hero backdrop.
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateHeroLayout({ heroImageBrightness: 0.58 })
+                                }
+                                className="ml-2 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
+                              >
+                                Reset
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1123,16 +1215,22 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                   noIndex: page.seo.noIndex ?? false,
                 }}
                 onChange={(val) =>
-                  setPage((prev) => ({
-                    ...prev,
-                    seo: {
-                      ...prev.seo,
-                      title: val.seoTitle,
-                      description: val.seoDescription,
-                      canonicalUrl: val.canonicalUrl,
-                      noIndex: val.noIndex,
-                    },
-                  }))
+                  setPage((prev) => {
+                    const derivedSlug = deriveSlugFromCanonicalUrl(
+                      val.canonicalUrl ?? "",
+                    );
+                    return {
+                      ...prev,
+                      ...(derivedSlug ? { slug: derivedSlug } : {}),
+                      seo: {
+                        ...prev.seo,
+                        title: val.seoTitle,
+                        description: val.seoDescription,
+                        canonicalUrl: val.canonicalUrl,
+                        noIndex: val.noIndex,
+                      },
+                    };
+                  })
                 }
               />
             )
