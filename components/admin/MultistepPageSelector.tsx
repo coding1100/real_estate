@@ -6,6 +6,7 @@ import { X, ChevronDown, GripVertical, Search } from "lucide-react";
 interface PageOption {
   id: string;
   slug: string;
+  title: string;
   headline: string;
   type: string;
 }
@@ -106,9 +107,11 @@ export function MultistepPageSelector({
     const q = search.trim().toLowerCase();
     if (!q) return availableToAdd;
     return availableToAdd.filter((p) => {
+      const title = p.title || "";
       const headline = p.headline || "";
       return (
         p.slug.toLowerCase().includes(q) ||
+        title.toLowerCase().includes(q) ||
         headline.toLowerCase().includes(q)
       );
     });
@@ -216,12 +219,7 @@ export function MultistepPageSelector({
                     </span>
                     {page ? (
                       <span className="text-zinc-800">
-                        {page.slug}
-                        {/* {page.headline ? (
-                          <span className="ml-1.5 text-zinc-500 truncate max-w-[200px]">
-                            – {page.headline}
-                          </span>
-                        ) : null} */}
+                        {`Slug: ${page.slug} | Title: ${(page.title || page.headline || "").trim()}`}
                       </span>
                     ) : (
                       <span className="text-amber-700">
@@ -299,12 +297,9 @@ export function MultistepPageSelector({
                       }}
                       className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-50"
                     >
-                      <span className="font-mono text-zinc-600">{p.slug}</span>
-                      {/* {p.headline ? (
-                        <span className="truncate text-zinc-500">
-                          – {p.headline}
-                        </span>
-                      ) : null} */}
+                      <span className="text-zinc-700">
+                        {`Slug: ${p.slug} | Title: ${(p.title || p.headline || "").trim()}`}
+                      </span>
                     </button>
                   ))
                 )}

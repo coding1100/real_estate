@@ -39,6 +39,19 @@ function isAbsoluteHttpUrl(value: string) {
   return /^https?:\/\//i.test(value.trim());
 }
 
+function isAllowedDocumentFile(file: File) {
+  const fileName = (file.name || "").toLowerCase().trim();
+  const ext = fileName.includes(".") ? fileName.split(".").pop() ?? "" : "";
+  const mime = (file.type || "").toLowerCase();
+  const allowedExt = new Set(["pdf", "doc", "docx"]);
+  const allowedMime = new Set([
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ]);
+  return allowedExt.has(ext) || allowedMime.has(mime);
+}
+
 export function CtaForwardingSettingsForm({
   initialRules,
 }: CtaForwardingSettingsFormProps) {
@@ -381,10 +394,15 @@ export function CtaForwardingSettingsForm({
                                 <input
                                   type="file"
                                   className="hidden"
-                                  accept=".pdf,.doc,.docx,.rtf,.txt"
+                                  accept=".pdf,.doc,.docx"
                                   onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
+                                    if (!isAllowedDocumentFile(file)) {
+                                      error("Only .doc, .docx, and .pdf files are allowed.");
+                                      e.target.value = "";
+                                      return;
+                                    }
                                     setUploadingKey(uploadKey);
                                     try {
                                       const form = new FormData();
@@ -525,22 +543,39 @@ export function CtaForwardingSettingsForm({
                         className="flex items-center gap-2 rounded-md border border-zinc-200 p-2 text-xs"
                       >
                         <div className="flex items-center gap-2">
-                          <label className="flex items-center gap-1 text-[10px] text-zinc-600">
-                            <input
-                              type="checkbox"
-                              className="h-3 w-3 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
-                              checked={entry.enabled ?? true}
-                              onChange={(e) =>
+                          <label className="flex flex-col gap-0.5 text-[10px] text-zinc-600">
+                            <span>Send</span>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={entry.enabled ?? true}
+                              onClick={() =>
                                 updateNotifyEmails(row.id, (list) =>
                                   list.map((item, i) =>
                                     i === emailIndex
-                                      ? { ...item, enabled: e.target.checked }
+                                      ? {
+                                          ...item,
+                                          enabled: !(item.enabled ?? true),
+                                        }
                                       : item,
                                   ),
                                 )
                               }
-                            />
-                            <span>Send</span>
+                              className={`relative inline-flex h-5 w-9 shrink-0 !rounded-full border transition-colors focus:outline-none focus:ring-1 focus:ring-amber-400 focus:ring-offset-1 ${
+                                entry.enabled ?? true
+                                  ? "border-amber-700 bg-amber-600"
+                                  : "border-zinc-300 bg-zinc-200"
+                              }`}
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                                  entry.enabled ?? true
+                                    ? "translate-x-4"
+                                    : "translate-x-0.5"
+                                }`}
+                                style={{ marginTop: 1 }}
+                              />
+                            </button>
                           </label>
                           <select
                             value={entry.kind === "cc" ? "cc" : "bcc"}
