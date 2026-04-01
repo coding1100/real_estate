@@ -642,7 +642,7 @@ export function HeroSection({
                                 alt={(layout?.profileName as string) || "Profile"}
                                 fill
                                 loading="lazy"
-                                className="max-[768px]:!w-auto !h-auto"
+                                className="max-[768px]:!w-auto !h-auto rounded-[4px]"
                                 style={{ borderRadius: "2px" }}
                               />
                             </div>
