@@ -403,38 +403,76 @@ export function CtaForwardingSettingsForm({
                                       e.target.value = "";
                                       return;
                                     }
+                                    const MAX_BYTES = 20 * 1024 * 1024; // 20MB
+                                    if (file.size > MAX_BYTES) {
+                                      error("Document must be smaller than 20MB.");
+                                      e.target.value = "";
+                                      return;
+                                    }
                                     setUploadingKey(uploadKey);
                                     try {
-                                      const form = new FormData();
-                                      form.append("file", file);
-                                      const res = await fetch("/api/upload", {
+                                      const sigRes = await fetch("/api/upload/signature", {
                                         method: "POST",
-                                        body: form,
+                                        headers: { "content-type": "application/json" },
+                                        body: JSON.stringify({ kind: "document" }),
                                       });
-                                      if (!res.ok) {
+                                      if (!sigRes.ok) {
                                         throw new Error("Upload failed");
                                       }
-                                      const data = (await res.json()) as {
-                                        url?: string;
-                                        mimeType?: string | null;
-                                        originalName?: string | null;
+                                      const sig = (await sigRes.json()) as {
+                                        uploadUrl: string;
+                                        apiKey: string;
+                                        timestamp: number;
+                                        signature: string;
+                                        folder: string;
+                                        publicId: string;
+                                        resourceType: "raw";
                                       };
-                                      if (!data.url) {
+
+                                      const cloudForm = new FormData();
+                                      cloudForm.append("file", file);
+                                      cloudForm.append("api_key", sig.apiKey);
+                                      cloudForm.append("timestamp", String(sig.timestamp));
+                                      cloudForm.append("signature", sig.signature);
+                                      cloudForm.append("folder", sig.folder);
+                                      cloudForm.append("public_id", sig.publicId);
+                                      cloudForm.append("overwrite", "false");
+
+                                      const uploadRes = await fetch(sig.uploadUrl, {
+                                        method: "POST",
+                                        body: cloudForm,
+                                      });
+                                      if (!uploadRes.ok) {
+                                        throw new Error("Upload failed");
+                                      }
+                                      const uploaded = (await uploadRes.json()) as {
+                                        secure_url?: string;
+                                        original_filename?: string;
+                                        public_id?: string;
+                                        format?: string;
+                                      };
+                                      if (!uploaded.secure_url) {
                                         throw new Error("Missing URL from upload");
                                       }
-                                      const uploadedUrl = data.url;
+                                      const uploadedUrl = uploaded.secure_url;
                                       updateDocuments(row.id, (docs) =>
                                         docs.map((d, i) =>
                                           i === docIndex
                                             ? {
                                                 ...d,
                                                 name:
-                                                  data.originalName ||
+                                                  uploaded.original_filename ||
                                                   d.name ||
                                                   file.name,
                                                 url: uploadedUrl,
                                                 mimeType:
-                                                  data.mimeType || d.mimeType,
+                                                  file.type || d.mimeType,
+                                                publicId:
+                                                  uploaded.public_id ||
+                                                  (d as any).publicId,
+                                                format:
+                                                  uploaded.format ||
+                                                  (d as any).format,
                                                 autoSend:
                                                   d.autoSend !== false,
                                               }

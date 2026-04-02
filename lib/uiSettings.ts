@@ -123,11 +123,21 @@ function normalizeCtaForwardingRules(
             typeof (doc as any).mimeType === "string"
               ? (doc as any).mimeType.trim()
               : undefined;
+          const publicId =
+            typeof (doc as any).publicId === "string"
+              ? (doc as any).publicId.trim()
+              : "";
+          const format =
+            typeof (doc as any).format === "string"
+              ? (doc as any).format.trim().toLowerCase()
+              : "";
           return {
             name,
             url,
             ...(autoSend !== undefined ? { autoSend } : {}),
             ...(mimeType ? { mimeType } : {}),
+            ...(publicId ? { publicId } : {}),
+            ...(format ? { format } : {}),
           };
         })
         .filter(Boolean) as CtaForwardingDocument[];
