@@ -348,8 +348,17 @@ export function CtaForwardingSettingsForm({
                 ) : (
                   <div className="space-y-2">
                     {(row.documents ?? []).map((doc, docIndex) => {
-                      const ext =
-                        doc.name?.split(".").pop()?.toUpperCase() ?? "";
+                      const ext = (() => {
+                        const fromName = (doc.name ?? "").trim();
+                        if (fromName.includes(".")) {
+                          return fromName.split(".").pop()?.toUpperCase() ?? "";
+                        }
+                        const fromUrl = (doc.url ?? "").trim();
+                        if (fromUrl.includes(".")) {
+                          return fromUrl.split(".").pop()?.split("?")[0]?.split("#")[0]?.toUpperCase() ?? "";
+                        }
+                        return "";
+                      })();
                       const uploadKey = `${row.id}-doc-${docIndex}`;
                       return (
                         <div
@@ -358,7 +367,7 @@ export function CtaForwardingSettingsForm({
                         >
                           <div className="flex flex-col items-center justify-center gap-1 px-1">
                             <div className="flex h-8 w-8 items-center justify-center rounded bg-white text-[10px] font-semibold text-zinc-700 shadow-sm">
-                              {ext || "DOC"}
+                              {ext || "FILE"}
                             </div>
                             <div className="flex flex-col items-center gap-1">
                               <span className="text-[10px] text-zinc-600">
