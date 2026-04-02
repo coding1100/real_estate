@@ -1,5 +1,7 @@
 import { prisma } from "./prisma";
 import type { Prisma } from "@prisma/client";
+import { getAdminUiSettings } from "@/lib/uiSettings";
+import { normalizeCtaTitleKey, type CtaForwardingRule } from "@/lib/types/ctaForwarding";
 
 const FUB_API_BASE_URL = "https://api.followupboss.com";
 const FUB_EVENTS_PATH = "/v1/events";
@@ -131,6 +133,73 @@ function normalizeSourceDomain(hostname: string): string {
 
 function normalizeKey(key: string): string {
   return key.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function collectCtaCandidates(formData: unknown): string[] {
+  const candidates = new Set<string>();
+  if (isPlainObject(formData)) {
+    const direct = (formData as any)._ctaText;
+    if (typeof direct === "string" && direct.trim()) {
+      candidates.add(direct.trim());
+    }
+  }
+  const visit = (node: unknown) => {
+    if (!isPlainObject(node) && !Array.isArray(node)) return;
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    for (const [key, value] of Object.entries(node)) {
+      if (typeof value === "string" && key.toLowerCase().includes("cta") && value.trim()) {
+        candidates.add(value.trim());
+      } else {
+        visit(value);
+      }
+    }
+  };
+  visit(formData);
+  return [...candidates];
+}
+
+function findCtaRule(
+  rules: CtaForwardingRule[],
+  pageCtaText: string | null | undefined,
+  formData: unknown,
+): CtaForwardingRule | undefined {
+  const keys = new Set<string>();
+  const pageKey = normalizeCtaTitleKey(pageCtaText ?? "");
+  if (pageKey) keys.add(pageKey);
+  for (const candidate of collectCtaCandidates(formData)) {
+    const key = normalizeCtaTitleKey(candidate);
+    if (key) keys.add(key);
+  }
+  for (const key of keys) {
+    const match = rules.find((r) => normalizeCtaTitleKey(r.ctaTitle) === key);
+    if (match) return match;
+  }
+  return undefined;
+}
+
+function resolveNotificationRecipientsForLead(input: {
+  rules: CtaForwardingRule[];
+  pageCtaText: string | null | undefined;
+  formData: unknown;
+  domainNotifyEmail?: string | null;
+}): string[] {
+  const recipients = new Set<string>();
+  const rule = findCtaRule(input.rules, input.pageCtaText, input.formData);
+  const notify = (rule?.notifyEmails ?? []).filter(
+    (n) => (n.enabled ?? true) && n.email && n.email.includes("@"),
+  );
+  for (const n of notify) recipients.add(n.email.trim());
+  if (input.domainNotifyEmail && input.domainNotifyEmail.includes("@")) {
+    recipients.add(input.domainNotifyEmail.trim());
+  }
+  return [...recipients].filter(Boolean);
 }
 
 function flattenFormData(value: unknown, path: string[] = []): FlattenedField[] {
@@ -467,6 +536,7 @@ function buildMessage(
   person: FollowUpBossPerson,
   config: FollowUpBossConfig,
   fieldLabels: Record<string, string>,
+  notificationRecipients: string[],
 ): string {
   const eventType = getEventType(lead.page.type);
   const lines: string[] = [
@@ -484,6 +554,10 @@ function buildMessage(
       `UTM Medium: ${lead.utmMedium ?? "-"}`,
       `UTM Campaign: ${lead.utmCampaign ?? "-"}`,
     );
+  }
+
+  if (notificationRecipients.length > 0) {
+    lines.push("", `Notification recipients: ${notificationRecipients.join(", ")}`);
   }
 
   const contactLines = formatContactSummary(person);
@@ -535,6 +609,7 @@ function buildPayload(
   lead: NonNullable<LeadRecord>,
   config: FollowUpBossConfig,
   fieldLabels: Record<string, string>,
+  notificationRecipients: string[],
 ): FollowUpBossEventPayload | null {
   const source = normalizeSourceDomain(lead.domain.hostname);
   const person = extractPerson(lead.formData);
@@ -559,7 +634,7 @@ function buildPayload(
     sourceUrl: getSourceUrl(lead),
     system: config.system,
     type: getEventType(lead.page.type),
-    message: buildMessage(lead, person, config, fieldLabels),
+    message: buildMessage(lead, person, config, fieldLabels, notificationRecipients),
     person,
     ...(campaign ? { campaign } : {}),
   };
@@ -690,7 +765,16 @@ export async function dispatchLeadToFollowUpBoss(leadId: string): Promise<void> 
   }
 
   const fieldLabels = await buildFieldLabelsForLead(lead);
-  const payload = buildPayload(lead, config, fieldLabels);
+  const { settings } = await getAdminUiSettings().catch(() => ({ settings: { ctaForwardingRules: [] as any } as any }));
+  const rules = (settings.ctaForwardingRules ?? []) as CtaForwardingRule[];
+  const notificationRecipients = resolveNotificationRecipientsForLead({
+    rules,
+    pageCtaText: lead.page.ctaText,
+    formData: lead.formData,
+    domainNotifyEmail: lead.domain.notifyEmail,
+  });
+
+  const payload = buildPayload(lead, config, fieldLabels, notificationRecipients);
   if (!payload) return;
 
   const endpoint = `${config.baseUrl}${FUB_EVENTS_PATH}`;
