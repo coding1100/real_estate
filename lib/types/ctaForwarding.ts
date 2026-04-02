@@ -3,6 +3,13 @@ export interface CtaForwardingDocument {
   url: string;
   autoSend?: boolean;
   mimeType?: string;
+  /**
+   * Cloudinary metadata for reliable delivery.
+   * When Cloudinary delivery is restricted (ACL/auth), `url` may be blocked (401).
+   * If `publicId` is present we can generate a signed delivery URL server-side.
+   */
+  publicId?: string;
+  format?: string;
 }
 
 export interface CtaForwardingNotifyEmail {

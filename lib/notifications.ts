@@ -6,6 +6,7 @@ import {
   normalizeCtaTitleKey,
   type CtaForwardingRule,
 } from "./types/ctaForwarding";
+import { cloudinary } from "@/lib/cloudinary";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESEND_FROM_EMAIL = (process.env.RESEND_FROM_EMAIL ?? "").trim();
@@ -64,6 +65,177 @@ function resolveFromAddress(fallback?: string | null): string {
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function isAbsoluteHttpUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value.trim());
+}
+
+function inferFileExtensionFromUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    const path = u.pathname || "";
+    const last = path.split("/").pop() ?? "";
+    const cleaned = last.split("?")[0].split("#")[0];
+    const ext = cleaned.includes(".") ? cleaned.split(".").pop() ?? "" : "";
+    const safe = ext.trim().toLowerCase();
+    if (!safe) return "";
+    if (!/^[a-z0-9]{1,10}$/.test(safe)) return "";
+    return safe;
+  } catch {
+    return "";
+  }
+}
+
+function sanitizeFilenameBase(input: string): string {
+  const base = String(input ?? "")
+    .replace(/[\u0000-\u001f]/g, " ")
+    .replace(/[\\/:*?"<>|]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return base || "document";
+}
+
+function inferContentTypeFromExtension(ext: string): string | undefined {
+  switch (ext.toLowerCase()) {
+    case "pdf":
+      return "application/pdf";
+    case "doc":
+      return "application/msword";
+    case "docx":
+      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    default:
+      return undefined;
+  }
+}
+
+async function fetchAttachmentFromUrl(input: {
+  url: string;
+  name?: string | null;
+  mimeType?: string | null;
+  publicId?: string | null;
+  format?: string | null;
+}): Promise<
+  | {
+      content: string;
+      filename: string;
+      content_type?: string;
+    }
+  | null
+> {
+  const baseUrl = input.url.trim();
+  const tryUrls: string[] = [];
+  if (isAbsoluteHttpUrl(baseUrl)) tryUrls.push(baseUrl);
+
+  const publicId = (input.publicId ?? "").trim();
+  if (publicId) {
+    // Prefer Cloudinary "private download" URLs for raw/PDF assets since
+    // standard delivery URLs can be blocked with ACL failure (401).
+    try {
+      const fmt =
+        (input.format ?? "").trim().toLowerCase() ||
+        inferFileExtensionFromUrl(baseUrl) ||
+        "pdf";
+      const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24; // 24h
+      const privateUrl = (cloudinary.utils as any).private_download_url?.(
+        publicId,
+        fmt,
+        {
+          resource_type: "raw",
+          type: "upload",
+          expires_at: expiresAt,
+          attachment: false,
+        },
+      );
+      if (typeof privateUrl === "string" && privateUrl.trim()) {
+        tryUrls.unshift(privateUrl.trim());
+      }
+    } catch {
+      // fall back to other URLs
+    }
+
+    const signedUrl = cloudinary.url(publicId, {
+      resource_type: "raw",
+      type: "upload",
+      secure: true,
+      sign_url: true,
+      ...(input.format ? { format: String(input.format).trim().toLowerCase() } : {}),
+    });
+    if (signedUrl && signedUrl !== baseUrl) tryUrls.push(signedUrl);
+  }
+
+  let res: Response | null = null;
+  for (const u of tryUrls) {
+    try {
+      const r = await fetch(u, { method: "GET" });
+      if (!r.ok) continue;
+      res = r;
+      break;
+    } catch {
+      // try next
+    }
+  }
+  if (!res) return null;
+
+  const arrayBuffer = await res.arrayBuffer();
+  const bytes = Buffer.from(arrayBuffer);
+
+  const MAX_BYTES = 25 * 1024 * 1024;
+  if (bytes.length > MAX_BYTES) return null;
+
+  const extFromUrl = inferFileExtensionFromUrl(baseUrl);
+  const baseName = sanitizeFilenameBase(input.name ?? "");
+  const filename =
+    extFromUrl && !baseName.toLowerCase().endsWith("." + extFromUrl)
+      ? `${baseName}.${extFromUrl}`
+      : baseName;
+
+  const headerType = res.headers.get("content-type")?.split(";")[0]?.trim();
+  const extFromName = inferFileExtensionFromUrl("https://x/" + filename);
+  const inferredFromExt = inferContentTypeFromExtension(extFromName);
+  const contentType =
+    (input.mimeType?.trim() ? input.mimeType.trim() : undefined) ??
+    (headerType && headerType.includes("/") ? headerType : undefined) ??
+    inferredFromExt;
+
+  return {
+    content: bytes.toString("base64"),
+    filename,
+    ...(contentType ? { content_type: contentType } : {}),
+  };
+}
+
+function resolveDeliverableDocUrl(input: {
+  url: string;
+  publicId?: string | null;
+  format?: string | null;
+}): string {
+  const baseUrl = input.url.trim();
+  const publicId = (input.publicId ?? "").trim();
+  if (!publicId) return baseUrl;
+  try {
+    const fmt =
+      (input.format ?? "").trim().toLowerCase() ||
+      inferFileExtensionFromUrl(baseUrl) ||
+      "pdf";
+    const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24; // 24h
+    const privateUrl = (cloudinary.utils as any).private_download_url?.(
+      publicId,
+      fmt,
+      {
+        resource_type: "raw",
+        type: "upload",
+        expires_at: expiresAt,
+        attachment: false,
+      },
+    );
+    if (typeof privateUrl === "string" && privateUrl.trim()) {
+      return privateUrl.trim();
+    }
+  } catch {
+    // ignore
+  }
+  return baseUrl;
 }
 
 function isInternalFieldKey(key: string): boolean {
@@ -224,19 +396,24 @@ export async function sendLeadNotifications(leadId: string) {
         const notify = (rule?.notifyEmails ?? []).filter(
           (n) => (n.enabled ?? true) && n.email && n.email.includes("@"),
         );
-        const cc = notify
-          .filter((n) => n.kind === "cc")
-          .map((n) => n.email);
-        const bcc = notify
-          .filter((n) => n.kind !== "cc")
-          .map((n) => n.email);
+        const toRecipients = [
+          ...new Set(
+            notify
+              .map((n) => n.email.trim())
+              .filter((email) => !!email && email.length > 0),
+          ),
+        ];
 
-        const primaryTo = leadEmail || cc[0] || bcc[0] || null;
-        const to = primaryTo ? [primaryTo] : [];
-        const ccFinal = cc.filter((email) => email !== primaryTo);
-        const bccFinal = bcc.filter((email) => email !== primaryTo);
+        const finalTo = [
+          ...(leadEmail && leadEmail.includes("@") ? [leadEmail.trim()] : []),
+          ...(toRecipients.length > 0
+            ? toRecipients
+            : domain.notifyEmail?.includes("@")
+              ? [domain.notifyEmail.trim()]
+              : []),
+        ].filter((v, idx, arr) => arr.indexOf(v) === idx);
 
-        if (to.length === 0 && ccFinal.length === 0 && bccFinal.length === 0) {
+        if (finalTo.length === 0) {
           console.warn("[notifications] Document email skipped: no recipients found", {
             leadId: lead.id,
             pageSlug: page.slug,
@@ -244,7 +421,12 @@ export async function sendLeadNotifications(leadId: string) {
         } else {
           const lines = docs.map((d) => {
             const label = d.name?.trim() || d.url;
-            return `- ${label}: ${d.url}`;
+            const deliverUrl = resolveDeliverableDocUrl({
+              url: d.url,
+              publicId: (d as any).publicId,
+              format: (d as any).format,
+            });
+            return `- ${label}: ${deliverUrl}`;
           });
 
           const textBody = [
@@ -255,17 +437,27 @@ export async function sendLeadNotifications(leadId: string) {
             ...lines,
           ].join("\n");
 
-          const attachments = docs.map((d) => ({
-            filename: d.name?.trim() || "document",
-            path: d.url,
-            contentType: d.mimeType,
-          }));
+          const attachments = (
+            await Promise.all(
+              docs.map((d) =>
+                fetchAttachmentFromUrl({
+                  url: d.url,
+                  name: d.name,
+                  mimeType: d.mimeType,
+                  publicId: (d as any).publicId,
+                  format: (d as any).format,
+                }),
+              ),
+            )
+          ).filter(Boolean) as Array<{
+            content: string;
+            filename: string;
+            content_type?: string;
+          }>;
 
           await resend.emails.send({
             from: resolveFromAddress(domain.notifyEmail),
-            to,
-            ...(ccFinal.length ? { cc: ccFinal } : {}),
-            ...(bccFinal.length ? { bcc: bccFinal } : {}),
+            to: finalTo,
             subject: `Your requested documents from ${domain.displayName ?? domain.hostname}`,
             text: textBody,
             attachments,
@@ -273,9 +465,7 @@ export async function sendLeadNotifications(leadId: string) {
 
           console.log("[notifications] Document email send summary", {
             leadId: lead.id,
-            to,
-            cc: ccFinal,
-            bcc: bccFinal,
+            to: finalTo,
             docsCount: docs.length,
             successCount: 1,
             failedCount: 0,

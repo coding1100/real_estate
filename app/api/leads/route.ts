@@ -6,6 +6,60 @@ import { dispatchLeadToFollowUpBoss } from "@/lib/followupboss";
 import { sendLeadNotifications } from "@/lib/notifications";
 import type { Prisma } from "@prisma/client";
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function collectStringValues(input: unknown, seen = new Set<unknown>()): string[] {
+  if (input == null) return [];
+  if (typeof input === "string") {
+    const s = input.trim();
+    return s ? [s] : [];
+  }
+  if (typeof input === "number" || typeof input === "boolean") {
+    return [String(input)];
+  }
+  if (typeof input !== "object") return [];
+  if (seen.has(input)) return [];
+  seen.add(input);
+
+  if (Array.isArray(input)) {
+    return input.flatMap((v) => collectStringValues(v, seen));
+  }
+  const out: string[] = [];
+  for (const v of Object.values(input as Record<string, unknown>)) {
+    out.push(...collectStringValues(v, seen));
+  }
+  return out;
+}
+
+function findEmailInAnyField(input: unknown): string | null {
+  const values = collectStringValues(input);
+  for (const v of values) {
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return v;
+  }
+  return null;
+}
+
+function findPhoneInAnyField(input: unknown): string | null {
+  const values = collectStringValues(input);
+  for (const v of values) {
+    const digits = v.replace(/\D/g, "");
+    if (digits.length >= 7) return v.trim();
+  }
+  return null;
+}
+
+function findNameInAnyField(input: unknown): string | null {
+  if (!isPlainObject(input)) return null;
+  const direct =
+    (typeof input.name === "string" && input.name.trim()) ||
+    (typeof (input as any).fullName === "string" && (input as any).fullName.trim()) ||
+    (typeof (input as any).fullname === "string" && (input as any).fullname.trim());
+  if (direct) return String(direct).trim();
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -119,6 +173,22 @@ export async function POST(req: NextRequest) {
       const parsed = _multistepData as Record<string, unknown>;
       const lastStepKey = "step" + (Object.keys(parsed).length);
       mergedFormData = { ...parsed, [lastStepKey]: restForm };
+    }
+
+    // Normalize core contact fields at the top-level so integrations (e.g. FUB)
+    // can always identify the person, even if the form uses compact IDs or
+    // nested step payloads.
+    if (!("email" in mergedFormData) || !String((mergedFormData as any).email ?? "").includes("@")) {
+      const email = findEmailInAnyField(mergedFormData);
+      if (email) mergedFormData = { ...mergedFormData, email };
+    }
+    if (!("phone" in mergedFormData) || !String((mergedFormData as any).phone ?? "").trim()) {
+      const phone = findPhoneInAnyField(mergedFormData);
+      if (phone) mergedFormData = { ...mergedFormData, phone };
+    }
+    if (!("name" in mergedFormData) || !String((mergedFormData as any).name ?? "").trim()) {
+      const name = findNameInAnyField(mergedFormData);
+      if (name) mergedFormData = { ...mergedFormData, name };
     }
 
     const lead = await prisma.lead.create({
