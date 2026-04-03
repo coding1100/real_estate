@@ -12,6 +12,7 @@ import { useRecaptcha } from "@/components/forms/Captcha";
 import { useToast } from "@/components/ui/use-toast";
 import { PropertyFindingStep } from "@/components/templates/HomeValueMultistepFlow";
 import { HeroBackgroundImage } from "@/components/templates/HeroBackgroundImage";
+import { DetailedPerspectiveProfileColumn } from "@/components/templates/DetailedPerspectiveProfileColumn";
 
 interface LayoutItem {
   i: string;
@@ -42,6 +43,10 @@ interface HeroLayoutConfig {
   ctaBgColor?: string;
   formStyle?: FormStyle;
   profileImageUrl?: string;
+  profileImageWidthPx?: number;
+  profileImagePosition?: string;
+  profileImageOffsetTop?: number;
+  profileImageOffsetLeft?: number;
   profileSectionHtml?: string;
   profileName?: string;
   profileTitle?: string;
@@ -632,7 +637,7 @@ export function MultistepHeroFlow({
                 className="cust1 form-area relative w-full rounded-[2px] p-6 text-zinc-900 shadow-2xl bg-amber-50/95 opacity-95 border border-amber-200/60"
                 style={formBgColor ? { backgroundColor: formBgColor } : undefined}
               >
-                <div className="grid max-[768px]:grid-cols-1 md:grid-cols-[57%_40%] gap-[3%]">
+                <div className="grid max-[768px]:grid-cols-1 md:grid-cols-[52%_45%] gap-[3%]">
                   <div className="space-y-5">
                     {formHeading && (
                       <h2
@@ -679,61 +684,7 @@ export function MultistepHeroFlow({
                     )}
                   </div>
                   <div className="space-y-4 relative flex flex-col justify-center">
-                    <div className="relative w-full rounded-[4px] border border-[#d7c6bc] px-4 break-all py-4 pr-[45%] flex flex-col justify-center max-[768px]:pr-4 max-[768px]:pb-4">
-                      {layout?.profileImageUrl && (
-                        <div className="absolute h-[290px] w-[240px] -bottom-[6px] rounded-[4px] -right-[62px] overflow-hidden rounded-[4px] max-[768px]:relative max-[768px]:h-40 max-[768px]:w-full max-[768px]:bottom-auto max-[768px]:right-auto max-[768px]:mx-0 max-[768px]:mb-3">
-                          <Image
-                            src={layout.profileImageUrl as string}
-                            alt={(layout?.profileName as string) || "Profile"}
-                            fill
-                            loading="lazy"
-                            className="max-[768px]:!w-auto !h-auto rounded-[4px]"
-                          />
-                        </div>
-                      )}
-                      {layout?.profileSectionHtml?.trim() ? (
-                        <div
-                          className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
-                          dangerouslySetInnerHTML={{
-                            __html: wrapLegalSignsHtml(layout.profileSectionHtml),
-                          }}
-                        />
-                      ) : (
-                        <>
-                          {layout?.profileName && (
-                            <h3 className="text-xl font-semibold text-zinc-800 font-serif leading-tight mb-1.5">
-                              {layout.profileName as string}
-                            </h3>
-                          )}
-                          {layout?.profileTitle && (
-                            <p className="text-sm text-zinc-700 font-serif leading-relaxed mb-1">
-                              {layout.profileTitle as string}
-                            </p>
-                          )}
-                          {layout?.profileRole && (
-                            <p className="text-sm text-zinc-600 font-serif leading-relaxed mb-1">
-                              {layout.profileRole as string}
-                            </p>
-                          )}
-                          <div className="space-y-1.5 pt-1">
-                            {layout?.profilePhone && (
-                              <p className="text-sm text-zinc-700 font-serif flex items-center gap-2 leading-relaxed">
-                                <span className="text-zinc-500 text-base">✆</span>
-                                <span>{layout.profilePhone as string}</span>
-                              </p>
-                            )}
-                            {layout?.profileEmail && (
-                              <p className="text-sm text-zinc-700 font-serif flex items-center gap-2 leading-relaxed">
-                                <span className="text-zinc-500 text-base">✉</span>
-                                <span className="break-all">
-                                  {layout.profileEmail as string}
-                                </span>
-                              </p>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
+                    <DetailedPerspectiveProfileColumn layout={layout} />
                   </div>
                 </div>
                 {layout?.formFooterText?.trim() && (
