@@ -24,6 +24,8 @@ interface ImageUploaderProps {
    * Optional Tailwind classes for the preview container.
    */
   previewClassName?: string;
+  /** Tighter vertical spacing (e.g. admin sidebars). */
+  compact?: boolean;
 }
 
 export function ImageUploader({
@@ -34,6 +36,7 @@ export function ImageUploader({
   accept,
   typeErrorMessage,
   previewClassName,
+  compact,
 }: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [loading, setLoading] = useState(false);
@@ -91,9 +94,17 @@ export function ImageUploader({
   }
 
   return (
-    <div className="space-y-2">
+    <div className={compact ? "space-y-1" : "space-y-2"}>
       {label && (
-        <p className="text-md font-medium text-zinc-700">{label}</p>
+        <p
+          className={
+            compact
+              ? "text-xs font-medium text-zinc-700"
+              : "text-md font-medium text-zinc-700"
+          }
+        >
+          {label}
+        </p>
       )}
       {value && (
         <div

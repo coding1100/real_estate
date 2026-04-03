@@ -891,68 +891,162 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                   </div>
 
                   {(heroLayout.formStyle as string) === "detailed-perspective" && (
-                    <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
-                        Detailed Perspective – profile column
-                      </p>
-                      <p className="text-xs text-zinc-500">
-                        This layout shows a two-column form with a profile card on the right. Use the rich text area for flexible profile content.
-                      </p>
-                      <div className="space-y-3">
-                        <div className="grid gap-4 md:grid-cols-4">
-                        <div className="space-y-3 md:col-span-3">
-                        <RichTextEditor
-                          label="Profile content (rich text)"
-                          value={(heroLayout.profileSectionHtml as string) ?? ""}
-                          onChange={(html) =>
-                            updateHeroLayout({ profileSectionHtml: html as string })
-                          }
-                          placeholder="Optional: rich text for the profile block (name, title, role, phone, email, etc.). When set, this is shown instead of the fields below."
-                          fontOptions={editorFonts}
-                        />
-                        </div>
-                        <div className="space-y-3 md:col-span-1">
-                        <ImageUploader
-                          label="Profile image"
-                          value={(heroLayout.profileImageUrl as string) ?? null}
-                          onChange={(url) =>
-                            updateHeroLayout({ profileImageUrl: url ?? undefined })
-                          }
-                        />
-                        </div>
-                        
-                        </div>
-                        
-                        
+                    <div className="space-y-2.5 rounded-md border border-zinc-200 bg-white p-3 shadow-sm">
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                          Detailed Perspective – profile column
+                        </p>
+                        <p className="text-[11px] leading-snug text-zinc-500">
+                          Profile image only as wide as its content; Image layout uses the remaining width on that row.
+                        </p>
                       </div>
-                      <div className="space-y-3 rounded-md border border-dashed border-zinc-200 bg-zinc-50 p-3">
+                      <div className="grid gap-3 md:grid-cols-2 md:items-start md:gap-3">
+                        <div className="min-w-0 rounded-md border border-zinc-200 bg-zinc-50/80 p-2">
+                          <RichTextEditor
+                            label="Profile content (rich text)"
+                            value={(heroLayout.profileSectionHtml as string) ?? ""}
+                            onChange={(html) =>
+                              updateHeroLayout({ profileSectionHtml: html as string })
+                            }
+                            placeholder="Optional: rich text for the profile block (name, title, role, phone, email, etc.). When set, this is shown instead of the fields below."
+                            fontOptions={editorFonts}
+                            height={220}
+                          />
+                        </div>
+                        <div className="min-w-0 rounded-md border border-zinc-200 bg-zinc-50/80 p-2">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                            <div className="w-full shrink-0 rounded-md border border-zinc-200 bg-white p-2 sm:w-fit sm:max-w-full">
+                              <ImageUploader
+                                compact
+                                label="Profile image"
+                                value={(heroLayout.profileImageUrl as string) ?? null}
+                                onChange={(url) =>
+                                  updateHeroLayout({ profileImageUrl: url ?? undefined })
+                                }
+                              />
+                            </div>
+                            <div className="min-w-0 flex-1 space-y-1.5 rounded-md border border-zinc-200 bg-white p-2">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-600">
+                                Image layout
+                              </p>
+                              <label className="block text-[11px] font-medium text-zinc-600">
+                                Position
+                              </label>
+                              <select
+                                value={((heroLayout as any).profileImagePosition as string) ?? "right"}
+                                onChange={(e) =>
+                                  updateHeroLayout({
+                                    profileImagePosition: e.target.value as any,
+                                  })
+                                }
+                                className="h-9 w-full rounded-md border border-zinc-300 bg-white px-2 text-sm text-zinc-800 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                              >
+                                <option value="right">Right</option>
+                                <option value="left">Left</option>
+                                <option value="top">Top</option>
+                                <option value="bottom">Bottom</option>
+                              </select>
+
+                              <p className="text-[10px] leading-tight text-zinc-500">
+                                Top / Left nudge (px). Negative moves opposite.
+                              </p>
+                              {(
+                                [
+                                  ["Top", "profileImageOffsetTop"],
+                                  ["Left", "profileImageOffsetLeft"],
+                                ] as const
+                              ).map(([label, key]) => {
+                                const raw = Number((heroLayout as any)[key] ?? 0);
+                                const parsed = Number.isFinite(raw) ? raw : 0;
+                                const clamped = Math.min(200, Math.max(-200, parsed));
+                                return (
+                                  <label key={key} className="mt-1.5 block space-y-0.5">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="block text-[11px] font-medium text-zinc-600">
+                                        {label} (px)
+                                      </span>
+                                      <span className="text-[11px] tabular-nums text-zinc-500">
+                                        {clamped}
+                                      </span>
+                                    </div>
+                                    <input
+                                      type="range"
+                                      min={-200}
+                                      max={200}
+                                      step={1}
+                                      value={clamped}
+                                      onChange={(e) => {
+                                        const n = Number.parseInt(e.target.value, 10);
+                                        updateHeroLayout({
+                                          [key]: Number.isFinite(n) ? n : 0,
+                                          profileImageOffsetRight: undefined,
+                                          profileImageOffsetBottom: undefined,
+                                        } as any);
+                                      }}
+                                      className="h-2 w-full cursor-pointer accent-zinc-800"
+                                    />
+                                  </label>
+                                );
+                              })}
+                              <div className="mt-2 space-y-0.5 border-t border-zinc-100 pt-2">
+                                <label className="block text-[11px] font-medium text-zinc-600">
+                                  Image width (px)
+                                </label>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min={80}
+                                  max={640}
+                                  value={Number(
+                                    (heroLayout as any).profileImageWidthPx ?? 240,
+                                  )}
+                                  onChange={(e) => {
+                                    const raw = e.target.value;
+                                    const n = Number.parseInt(raw || "0", 10);
+                                    const clamped = Number.isFinite(n)
+                                      ? Math.min(Math.max(n, 80), 640)
+                                      : 240;
+                                    updateHeroLayout({
+                                      profileImageWidthPx: clamped,
+                                    } as any);
+                                  }}
+                                  className="h-9 w-full rounded-md border border-zinc-300 bg-white px-2 text-sm text-zinc-800 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                                />
+                                <p className="text-[10px] leading-tight text-zinc-500">
+                                  Public page width; default 240px.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 rounded-md border border-dashed border-zinc-200 bg-zinc-50/90 p-2.5">
                         <p className="text-xs font-medium text-zinc-600">
                           Additional form text (Detailed Perspective)
                         </p>
-                        <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-3 md:col-span-1">
-                        <RichTextEditor
-                          label="Text after CTA button (rich text)"
-                          value={(heroLayout.formPostCtaText as string) ?? ""}
-                          onChange={(html) =>
-                            updateHeroLayout({ formPostCtaText: html as string })
-                          }
-                          placeholder="Optional text shown directly below the Complete Request button."
-                        />
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div className="min-w-0 md:col-span-1">
+                            <RichTextEditor
+                              label="Text after CTA button (rich text)"
+                              value={(heroLayout.formPostCtaText as string) ?? ""}
+                              onChange={(html) =>
+                                updateHeroLayout({ formPostCtaText: html as string })
+                              }
+                              placeholder="Optional text shown directly below the Complete Request button."
+                            />
+                          </div>
+                          <div className="min-w-0 md:col-span-1">
+                            <RichTextEditor
+                              label="Text below form area overall (rich text)"
+                              value={(heroLayout.formFooterText as string) ?? ""}
+                              onChange={(html) =>
+                                updateHeroLayout({ formFooterText: html as string })
+                              }
+                              placeholder="Optional text shown below the entire form panel (e.g. disclaimer, attribution)."
+                            />
+                          </div>
                         </div>
-                        <div className="space-y-3 md:col-span-1">
-                        <RichTextEditor
-                          label="Text below form area overall (rich text)"
-                          value={(heroLayout.formFooterText as string) ?? ""}
-                          onChange={(html) =>
-                            updateHeroLayout({ formFooterText: html as string })
-                          }
-                          placeholder="Optional text shown below the entire form panel (e.g. disclaimer, attribution)."
-                        />
-                        </div>
-                        </div>
-                        
-                        
                       </div>
                     </div>
                   )}

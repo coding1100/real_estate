@@ -12,6 +12,7 @@ import { DynamicForm } from "@/components/forms/DynamicForm";
 import { useRecaptcha } from "@/components/forms/Captcha";
 import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
 import { HeroBackgroundImage } from "@/components/templates/HeroBackgroundImage";
+import { DetailedPerspectiveProfileColumn } from "@/components/templates/DetailedPerspectiveProfileColumn";
 import { useToast } from "@/components/ui/use-toast";
 
 interface LayoutItem {
@@ -42,6 +43,10 @@ interface HeroLayoutConfig {
   ctaBgColor?: string;
   formStyle?: FormStyle;
   profileImageUrl?: string;
+  profileImageWidthPx?: number;
+  profileImagePosition?: string;
+  profileImageOffsetTop?: number;
+  profileImageOffsetLeft?: number;
   profileSectionHtml?: string;
   profileName?: string;
   profileTitle?: string;
@@ -937,7 +942,7 @@ export function HomeValueMultistepFlow({
                 className="cust1 form-area relative w-full rounded-[2px] p-6 text-zinc-900 shadow-2xl bg-amber-50/95 opacity-95 border border-amber-200/60"
                 style={formBgColor ? { backgroundColor: formBgColor } : undefined}
               >
-                <div className="grid max-[768px]:grid-cols-1 md:grid-cols-[57%_40%] gap-[3%]">
+                <div className="grid max-[768px]:grid-cols-1 md:grid-cols-[52%_45%] gap-[3%]">
                   <div className="space-y-5">
                     {formHeading && (
                       <h2
@@ -984,66 +989,7 @@ export function HomeValueMultistepFlow({
                     </>
                   </div>
                   <div className="space-y-4 relative flex flex-col justify-center">
-                    <div className="w-full px-[25px] pt-[30px] pb-[70px] break-all relative border border-[#cbb1a7ab] pr-[44%] flex flex-col justify-center max-[768px]:pr-4 max-[768px]:pb-4">
-                      {layout?.profileImageUrl && (
-                        <div className="absolute h-[300px] w-[220px]  -bottom-[0px] -right-[54px] text-transparent rounded-[2px] max-[768px]:relative max-[768px]:h-40 max-[768px]:w-full max-[768px]:bottom-auto max-[768px]:right-auto max-[768px]:mx-0 max-[768px]:mb-3">
-                          <Image
-                            src={layout.profileImageUrl as string}
-                            alt={(layout?.profileName as string) || "Profile"}
-                            fill
-                            loading="lazy"
-                            className="object-cover max-[768px]:!w-auto"
-                            style={{ borderRadius: "2px" }}
-                          />
-                        </div>
-                      )}
-                      {layout?.profileSectionHtml?.trim() ? (
-                        <div
-                          className="text-sm text-zinc-800 font-serif leading-relaxed space-y-1.5"
-                          dangerouslySetInnerHTML={{
-                            __html: wrapLegalSignsHtml(layout.profileSectionHtml),
-                          }}
-                        />
-                      ) : (
-                        <>
-                          {layout?.profileName && (
-                            <h3 className="text-xl font-semibold text-zinc-800 font-serif leading-tight mb-[5px]">
-                              {layout.profileName as string}
-                            </h3>
-                          )}
-                          {layout?.profileTitle && (
-                            <p className="text-sm text-zinc-700 font-serif leading-relaxed mb-[5px]">
-                              {layout.profileTitle as string}
-                            </p>
-                          )}
-                          {layout?.profileRole && (
-                            <p className="text-sm text-zinc-600 font-serif leading-relaxed mb-[5px]">
-                              {layout.profileRole as string}
-                            </p>
-                          )}
-                          <div className="space-y-1.5 pt-1">
-                            {layout?.profilePhone && (
-                              <p className="text-sm text-zinc-700 font-serif flex items-center gap-2.5 leading-relaxed">
-                                <span className="text-zinc-500 text-base">
-                                  ✆
-                                </span>
-                                <span>{layout.profilePhone as string}</span>
-                              </p>
-                            )}
-                            {layout?.profileEmail && (
-                              <p className="text-sm text-zinc-700 font-serif flex items-center gap-2.5 leading-relaxed">
-                                <span className="text-zinc-500 text-base">
-                                  ✉
-                                </span>
-                                <span className="break-all">
-                                  {layout.profileEmail as string}
-                                </span>
-                              </p>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
+                    <DetailedPerspectiveProfileColumn layout={layout} />
                   </div>
                 </div>
                 {layout?.formFooterText?.trim() && (

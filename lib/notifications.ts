@@ -205,39 +205,6 @@ async function fetchAttachmentFromUrl(input: {
   };
 }
 
-function resolveDeliverableDocUrl(input: {
-  url: string;
-  publicId?: string | null;
-  format?: string | null;
-}): string {
-  const baseUrl = input.url.trim();
-  const publicId = (input.publicId ?? "").trim();
-  if (!publicId) return baseUrl;
-  try {
-    const fmt =
-      (input.format ?? "").trim().toLowerCase() ||
-      inferFileExtensionFromUrl(baseUrl) ||
-      "pdf";
-    const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24; // 24h
-    const privateUrl = (cloudinary.utils as any).private_download_url?.(
-      publicId,
-      fmt,
-      {
-        resource_type: "raw",
-        type: "upload",
-        expires_at: expiresAt,
-        attachment: false,
-      },
-    );
-    if (typeof privateUrl === "string" && privateUrl.trim()) {
-      return privateUrl.trim();
-    }
-  } catch {
-    // ignore
-  }
-  return baseUrl;
-}
-
 function isInternalFieldKey(key: string): boolean {
   const normalized = key.trim().toLowerCase();
   if (!normalized) return true;
@@ -300,6 +267,87 @@ function collectCtaCandidates(formData: Record<string, unknown>): string[] {
   };
   visit(formData);
   return [...candidates];
+}
+
+/** Split CTA notification emails into Resend to/cc/bcc. Default kind is cc. */
+function buildDocumentRecipients(
+  leadEmail: string | null | undefined,
+  notify: Array<{ email: string; kind?: "cc" | "bcc" }>,
+  domainNotify: string | null | undefined,
+): { to: string[]; cc: string[]; bcc: string[] } | null {
+  const norm = (s: string) => s.trim().toLowerCase();
+
+  const rawCc: string[] = [];
+  const rawBcc: string[] = [];
+  for (const n of notify) {
+    const e = n.email.trim();
+    if (!e.includes("@")) continue;
+    const kind = n.kind ?? "cc";
+    if (kind === "bcc") rawBcc.push(e);
+    else rawCc.push(e);
+  }
+
+  const dedupe = (arr: string[]) => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const x of arr) {
+      const t = x.trim();
+      const k = norm(t);
+      if (!t || seen.has(k)) continue;
+      seen.add(k);
+      out.push(t);
+    }
+    return out;
+  };
+
+  const bccNorm = new Set(rawBcc.map(norm));
+  const ccOnly = dedupe(rawCc.filter((e) => !bccNorm.has(norm(e))));
+  const bccOnly = dedupe(rawBcc);
+
+  const domain =
+    domainNotify && domainNotify.includes("@") ? domainNotify.trim() : null;
+
+  if (leadEmail && leadEmail.includes("@")) {
+    const lead = leadEmail.trim();
+    const ln = norm(lead);
+    return {
+      to: [lead],
+      cc: ccOnly.filter((e) => norm(e) !== ln),
+      bcc: bccOnly.filter((e) => norm(e) !== ln),
+    };
+  }
+
+  if (ccOnly.length > 0) {
+    const primary = ccOnly[0];
+    const pn = norm(primary);
+    return {
+      to: [primary],
+      cc: ccOnly.slice(1).filter((e) => norm(e) !== pn),
+      bcc: bccOnly.filter((e) => norm(e) !== pn),
+    };
+  }
+
+  if (bccOnly.length > 0) {
+    if (domain) {
+      const dn = norm(domain);
+      return {
+        to: [domain],
+        cc: [],
+        bcc: bccOnly.filter((e) => norm(e) !== dn),
+      };
+    }
+    return {
+      to: [bccOnly[0]],
+      cc: [],
+      bcc: bccOnly.slice(1),
+    };
+  }
+
+  if (domain) {
+    return { to: [domain], cc: [], bcc: [] };
+  }
+
+  return null;
 }
 
 function findCtaRule(
@@ -396,45 +444,30 @@ export async function sendLeadNotifications(leadId: string) {
         const notify = (rule?.notifyEmails ?? []).filter(
           (n) => (n.enabled ?? true) && n.email && n.email.includes("@"),
         );
-        const toRecipients = [
-          ...new Set(
-            notify
-              .map((n) => n.email.trim())
-              .filter((email) => !!email && email.length > 0),
-          ),
-        ];
 
-        const finalTo = [
-          ...(leadEmail && leadEmail.includes("@") ? [leadEmail.trim()] : []),
-          ...(toRecipients.length > 0
-            ? toRecipients
-            : domain.notifyEmail?.includes("@")
-              ? [domain.notifyEmail.trim()]
-              : []),
-        ].filter((v, idx, arr) => arr.indexOf(v) === idx);
+        const routing = buildDocumentRecipients(
+          leadEmail,
+          notify,
+          domain.notifyEmail,
+        );
 
-        if (finalTo.length === 0) {
+        if (!routing || routing.to.length === 0) {
           console.warn("[notifications] Document email skipped: no recipients found", {
             leadId: lead.id,
             pageSlug: page.slug,
           });
         } else {
-          const lines = docs.map((d) => {
-            const label = d.name?.trim() || d.url;
-            const deliverUrl = resolveDeliverableDocUrl({
-              url: d.url,
-              publicId: (d as any).publicId,
-              format: (d as any).format,
-            });
-            return `- ${label}: ${deliverUrl}`;
+          const nameLines = docs.map((d) => {
+            const label = d.name?.trim() || "Document";
+            return `- ${label}`;
           });
 
           const textBody = [
             `Thank you for your request on ${domain.hostname}.`,
             `Page: ${page.slug}`,
             "",
-            "Here are your documents:",
-            ...lines,
+            "Your documents are attached:",
+            ...nameLines,
           ].join("\n");
 
           const attachments = (
@@ -455,17 +488,23 @@ export async function sendLeadNotifications(leadId: string) {
             content_type?: string;
           }>;
 
-          await resend.emails.send({
+          const payload: Parameters<typeof resend.emails.send>[0] = {
             from: resolveFromAddress(domain.notifyEmail),
-            to: finalTo,
+            to: routing.to,
             subject: `Your requested documents from ${domain.displayName ?? domain.hostname}`,
             text: textBody,
             attachments,
-          });
+          };
+          if (routing.cc.length > 0) payload.cc = routing.cc;
+          if (routing.bcc.length > 0) payload.bcc = routing.bcc;
+
+          await resend.emails.send(payload);
 
           console.log("[notifications] Document email send summary", {
             leadId: lead.id,
-            to: finalTo,
+            to: routing.to,
+            cc: routing.cc,
+            bcc: routing.bcc,
             docsCount: docs.length,
             successCount: 1,
             failedCount: 0,
