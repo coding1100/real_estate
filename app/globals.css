@@ -29,21 +29,34 @@ body {
     "Segoe UI", sans-serif;
 }
 
-/* Admin area typography scaling - make admin UI larger without zoom hacks */
+/* Admin area typography scaling (+20% across admin text sizes). */
 .admin-root {
-  font-size: 0.95rem;
+  --admin-font-scale: 1.2;
 }
 
+.admin-root .text-xs {
+  font-size: calc(0.75rem * var(--admin-font-scale));
+}
+
+.admin-root .text-sm,
 .admin-root .text-md {
-  font-size: 0.85rem;
-}
-
-.admin-root .text-sm {
-  font-size: 1rem; /* behave like text-md/base inside admin */
+  font-size: calc(0.875rem * var(--admin-font-scale));
 }
 
 .admin-root .text-base {
-  font-size: 1.05rem;
+  font-size: calc(1rem * var(--admin-font-scale));
+}
+
+.admin-root .text-lg {
+  font-size: calc(1.125rem * var(--admin-font-scale));
+}
+
+.admin-root .text-xl {
+  font-size: calc(1.25rem * var(--admin-font-scale));
+}
+
+.admin-root .text-2xl {
+  font-size: calc(1.5rem * var(--admin-font-scale));
 }
 a{
   border-radius: 2px;

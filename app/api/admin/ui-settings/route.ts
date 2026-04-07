@@ -147,6 +147,14 @@ export async function PATCH(req: NextRequest) {
         typeof item?.forwardEnabled === "boolean"
           ? item.forwardEnabled
           : !!forwardUrl;
+      const resendTemplateId =
+        typeof item?.resendTemplateId === "string"
+          ? item.resendTemplateId.trim()
+          : "";
+      const resendTemplateName =
+        typeof item?.resendTemplateName === "string"
+          ? item.resendTemplateName.trim()
+          : "";
       if (!ctaTitle) {
         continue;
       }
@@ -206,6 +214,8 @@ export async function PATCH(req: NextRequest) {
         ctaTitle,
         forwardEnabled,
         ...(forwardUrl ? { forwardUrl } : {}),
+        ...(resendTemplateId ? { resendTemplateId } : {}),
+        ...(resendTemplateName ? { resendTemplateName } : {}),
         ...(documents.length ? { documents } : {}),
         ...(notifyEmails.length ? { notifyEmails } : {}),
       });

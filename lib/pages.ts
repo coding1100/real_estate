@@ -112,6 +112,42 @@ function pageToContent(
   };
 }
 
+/** Thrown when a slug exists on the domain but is not published and draft is not allowed. */
+export class UnpublishedLandingPageError extends Error {
+  readonly siteName: string;
+  readonly hostname: string;
+  readonly slug: string;
+
+  constructor(siteName: string, hostname: string, slug: string) {
+    super("UNPUBLISHED_LANDING_PAGE");
+    this.name = "UnpublishedLandingPageError";
+    this.siteName = siteName;
+    this.hostname = hostname;
+    this.slug = slug;
+  }
+}
+
+/**
+ * Resolves an unpublished error even when `instanceof` fails across bundles
+ * (e.g. duplicate module instances in production).
+ */
+export function asUnpublishedLandingPageError(
+  e: unknown,
+): UnpublishedLandingPageError | null {
+  if (e instanceof UnpublishedLandingPageError) return e;
+  if (
+    typeof e === "object" &&
+    e !== null &&
+    (e as { name?: string }).name === "UnpublishedLandingPageError" &&
+    typeof (e as { siteName?: unknown }).siteName === "string" &&
+    typeof (e as { hostname?: unknown }).hostname === "string" &&
+    typeof (e as { slug?: unknown }).slug === "string"
+  ) {
+    return e as UnpublishedLandingPageError;
+  }
+  return null;
+}
+
 export async function getLandingPage(
   hostname: string,
   slug: string,
@@ -191,6 +227,28 @@ export async function getLandingPage(
     }
     if (requestedSlug === "master-seller") {
       redirect("/templates/master/seller");
+    }
+    if (!includeDraft) {
+      try {
+        const draftRow = await prisma.landingPage.findFirst({
+          where: {
+            slug: fetchSlug,
+            domain: { hostname, isActive: true },
+            NOT: { status: "published" },
+          },
+          include: { domain: true },
+        });
+        if (draftRow?.domain) {
+          throw new UnpublishedLandingPageError(
+            draftRow.domain.displayName,
+            draftRow.domain.hostname,
+            requestedSlug,
+          );
+        }
+      } catch (err) {
+        if (asUnpublishedLandingPageError(err)) throw err;
+        console.error("[getLandingPage] Unpublished check failed", err);
+      }
     }
     notFound();
   }

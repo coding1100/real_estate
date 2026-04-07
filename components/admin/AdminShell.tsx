@@ -7,9 +7,9 @@ import {
   LayoutDashboard,
   Globe2,
   FileText,
+  Copy,
   Layers,
   Menu,
-  RadioTower,
   LogOut,
   Settings,
 } from "lucide-react";
@@ -23,10 +23,27 @@ interface AdminShellProps {
   toastTheme?: ToastTheme;
 }
 
+/** Avoid /admin/pages-2 matching the "Landing Pages" nav item via startsWith. */
+function navLinkActive(pathname: string, href: string): boolean {
+  if (pathname === href) return true;
+  if (href === "/admin/pages") {
+    if (pathname.startsWith("/admin/pages-2")) return false;
+    return (
+      pathname === "/admin/pages" || pathname.startsWith("/admin/pages/")
+    );
+  }
+  if (href === "/admin/pages-2") {
+    return pathname === "/admin/pages-2";
+  }
+  if (href !== "/admin" && pathname.startsWith(`${href}/`)) return true;
+  return false;
+}
+
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/domains", label: "Domains", icon: Globe2 },
   { href: "/admin/pages", label: "Landing Pages", icon: FileText },
+  { href: "/admin/pages-2", label: "Landing Pages 2", icon: Copy },
   { href: "/admin/templates", label: "Templates", icon: Layers },
   // { href: "/admin/webhooks", label: "Webhooks", icon: RadioTower },
   { href: "/admin/settings", label: "Settings", icon: Settings },
@@ -83,10 +100,7 @@ export function AdminShell({ children, userEmail, toastTheme }: AdminShellProps)
           <nav className="space-y-1 text-sm">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/admin" &&
-                  pathname.startsWith(item.href + "/"));
+              const isActive = navLinkActive(pathname, item.href);
 
               return (
                 <Link
@@ -121,10 +135,7 @@ export function AdminShell({ children, userEmail, toastTheme }: AdminShellProps)
               <nav className="space-y-1 text-sm">
                 {navItems.map((item) => {
                   const Icon = item.icon;
-                  const isActive =
-                    pathname === item.href ||
-                    (item.href !== "/admin" &&
-                      pathname.startsWith(item.href + "/"));
+                  const isActive = navLinkActive(pathname, item.href);
 
                   return (
                     <Link

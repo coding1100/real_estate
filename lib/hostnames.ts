@@ -77,6 +77,32 @@ export function isPlatformHostname(hostname: string): boolean {
   return getPlatformHostnames().has(normalized);
 }
 
+
+function getQueryPreviewParam(
+  query: Record<string, string | string[] | undefined>,
+  key: string,
+): string | null {
+  const raw = query[key];
+  if (raw == null) return null;
+  return Array.isArray(raw) ? raw[0] ?? null : raw;
+}
+
+/**
+ * Draft / unpublished content may only be loaded on dev/preview hosts or the
+ * platform app host when ?preview=1 is set. Customer domains must never expose
+ * draft via query string alone.
+ */
+export function shouldIncludeDraftForLandingRequest(
+  requestHostname: string,
+  query: Record<string, string | string[] | undefined>,
+): boolean {
+  const pv = getQueryPreviewParam(query, "preview");
+  const wantsPreview = pv === "1" || pv === "true";
+  if (isPreviewHostname(requestHostname)) return true;
+  if (isPlatformHostname(requestHostname) && wantsPreview) return true;
+  return false;
+}
+
 export function isPreviewHostname(hostname: string): boolean {
   const normalized = normalizeHostname(hostname);
   if (!normalized) return false;
