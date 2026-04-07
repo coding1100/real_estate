@@ -1,15 +1,21 @@
 import type { Metadata } from "next";
-import { getLandingPage } from "@/lib/pages";
+import {
+  getLandingPage,
+  asUnpublishedLandingPageError,
+} from "@/lib/pages";
 import { BuyerTemplate } from "@/components/templates/BuyerTemplate";
 import { SellerTemplate } from "@/components/templates/SellerTemplate";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { MetaPixel } from "@/components/analytics/MetaPixel";
 import { getAdminUiSettings } from "@/lib/uiSettings";
+import { UnpublishedPageNotice } from "@/components/landing/UnpublishedPageNotice";
 import {
   getRequestHostnameFromHeaders,
   isPreviewHostname,
+  isPlatformHostname,
   resolveTenantHostname,
   normalizeHostname,
+  shouldIncludeDraftForLandingRequest,
 } from "@/lib/hostnames";
 
 // Force dynamic rendering and no caching
@@ -49,8 +55,10 @@ function getPreviewHostnameOverride(
 async function getHostContextFromHeaders() {
   const rawHostname = await getRequestHostnameFromHeaders();
   return {
+    rawHostname,
     hostname: resolveTenantHostname(rawHostname),
     isPreviewHost: isPreviewHostname(rawHostname),
+    isPlatformHost: isPlatformHostname(rawHostname),
   };
 }
 
@@ -60,14 +68,29 @@ export async function generateMetadata({
 }: RouteParams): Promise<Metadata> {
   const { slug } = await params;
   const query = (await (searchParams as any)) ?? {};
-  const { hostname, isPreviewHost } = await getHostContextFromHeaders();
+  const { hostname, isPreviewHost, isPlatformHost, rawHostname } =
+    await getHostContextFromHeaders();
   const hostnameOverride =
-    isPreviewHost && query ? getPreviewHostnameOverride(query) : null;
+    (isPreviewHost || isPlatformHost) && query
+      ? getPreviewHostnameOverride(query)
+      : null;
   const effectiveHostname = hostnameOverride || hostname;
-  const page = await getLandingPage(effectiveHostname, slug, {
-    allowFallbackToAnyDomain: isPreviewHost,
-    includeDraft: isPreviewHost || query.preview === "1" || query.preview === "true",
-  });
+  let page;
+  try {
+    page = await getLandingPage(effectiveHostname, slug, {
+      allowFallbackToAnyDomain: isPreviewHost,
+      includeDraft: shouldIncludeDraftForLandingRequest(rawHostname, query),
+    });
+  } catch (e) {
+    const unpublished = asUnpublishedLandingPageError(e);
+    if (unpublished) {
+      return {
+        title: `Coming soon | ${unpublished.siteName}`,
+        robots: { index: false, follow: false },
+      };
+    }
+    throw e;
+  }
 
   const title = page.seo.title || page.headline;
   const description = page.seo.description || page.subheadline || undefined;
@@ -134,16 +157,32 @@ export default async function LandingPage({ params, searchParams }: RouteParams)
       ? query.utm_campaign[0]
       : query.utm_campaign,
   };
-  const { hostname, isPreviewHost } = await getHostContextFromHeaders();
+  const { hostname, isPreviewHost, isPlatformHost, rawHostname } =
+    await getHostContextFromHeaders();
   const hostnameOverride =
-    isPreviewHost && query ? getPreviewHostnameOverride(query) : null;
+    (isPreviewHost || isPlatformHost) && query
+      ? getPreviewHostnameOverride(query)
+      : null;
   const effectiveHostname = hostnameOverride || hostname;
-  console.log("[landing-page] Fetching page:", slug, "hostname:", effectiveHostname);
-  const page = await getLandingPage(effectiveHostname, slug, {
-    allowFallbackToAnyDomain: isPreviewHost,
-    includeDraft: isPreviewHost || query.preview === "1" || query.preview === "true",
-  });
-  console.log("[landing-page] Got page:", page.slug, "headline:", page.headline);
+  let page;
+  try {
+    page = await getLandingPage(effectiveHostname, slug, {
+      allowFallbackToAnyDomain: isPreviewHost,
+      includeDraft: shouldIncludeDraftForLandingRequest(rawHostname, query),
+    });
+  } catch (e) {
+    const unpublished = asUnpublishedLandingPageError(e);
+    if (unpublished) {
+      return (
+        <UnpublishedPageNotice
+          siteName={unpublished.siteName}
+          hostname={unpublished.hostname}
+          slug={unpublished.slug}
+        />
+      );
+    }
+    throw e;
+  }
   const { settings } = await getAdminUiSettings();
 
   const content =

@@ -40,4 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# generated email previews (npm run test:email)
+/scripts/email-preview-output/
+
 .vercel

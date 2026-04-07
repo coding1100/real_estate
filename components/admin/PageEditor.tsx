@@ -15,7 +15,7 @@ import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { PageBlockLayoutEditor } from "@/components/admin/craft/PageBlockLayoutEditor";
 import { DragDropPageLayoutEditor } from "@/components/admin/DragDropPageLayoutEditor";
 import { MultistepPageSelector } from "@/components/admin/MultistepPageSelector";
-import { Eye, FileText, ListChecks, Search, LayoutDashboard } from "lucide-react";
+import { Eye, ExternalLink, FileText, ListChecks, Search, LayoutDashboard } from "lucide-react";
 import { useAdminToast } from "@/components/admin/useAdminToast";
 
 interface PageEditorProps {
@@ -297,7 +297,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
         ) as HTMLIFrameElement | null;
         if (iframe) {
           // Add timestamp to force fresh fetch
-          iframe.src = `/${page.slug}?preview=1&t=${Date.now()}`;
+          iframe.src = `/${encodeURIComponent(page.slug)}?preview=1&domain=${encodeURIComponent(page.domain.hostname)}&t=${Date.now()}`;
         }
       }, 100);
     });
@@ -333,23 +333,45 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
           >
             {status === "published" ? "Published" : "Draft"}
           </span>
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
             <button
               type="button"
               onClick={() => {
-                if (status === "published") {
-                  window.open(`/${page.slug}`, "_blank", "noopener,noreferrer");
-                } else {
-                  errorToast(
-                    "In order to view this page on the live URL, please publish it first.",
-                    "Publish required",
-                  );
-                }
+                const q = new URLSearchParams({
+                  preview: "1",
+                  domain: page.domain.hostname,
+                });
+                window.open(
+                  `/${encodeURIComponent(page.slug)}?${q.toString()}`,
+                  "_blank",
+                  "noopener,noreferrer",
+                );
               }}
               className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-1.5 font-medium text-zinc-800 shadow-sm hover:bg-zinc-50"
             >
               <Eye className="h-3.5 w-3.5" />
-              View page
+              View draft
+            </button>
+            <button
+              type="button"
+              disabled={status !== "published"}
+              title={
+                status === "published"
+                  ? "Open the published page on the customer domain"
+                  : "Publish the page to open the live URL on the customer domain"
+              }
+              onClick={() => {
+                if (status !== "published") return;
+                window.open(
+                  `https://${page.domain.hostname}/${encodeURIComponent(page.slug)}`,
+                  "_blank",
+                  "noopener,noreferrer",
+                );
+              }}
+              className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-1.5 font-medium text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              View live
             </button>
             <button
               type="button"
@@ -1367,7 +1389,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
             <iframe
               id="page-preview"
               title="Live preview"
-              src={`/${page.slug}?preview=1`}
+              src={`/${encodeURIComponent(page.slug)}?preview=1&domain=${encodeURIComponent(page.domain.hostname)}`}
               className={
                 previewDevice === "mobile"
                   ? "h-full w-[380px] max-w-full border-0 rounded-[1.25rem] shadow-md"

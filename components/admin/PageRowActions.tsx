@@ -1,9 +1,16 @@
 "use client";
 
-import { useState, useRef, useEffect, useTransition } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  useTransition,
+} from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MoreHorizontal, Eye, Pencil, Copy, Link as LinkIcon } from "lucide-react";
+import { MoreVertical, Eye, Pencil, Copy, Link as LinkIcon } from "lucide-react";
 import { DeletePageButton } from "@/components/admin/DeletePageButton";
 import { useAdminToast } from "@/components/admin/useAdminToast";
 
@@ -11,14 +18,57 @@ interface PageRowActionsProps {
   pageId: string;
   slug: string;
   isMaster: boolean;
+  /** Row layout: master chip + ⋮ menu align horizontally and center with adjacent badges (e.g. Landing Pages V2). */
+  inline?: boolean;
+  /** When false, the master chip is not rendered here (show it elsewhere, e.g. next to the title). */
+  showMasterBadge?: boolean;
 }
 
-export function PageRowActions({ pageId, slug, isMaster }: PageRowActionsProps) {
+export function PageRowActions({
+  pageId,
+  slug,
+  isMaster,
+  inline = false,
+  showMasterBadge = true,
+}: PageRowActionsProps) {
   const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [panelPos, setPanelPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const { success, error } = useAdminToast();
+
+  const MENU_WIDTH = 176;
+
+  function syncMenuPosition() {
+    const btn = buttonRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    let left = rect.right - MENU_WIDTH;
+    left = Math.max(8, Math.min(left, window.innerWidth - MENU_WIDTH - 8));
+    setPanelPos({
+      top: rect.bottom + 4,
+      left,
+      width: MENU_WIDTH,
+    });
+  }
+
+  useLayoutEffect(() => {
+    if (!open || !buttonRef.current) return;
+
+    syncMenuPosition();
+    window.addEventListener("scroll", syncMenuPosition, true);
+    window.addEventListener("resize", syncMenuPosition);
+    return () => {
+      window.removeEventListener("scroll", syncMenuPosition, true);
+      window.removeEventListener("resize", syncMenuPosition);
+    };
+  }, [open]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -28,41 +78,74 @@ export function PageRowActions({ pageId, slug, isMaster }: PageRowActionsProps) 
       ) {
         return;
       }
-      if (
-        menuRef.current &&
-        target instanceof Node &&
-        !menuRef.current.contains(target)
-      ) {
-        setOpen(false);
-      }
+      if (!(target instanceof Node)) return;
+      if (buttonRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
     }
     if (open) {
       document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleEscape);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
     };
   }, [open]);
 
   return (
-    <div className="relative inline-flex items-center justify-end flex-col gap-2">
-      {isMaster && (
-        <span className="mr-2 rounded-full text-center bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 ring-1 ring-amber-200">
+    <div
+      className={`relative inline-flex items-center justify-end gap-2 ${
+        inline ? "flex-row" : "flex-col"
+      }`}
+    >
+      {isMaster && showMasterBadge && (
+        <span
+          className={`rounded-full bg-amber-50 px-2 py-0.5 text-center text-[11px] font-medium text-amber-800 ring-1 ring-amber-200 ${
+            inline ? "shrink-0" : "mr-2"
+          }`}
+        >
           Master template
         </span>
       )}
-      <div ref={menuRef} className="relative">
+      <div className="relative shrink-0">
         <button
+          ref={buttonRef}
           type="button"
-          onClick={() => setOpen((prev) => !prev)}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-600 shadow-sm hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+          onClick={() => {
+            setOpen((prev) => {
+              if (prev) {
+                setPanelPos(null);
+                return false;
+              }
+              syncMenuPosition();
+              return true;
+            });
+          }}
+          className="inline-flex h-10 w-10 items-center justify-center !rounded-full  bg-white text-zinc-600 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
           aria-haspopup="menu"
           aria-expanded={open}
+          aria-label="Open page actions"
         >
-          <MoreHorizontal className="h-4 w-4" />
+          <MoreVertical className="h-6 w-6" />
         </button>
-        {open && (
-          <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-md border border-zinc-200 bg-white py-1 text-sm shadow-lg">
+        {open &&
+          panelPos &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <div
+              ref={panelRef}
+              role="menu"
+              className="fixed z-[200] overflow-hidden rounded-md border border-zinc-200 bg-white py-1 text-sm shadow-lg"
+              style={{
+                top: panelPos.top,
+                left: panelPos.left,
+                width: panelPos.width,
+              }}
+            >
             <a
               href={`/${slug}`}
               target="_blank"
@@ -153,8 +236,9 @@ export function PageRowActions({ pageId, slug, isMaster }: PageRowActionsProps) 
             <div className="mt-1 border-t border-zinc-100 pt-1">
               <DeletePageButton pageId={pageId} slug={slug} variant="menu" />
             </div>
-          </div>
-        )}
+          </div>,
+            document.body,
+          )}
       </div>
     </div>
   );

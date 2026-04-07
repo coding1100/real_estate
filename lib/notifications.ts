@@ -7,6 +7,11 @@ import {
   type CtaForwardingRule,
 } from "./types/ctaForwarding";
 import { cloudinary } from "@/lib/cloudinary";
+import {
+  formLinesToFieldRows,
+  renderDocumentDeliveryEmailHtml,
+  renderNewLeadEmailHtml,
+} from "@/lib/email-render";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESEND_FROM_EMAIL = (process.env.RESEND_FROM_EMAIL ?? "").trim();
@@ -388,19 +393,23 @@ export async function sendLeadNotifications(leadId: string) {
       const subject = `[New ${lead.type} lead] ${domain.hostname} / ${page.slug}`;
       const data = (lead.formData as Record<string, unknown>) ?? {};
       const lines = flattenLeadFormDataForEmail(data);
+      const fieldRows = formLinesToFieldRows(lines);
+      const brandName = (domain.displayName ?? domain.hostname).trim() || domain.hostname;
 
-      const textBody = [
-        `New ${lead.type} lead from ${domain.hostname}`,
-        `Page: ${page.slug}`,
-        "",
-        ...lines,
-      ].join("\n");
+      const { html, text } = await renderNewLeadEmailHtml({
+        leadType: lead.type,
+        domainHostname: domain.hostname,
+        pageSlug: page.slug,
+        brandName,
+        fieldRows,
+      });
 
       await resend.emails.send({
         from: resolveFromAddress(domain.notifyEmail),
         to: domain.notifyEmail,
         subject,
-        text: textBody,
+        html,
+        text,
       });
     } catch (e) {
       console.error("[notifications] Failed to send email", e);
@@ -457,18 +466,14 @@ export async function sendLeadNotifications(leadId: string) {
             pageSlug: page.slug,
           });
         } else {
-          const nameLines = docs.map((d) => {
-            const label = d.name?.trim() || "Document";
-            return `- ${label}`;
-          });
+          const documentNames = docs.map((d) => d.name?.trim() || "Document");
 
-          const textBody = [
-            `Thank you for your request on ${domain.hostname}.`,
-            `Page: ${page.slug}`,
-            "",
-            "Your documents are attached:",
-            ...nameLines,
-          ].join("\n");
+          const { html, text } = await renderDocumentDeliveryEmailHtml({
+            siteName: domain.displayName?.trim() || domain.hostname,
+            domainHostname: domain.hostname,
+            pageSlug: page.slug,
+            documentNames,
+          });
 
           const attachments = (
             await Promise.all(
@@ -492,13 +497,56 @@ export async function sendLeadNotifications(leadId: string) {
             from: resolveFromAddress(domain.notifyEmail),
             to: routing.to,
             subject: `Your requested documents from ${domain.displayName ?? domain.hostname}`,
-            text: textBody,
+            html,
+            text,
             attachments,
           };
           if (routing.cc.length > 0) payload.cc = routing.cc;
           if (routing.bcc.length > 0) payload.bcc = routing.bcc;
-
-          await resend.emails.send(payload);
+          const resendTemplateId = rule?.resendTemplateId?.trim();
+          if (resendTemplateId) {
+            try {
+              const siteName = domain.displayName?.trim() || domain.hostname;
+              const pageValue = page.slug;
+              const websiteValue = domain.hostname;
+              const docNamesArray = documentNames;
+              const docNameValue = documentNames.join(", ");
+              const templatePayload: Parameters<typeof resend.emails.send>[0] = {
+                from: resolveFromAddress(domain.notifyEmail),
+                to: routing.to,
+                ...(routing.cc.length > 0 ? { cc: routing.cc } : {}),
+                ...(routing.bcc.length > 0 ? { bcc: routing.bcc } : {}),
+                // keep docs delivery behavior consistent with existing flow
+                attachments,
+                template: {
+                  id: resendTemplateId,
+                  variables: {
+                    siteName,
+                    domainHostname: websiteValue,
+                    pageSlug: pageValue,
+                    documentNames: docNamesArray,
+                    // Alias keys for web-platform templates
+                    website: websiteValue,
+                    page: pageValue,
+                    doc_name: docNameValue,
+                  },
+                } as any,
+              } as any;
+              await resend.emails.send(templatePayload);
+            } catch (templateErr) {
+              console.error(
+                "[notifications] Resend template send failed, falling back to React Email html/text",
+                {
+                  leadId: lead.id,
+                  templateId: resendTemplateId,
+                  error: templateErr,
+                },
+              );
+              await resend.emails.send(payload);
+            }
+          } else {
+            await resend.emails.send(payload);
+          }
 
           console.log("[notifications] Document email send summary", {
             leadId: lead.id,
