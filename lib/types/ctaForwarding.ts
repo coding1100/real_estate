@@ -22,6 +22,10 @@ export interface CtaForwardingRule {
   ctaTitle: string;
   forwardUrl?: string;
   forwardEnabled?: boolean;
+  /** Optional Resend template ID (tpl_...) used for CTA document emails. */
+  resendTemplateId?: string;
+  /** Optional display name for the selected template in settings UI. */
+  resendTemplateName?: string;
   /**
    * Optional list of documents associated with this CTA.
    * Used by Settings UI to show per-CTA document rows (auto-send, icons, etc.).

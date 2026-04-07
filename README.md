@@ -116,3 +116,22 @@ Creating/updating/deleting domains through admin APIs now also adds/verifies/rem
 - Verify project domain: https://docs.vercel.com/docs/rest-api/reference/endpoints/projects/verify-project-domain
 - Get domain configuration: https://docs.vercel.com/docs/rest-api/reference/endpoints/domains/get-a-domains-configuration
 - Domain setup guide (DNS + verification): https://vercel.com/docs/domains/working-with-domains/add-a-domain
+
+## Email templates (Resend + React Email)
+
+Lead notifications and document-delivery emails use [`@react-email/components`](https://react.email/) with HTML + plain-text rendering via `@react-email/render`. Templates live under `emails/`; rendering helpers are in `lib/email-render.tsx`.
+
+Preview HTML locally (writes to `scripts/email-preview-output/`, gitignored):
+
+```bash
+npm run test:email
+```
+
+Optional: send two test messages through Resend (requires verified domain / sender):
+
+```bash
+set RESEND_API_KEY=re_...
+set RESEND_FROM_EMAIL="Name <notifications@yourdomain.com>"
+set EMAIL_TEST_TO=you@example.com
+npm run test:email
+```
