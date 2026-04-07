@@ -96,6 +96,14 @@ function normalizeCtaForwardingRules(
       typeof (item as any).forwardEnabled === "boolean"
         ? (item as any).forwardEnabled
         : !!forwardUrl;
+    const resendTemplateId =
+      typeof (item as any).resendTemplateId === "string"
+        ? (item as any).resendTemplateId.trim()
+        : "";
+    const resendTemplateName =
+      typeof (item as any).resendTemplateName === "string"
+        ? (item as any).resendTemplateName.trim()
+        : "";
     if (!ctaTitle) continue;
     if (forwardUrl && !/^https?:\/\//i.test(forwardUrl)) continue;
 
@@ -176,6 +184,8 @@ function normalizeCtaForwardingRules(
       ctaTitle,
       forwardEnabled,
       ...(forwardUrl ? { forwardUrl } : {}),
+      ...(resendTemplateId ? { resendTemplateId } : {}),
+      ...(resendTemplateName ? { resendTemplateName } : {}),
       ...(documents.length ? { documents } : {}),
       ...(notifyEmails.length ? { notifyEmails } : {}),
     });

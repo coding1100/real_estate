@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   type CtaForwardingDocument,
   type CtaForwardingNotifyEmail,
@@ -19,6 +19,18 @@ interface CtaForwardingRow extends CtaForwardingRule {
   forwardEnabled: boolean;
 }
 
+type ResendTemplateOption = {
+  id: string;
+  name: string;
+};
+
+type TemplatesFetchReason =
+  | "missing_api_key"
+  | "restricted_api_key"
+  | "resend_api_error"
+  | "no_templates"
+  | null;
+
 function createRow(id: string, rule?: Partial<CtaForwardingRule>): CtaForwardingRow {
   const forwardUrl = rule?.forwardUrl?.trim() ?? "";
   return {
@@ -26,6 +38,8 @@ function createRow(id: string, rule?: Partial<CtaForwardingRule>): CtaForwarding
     ctaTitle: sanitizeCtaTitle(rule?.ctaTitle ?? ""),
     forwardUrl,
     forwardEnabled: rule?.forwardEnabled ?? !!forwardUrl,
+    resendTemplateId: rule?.resendTemplateId?.trim() ?? "",
+    resendTemplateName: rule?.resendTemplateName?.trim() ?? "",
     documents: Array.isArray(rule?.documents)
       ? [...rule!.documents!]
       : [],
@@ -62,6 +76,54 @@ export function CtaForwardingSettingsForm({
   const [isPending, startTransition] = useTransition();
   const { success, error } = useAdminToast();
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<ResendTemplateOption[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [templatesReason, setTemplatesReason] =
+    useState<TemplatesFetchReason>(null);
+
+  useEffect(() => {
+    let ignore = false;
+    setTemplatesLoading(true);
+    fetch("/api/admin/resend/templates")
+      .then(async (res) => {
+        if (!res.ok) {
+          const errData = (await res.json().catch(() => null)) as
+            | { reason?: TemplatesFetchReason; message?: string }
+            | null;
+          if (!ignore && errData?.message) {
+            error(errData.message);
+          }
+          if (!ignore) setTemplatesReason(errData?.reason ?? "resend_api_error");
+          throw new Error("Failed to load templates");
+        }
+        const data = (await res.json()) as {
+          templates?: Array<{ id?: string; name?: string }>;
+          reason?: TemplatesFetchReason;
+        };
+        const normalized = (Array.isArray(data.templates) ? data.templates : [])
+          .map((item) => ({
+            id: typeof item.id === "string" ? item.id : "",
+            name: typeof item.name === "string" ? item.name : "",
+          }))
+          .filter((item) => item.id);
+        if (!ignore) {
+          setTemplates(normalized);
+          setTemplatesReason(data.reason ?? (normalized.length ? null : "no_templates"));
+        }
+      })
+      .catch(() => {
+        if (!ignore) {
+          setTemplates([]);
+          setTemplatesReason((prev) => prev ?? "resend_api_error");
+        }
+      })
+      .finally(() => {
+        if (!ignore) setTemplatesLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const validationErrors = useMemo(() => {
     return rows.map((row) => {
@@ -151,11 +213,20 @@ export function CtaForwardingSettingsForm({
       return;
     }
     const payload: CtaForwardingRule[] = rows.map((row) => {
+      const selectedTemplate = templates.find(
+        (tpl) => tpl.id === row.resendTemplateId?.trim(),
+      );
       const base: CtaForwardingRule = {
         ctaTitle: sanitizeCtaTitle(row.ctaTitle),
         forwardEnabled: row.forwardEnabled,
         ...(row.forwardUrl.trim()
           ? { forwardUrl: row.forwardUrl.trim() }
+          : {}),
+        ...(row.resendTemplateId?.trim()
+          ? { resendTemplateId: row.resendTemplateId.trim() }
+          : {}),
+        ...(selectedTemplate?.name
+          ? { resendTemplateName: selectedTemplate.name }
           : {}),
       };
       const docs = (row.documents ?? [])
@@ -250,9 +321,9 @@ export function CtaForwardingSettingsForm({
               </button>
             </div>
 
-            <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-600">
+            <div className="grid gap-3 md:grid-cols-3 md:items-start">
+              <div className="flex h-full flex-col">
+                <label className="mb-1 block min-h-5 text-xs font-medium text-zinc-600">
                   Selector / CTA Title
                 </label>
                 <input
@@ -260,7 +331,7 @@ export function CtaForwardingSettingsForm({
                   value={row.ctaTitle}
                   onChange={(e) => updateRow(row.id, "ctaTitle", e.target.value)}
                   placeholder="Book My Home Valuation"
-                  className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  className="h-9 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                 />
                 {validationErrors[index]?.ctaTitle ? (
                   <p className="mt-1 text-xs text-red-600">
@@ -268,12 +339,12 @@ export function CtaForwardingSettingsForm({
                   </p>
                 ) : null}
               </div>
-              <div>
-                <div className="mb-1 flex items-center justify-between gap-2">
+              <div className="flex h-full flex-col">
+                <div className="mb-1 flex min-h-5 items-center justify-between gap-2">
                   <label className="block text-xs font-medium text-zinc-600">
                     URL forwarding input
                   </label>
-                  <label className="flex items-center gap-2 text-[11px] font-medium text-zinc-600">
+                  <label className="flex items-center gap-2 text-[11px] font-medium text-zinc-600 -mt-[5px]">
                     <span>
                       {row.forwardEnabled ? "Active" : "Inactive"}
                     </span>
@@ -311,7 +382,7 @@ export function CtaForwardingSettingsForm({
                   onChange={(e) => updateRow(row.id, "forwardUrl", e.target.value)}
                   placeholder="https://example.com/thank-you"
                   disabled={!row.forwardEnabled}
-                  className={`w-full rounded-md border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 ${
+                  className={`h-9 w-full rounded-md border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 ${
                     row.forwardEnabled
                       ? "border-zinc-300 focus:border-zinc-900 focus:ring-zinc-900"
                       : "border-zinc-200 bg-zinc-100 text-zinc-500"
@@ -322,11 +393,64 @@ export function CtaForwardingSettingsForm({
                     {validationErrors[index].forwardUrl}
                   </p>
                 ) : null}
-                <p className="mt-1 text-[11px] text-zinc-500">
+                <p className="mt-1 min-h-8 text-[11px] text-zinc-500">
                   {row.forwardEnabled
                     ? "Visitors matching this CTA are redirected here after a successful form submission."
                     : "Forwarding is disabled. This CTA will not redirect after submit."}
                 </p>
+              </div>
+              <div className="flex h-full flex-col">
+                <label className="mb-1 block min-h-5 text-xs font-medium text-zinc-600">
+                  Resend template (for this CTA document email)
+                </label>
+                <select
+                  value={row.resendTemplateId ?? ""}
+                  onChange={(e) =>
+                    setRows((prev) =>
+                      prev.map((item) =>
+                        item.id === row.id
+                          ? {
+                              ...item,
+                              resendTemplateId: e.target.value,
+                              resendTemplateName:
+                                templates.find((t) => t.id === e.target.value)?.name ?? "",
+                            }
+                          : item,
+                      ),
+                    )
+                  }
+                  className="h-9 w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                >
+                  <option value="">
+                    {templatesLoading ? "Loading templates..." : "Use default template logic"}
+                  </option>
+                  {templates.map((tpl) => (
+                    <option key={tpl.id} value={tpl.id}>
+                      {tpl.name || tpl.id}
+                    </option>
+                  ))}
+                </select>
+                {row.resendTemplateId ? (
+                  <p className="mt-1 min-h-8 text-[11px] text-zinc-500">
+                    Selected template ID:{" "}
+                    <span className="font-mono">{row.resendTemplateId}</span>
+                  </p>
+                ) : (
+                  <p className="mt-1 min-h-8 text-[11px] text-zinc-500">
+                    No template selected. Existing document email rendering will be used.
+                  </p>
+                )}
+                {!templatesLoading && templates.length === 0 && (
+                  <p className="mt-1 text-[11px] text-amber-700">
+                    {templatesReason === "missing_api_key"
+                      ? "RESEND_API_KEY is missing on the server."
+                      : templatesReason === "restricted_api_key"
+                        ? "Your Resend API key is send-only (restricted), so template listing is blocked."
+                      : templatesReason === "no_templates"
+                        ? "No templates found in your Resend account."
+                        : "Unable to fetch templates from Resend right now."}
+                  </p>
+                )}
               </div>
             </div>
 
