@@ -17,9 +17,12 @@ async function resolveTenantRootSlug(
   hostname: string,
   allowFallbackToAnyDomain: boolean,
 ): Promise<string | null> {
+  const hostCandidates = hostname.startsWith("www.")
+    ? [hostname, hostname.slice(4)]
+    : [hostname, `www.${hostname}`];
   const domain = await prisma.domain.findFirst({
     where: {
-      hostname,
+      hostname: { in: hostCandidates },
       isActive: true,
     },
     select: { id: true },
