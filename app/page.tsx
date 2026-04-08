@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getDomainDefaultHomepageSlug } from "@/lib/defaultHomepage";
 import {
   getRequestHostnameFromHeaders,
   isPlatformHostname,
@@ -25,6 +26,9 @@ async function resolveTenantRootSlug(
   });
 
   if (domain) {
+    const defaultHomepageSlug = await getDomainDefaultHomepageSlug(domain.id);
+    if (defaultHomepageSlug) return defaultHomepageSlug;
+
     const preferredSlug = (process.env.DOMAIN_ROOT_DEFAULT_SLUG ?? "").trim();
     if (preferredSlug) {
       const preferredPage = await prisma.landingPage.findFirst({

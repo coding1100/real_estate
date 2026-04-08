@@ -8,6 +8,7 @@ import {
   removeProjectDomain,
   VercelDomainsError,
 } from "@/lib/vercel-domains";
+import { validateDefaultHomepageSelection } from "@/lib/defaultHomepage";
 
 type RouteContext = {
   params: Promise<{
@@ -141,6 +142,28 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
   }
 
   const hostnameChanged = nextHostname !== existing.hostname;
+  let nextDefaultHomepagePageId: string | null = null;
+  const requestedButtonLimit = Number(body?.defaultHomepageButtonLimit ?? 9);
+  const nextDefaultHomepageButtonLimit = Math.max(
+    1,
+    Math.min(24, Number.isFinite(requestedButtonLimit) ? requestedButtonLimit : 9),
+  );
+  try {
+    nextDefaultHomepagePageId = await validateDefaultHomepageSelection(
+      existing.id,
+      Object.prototype.hasOwnProperty.call(body, "defaultHomepagePageId")
+        ? body.defaultHomepagePageId
+        : null,
+    );
+  } catch (error: any) {
+    return NextResponse.json(
+      {
+        error:
+          error?.message ?? "Invalid default homepage selection for this domain.",
+      },
+      { status: 400 },
+    );
+  }
   if (hostnameChanged) {
     try {
       await addDomainToProject(nextHostname);
@@ -246,6 +269,30 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
           : existing.zillowVisible,
       },
     });
+    if (Object.prototype.hasOwnProperty.call(body, "defaultHomepagePageId")) {
+      await prisma.$executeRaw`
+        UPDATE "Domain"
+        SET "defaultHomepagePageId" = ${nextDefaultHomepagePageId},
+            "updatedAt" = NOW()
+        WHERE "id" = ${id}
+      `;
+      domain = {
+        ...domain,
+        defaultHomepagePageId: nextDefaultHomepagePageId,
+      } as typeof domain;
+    }
+    if (Object.prototype.hasOwnProperty.call(body, "defaultHomepageButtonLimit")) {
+      await prisma.$executeRaw`
+        UPDATE "Domain"
+        SET "defaultHomepageButtonLimit" = ${nextDefaultHomepageButtonLimit},
+            "updatedAt" = NOW()
+        WHERE "id" = ${id}
+      `;
+      domain = {
+        ...domain,
+        defaultHomepageButtonLimit: nextDefaultHomepageButtonLimit,
+      } as typeof domain;
+    }
   } catch (error: unknown) {
     if (hostnameChanged) {
       try {

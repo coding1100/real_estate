@@ -195,6 +195,11 @@ function SortableLandingPageRow({
                       Master template
                     </span>
                   )}
+                  {page.isFixedDefaultHomepage && (
+                    <span className="inline-flex shrink-0 items-center rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800 ring-1 ring-sky-200">
+                      Default home
+                    </span>
+                  )}
                 </div>
                 <p className="mt-1 font-mono text-sm leading-none text-[#6C757D]">/{page.slug}</p>
                 <p className="mt-1 text-xs font-medium text-[#868E96]">
@@ -315,6 +320,7 @@ function SortableLandingPageRow({
                   pageId={page.id}
                   slug={page.slug}
                   isMaster={isMaster}
+                  isFixedDefaultHomepage={page.isFixedDefaultHomepage}
                   inline
                   showMasterBadge={false}
                 />

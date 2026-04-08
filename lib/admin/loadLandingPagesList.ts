@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import type { PageListItem } from "@/components/admin/pageListTypes";
+import { getFixedHomepagePageIds } from "@/lib/defaultHomepage";
 
 export type PageOption = {
   id: string;
@@ -18,6 +19,7 @@ export type LandingPagesListData = {
 };
 
 export async function loadLandingPagesList(): Promise<LandingPagesListData> {
+  const fixedHomepageIds = await getFixedHomepagePageIds();
   const pages = await prisma.landingPage.findMany({
     include: { domain: true },
     orderBy: [{ domain: { hostname: "asc" } }, { slug: "asc" }],
@@ -150,6 +152,7 @@ export async function loadLandingPagesList(): Promise<LandingPagesListData> {
       null,
     bookmarked: bookmarkedById.get(p.id) ?? false,
     adminListOrder: adminOrderById.get(p.id) ?? 0,
+    isFixedDefaultHomepage: fixedHomepageIds.has(p.id),
   }));
 
   return { tablePages, pageOptions, domains, templates };

@@ -284,18 +284,32 @@ function PagesTableRowBody({
       <span className="block max-w-[165px] truncate text-zinc-500">{domain}</span>
     </td>,
     <td key="title" className="px-2 py-2 text-zinc-700">
-      {isMaster ? (
-        <span className="block max-w-[220px] overflow-hidden [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] leading-tight break-words">
-          {page.title || page.headline || ""}
-        </span>
-      ) : (
-        <div className="max-w-[220px]">
+      <div className="max-w-[220px]">
+        {isMaster ? (
+          <span className="block overflow-hidden [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] leading-tight break-words">
+            {page.title || page.headline || ""}
+          </span>
+        ) : (
           <TitleEditor
             pageId={page.id}
             initialTitle={page.title || page.headline || ""}
           />
+        )}
+        {(isMaster || page.isFixedDefaultHomepage) && (
+          <div className="mt-1 flex flex-wrap items-center gap-1">
+            {isMaster && (
+              <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800 ring-1 ring-amber-200">
+                Master template
+              </span>
+            )}
+            {page.isFixedDefaultHomepage && (
+              <span className="inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-800 ring-1 ring-sky-200">
+                Default home
+              </span>
+            )}
+          </div>
+        )}
         </div>
-      )}
     </td>,
     <td key="type" className="px-2 py-2 text-zinc-700">
       <span className="capitalize">{page.type}</span>
@@ -370,6 +384,7 @@ function PagesTableRowBody({
         pageId={page.id}
         slug={page.slug}
         isMaster={isMaster}
+        isFixedDefaultHomepage={page.isFixedDefaultHomepage}
       />
     </td>,
   ];

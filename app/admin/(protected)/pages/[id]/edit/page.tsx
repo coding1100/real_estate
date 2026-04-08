@@ -5,6 +5,7 @@ import {
   getAdminUiSettings,
   getEnabledEditorFonts,
 } from "@/lib/uiSettings";
+import { isFixedDefaultHomepagePage } from "@/lib/defaultHomepage";
 
 type EditPageProps = {
   params: Promise<{
@@ -31,6 +32,18 @@ export default async function EditPage({ params }: EditPageProps) {
   }
 
   const domain = page.domain;
+  const fixedDefaultHomepage = await isFixedDefaultHomepagePage(page.id);
+  const allPages = await prisma.landingPage.findMany({
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      headline: true,
+      status: true,
+      domain: { select: { hostname: true } },
+    },
+    orderBy: [{ updatedAt: "desc" }],
+  });
 
   let pageLayout = null;
   try {
@@ -56,11 +69,19 @@ export default async function EditPage({ params }: EditPageProps) {
   const pageContent = {
     dbId: page.id,
     domainId: page.domainId,
+    domainPages: allPages.map((p) => ({
+      id: p.id,
+      slug: p.slug,
+      title: p.title ?? p.headline ?? p.slug,
+      status: p.status,
+      hostname: p.domain?.hostname ?? "",
+    })),
     id: page.id,
     title: page.title,
     slug: page.slug,
     status: page.status,
     multistepStepSlugs: (page as any).multistepStepSlugs ?? null,
+    isFixedDefaultHomepage: fixedDefaultHomepage,
     type: page.type as "buyer" | "seller",
     headline: page.headline,
     subheadline: page.subheadline,
