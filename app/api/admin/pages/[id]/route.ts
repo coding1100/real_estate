@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
+import { isFixedDefaultHomepagePage } from "@/lib/defaultHomepage";
 
 type RouteContext = {
   params: Promise<{
@@ -43,6 +44,7 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
 
   const body = await req.json();
   const { id } = await ctx.params;
+  const isFixedDefaultHomepage = await isFixedDefaultHomepagePage(id);
   const hasNotesInBody = Object.prototype.hasOwnProperty.call(body, "notes");
   let normalizedNotesValue: string | null = null;
 
@@ -191,6 +193,15 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     // Extract layout data if provided
     const layoutData = body.layoutData;
     delete body.layoutData;
+    if (isFixedDefaultHomepage && Array.isArray(layoutData) && layoutData.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Layout is fixed for this domain default homepage and cannot be changed.",
+        },
+        { status: 400 },
+      );
+    }
 
     // Persist per-page social icon overrides into the hero section props
     if (Object.prototype.hasOwnProperty.call(body, "socialOverrides")) {
@@ -374,6 +385,13 @@ export async function DELETE(_req: NextRequest, ctx: RouteContext) {
   }
 
   const { id } = await ctx.params;
+  const isFixedDefaultHomepage = await isFixedDefaultHomepagePage(id);
+  if (isFixedDefaultHomepage) {
+    return NextResponse.json(
+      { error: "This domain default homepage is fixed and cannot be deleted." },
+      { status: 400 },
+    );
+  }
 
   try {
     // Load the page to get its slug.

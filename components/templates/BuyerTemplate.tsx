@@ -8,6 +8,7 @@ import { HeroSection } from "./sections/HeroSection";
 import { MultistepHeroFlow } from "./MultistepHeroFlow";
 import { HomeValueExperience } from "./sections/HomeValueExperience";
 import { HomeValueMultistepFlow } from "./HomeValueMultistepFlow";
+import { FixedDefaultHomepage } from "./sections/FixedDefaultHomepage";
 import Image from "next/image";
 import { getDefaultBlocksForPage } from "@/lib/blocks/defaultBlocks";
 import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
@@ -74,6 +75,10 @@ export function BuyerTemplate({
   utm,
   ctaForwardingRules,
 }: BuyerTemplateProps) {
+  if (page.isFixedDefaultHomepage) {
+    return <FixedDefaultHomepage page={page} />;
+  }
+
   const heroFormSchema = page.formSchema ?? {
     fields: [],
   };

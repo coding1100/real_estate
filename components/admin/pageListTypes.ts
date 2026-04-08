@@ -13,4 +13,5 @@ export interface PageListItem {
   thumbnailImageUrl?: string | null;
   bookmarked?: boolean;
   adminListOrder: number;
+  isFixedDefaultHomepage?: boolean;
 }
