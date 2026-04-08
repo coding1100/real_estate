@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useMemo, useState, useTransition, useRef } from "react";
 import { HexAlphaColorField } from "@/components/admin/HexAlphaColorField";
 import type {
   LandingPageContent,
@@ -15,7 +15,17 @@ import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { PageBlockLayoutEditor } from "@/components/admin/craft/PageBlockLayoutEditor";
 import { DragDropPageLayoutEditor } from "@/components/admin/DragDropPageLayoutEditor";
 import { MultistepPageSelector } from "@/components/admin/MultistepPageSelector";
-import { Eye, ExternalLink, FileText, ListChecks, Search, LayoutDashboard } from "lucide-react";
+import {
+  Eye,
+  ExternalLink,
+  FileText,
+  ListChecks,
+  Search,
+  LayoutDashboard,
+  Pencil,
+  Check,
+  X,
+} from "lucide-react";
 import { useAdminToast } from "@/components/admin/useAdminToast";
 
 interface PageEditorProps {
@@ -24,11 +34,89 @@ interface PageEditorProps {
     domainId: string;
     status?: string;
     multistepStepSlugs?: string[] | null;
+    isFixedDefaultHomepage?: boolean;
+    domainPages?: DomainPageOption[];
   };
   editorFonts?: { label: string; cssFamily: string }[];
 }
 
 type Tab = "content" | "form" | "seo" | "layout";
+type DomainPageOption = {
+  id: string;
+  slug: string;
+  title: string;
+  status?: string | null;
+  hostname?: string;
+};
+
+function SearchablePageSelector({
+  options,
+  onSelect,
+  placeholder = "Search pages by title, slug, or domain...",
+  className = "",
+}: {
+  options: DomainPageOption[];
+  onSelect: (slug: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((p) =>
+      `${p.title} ${p.slug} ${p.hostname ?? ""}`.toLowerCase().includes(q),
+    );
+  }, [options, query]);
+
+  return (
+    <div
+      className={`relative w-full min-w-[260px] ${className}`}
+      onBlur={(e) => {
+        const next = e.relatedTarget;
+        if (next && e.currentTarget.contains(next as Node)) return;
+        setOpen(false);
+      }}
+    >
+      <input
+        className="w-full rounded-md border border-zinc-300 pl-8 pr-2 py-1.5 text-sm"
+        placeholder={placeholder}
+        value={query}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+      />
+      <Search className="pointer-events-none absolute left-2 top-2 h-4 w-4 text-zinc-400" />
+      {open && (
+        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border border-zinc-200 bg-white shadow-lg">
+          {filtered.length === 0 ? (
+            <p className="px-2 py-2 text-xs text-zinc-500">No pages found.</p>
+          ) : (
+            filtered.map((p) => (
+              <button
+                key={`search-page-${p.id}`}
+                type="button"
+                className="block w-full border-b border-zinc-100 px-2 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-50 last:border-b-0"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onSelect(p.slug);
+                  setQuery("");
+                  setOpen(false);
+                }}
+              >
+                {p.title} ({p.slug})
+                {p.hostname ? ` - ${p.hostname}` : ""}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function deriveSlugFromCanonicalUrl(canonicalUrl: string): string | null {
   const raw = canonicalUrl.trim();
@@ -76,7 +164,15 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
     LandingPageContent["socialOverrides"]
   >((initialPage as any).socialOverrides ?? null);
   const [saving, startSaving] = useTransition();
+  const isFixedDefaultHomepage = initialPage.isFixedDefaultHomepage === true;
+  const effectivePageMode: "single" | "multistep" = isFixedDefaultHomepage
+    ? "single"
+    : pageMode;
   const [message, setMessage] = useState<string | null>(null);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(
+    ((initialPage as { title?: string | null }).title || initialPage.headline || "").trim(),
+  );
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">(
     "desktop",
   );
@@ -88,6 +184,35 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
   const heroSections = Array.isArray(page.sections) ? page.sections : [];
   const heroSection = heroSections.find((s) => s.kind === "hero") || null;
   const heroLayout = (heroSection?.props as any) || {};
+  type HomeNavItem = {
+    label?: string;
+    href?: string;
+    megaMenuColumns?: Array<{
+      title?: string;
+      links?: Array<{ label?: string; href?: string }>;
+    }>;
+  };
+  const rawHomeNavLinks = Array.isArray((heroLayout as any).homeNavLinks)
+    ? ((heroLayout as any).homeNavLinks as HomeNavItem[])
+    : [];
+  const legacyHomeMegaColumns = Array.isArray((heroLayout as any).homeMegaMenuColumns)
+    ? ((heroLayout as any).homeMegaMenuColumns as Array<{
+        title?: string;
+        links?: Array<{ label?: string; href?: string }>;
+      }>)
+    : [];
+  const homeNavLinks: HomeNavItem[] = rawHomeNavLinks.map((item, idx) => ({
+    ...item,
+    megaMenuColumns:
+      Array.isArray(item.megaMenuColumns) && item.megaMenuColumns.length > 0
+        ? item.megaMenuColumns
+        : idx === 0 && legacyHomeMegaColumns.length > 0
+          ? legacyHomeMegaColumns
+          : [],
+  }));
+  const domainPageOptions = Array.isArray((initialPage as any).domainPages)
+    ? ((initialPage as any).domainPages as DomainPageOption[])
+    : [];
 
   const blockquoteStyle = (heroLayout.blockquoteStyle || {}) as {
     bg?: string;
@@ -101,6 +226,8 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
           ["--blockquote-border" as any]: blockquoteStyle.border,
         } as React.CSSProperties)
       : undefined;
+  const currentTitle =
+    ((page as { title?: string | null }).title || page.headline || "").trim() || "—";
 
   function updateBlockquoteStyle(patch: Partial<typeof blockquoteStyle>) {
     const next = {
@@ -140,7 +267,8 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
     (heroLayout.formStyle as string) === "property-finding";
   const isHomeValueFamily =
     !isHomeValueException && (slugIsHomeValueFamily || firstStepIsHomeValue);
-  const hideLayoutTab = isHomeValueFamily || isPropertyFindingLayout;
+  const hideLayoutTab =
+    isHomeValueFamily || isPropertyFindingLayout || isFixedDefaultHomepage;
 
   const layoutData = page.pageLayout?.layoutData as any[] | undefined;
   const savedLayout =
@@ -186,6 +314,11 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
   async function save(status?: "draft" | "published") {
     setMessage(null);
     startSaving(async () => {
+      const normalizedTitle = titleDraft.trim();
+      const effectiveTitle =
+        normalizedTitle.length > 0
+          ? normalizedTitle
+          : ((page as any).title ?? page.headline ?? "").trim();
       let sections = page.sections;
       const blocks =
         tab === "layout" && layoutGetBlocksRef.current
@@ -211,7 +344,8 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
         }
       }
       const body: any = {
-        headline: page.headline,
+        title: effectiveTitle.length > 0 ? effectiveTitle : null,
+        headline: effectiveTitle.length > 0 ? effectiveTitle : page.headline,
         subheadline: page.subheadline,
         heroImageUrl: page.heroImageUrl,
         ctaText: page.ctaText,
@@ -227,12 +361,12 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
         noIndex: page.seo.noIndex,
       };
       body.multistepStepSlugs =
-        pageMode === "multistep" && multistepStepSlugs.length > 0
+        effectivePageMode === "multistep" && multistepStepSlugs.length > 0
           ? multistepStepSlugs
           : null;
 
       const getLayout = layoutGetLayoutRef.current;
-      if (getLayout) {
+      if (!isFixedDefaultHomepage && getLayout) {
         const raw = getLayout();
         if (Array.isArray(raw) && raw.length > 0) {
           body.layoutData = raw.map((item: { i: string; x: number; y: number; w: number; h: number; minW?: number; minH?: number; static?: boolean; hidden?: boolean }) => ({
@@ -270,6 +404,8 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
       // switching tabs does not resurrect older data.
       setPage((prev) => ({
         ...prev,
+        title: body.title,
+        headline: body.headline,
         sections,
         blocks,
         formSchema,
@@ -283,6 +419,9 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
           }
           : {}),
       }));
+      // Save buttons also commit pending title edits (without requiring check icon).
+      setIsEditingTitle(false);
+      setTitleDraft(body.title ?? body.headline ?? "");
       const isPublishing = status === "published";
       setMessage(isPublishing ? "Published" : "Saved");
       successToast(
@@ -304,7 +443,10 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
   }
 
   return (
-    <div className="space-y-4 custom" style={adminBlockquoteVars}>
+    <div
+      className={`space-y-4 custom ${isFixedDefaultHomepage ? "default-homepage" : ""}`}
+      style={adminBlockquoteVars}
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
@@ -312,8 +454,57 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
           </h1>
           <p className="text-xl text-zinc-600">
             <span className="font-medium text-zinc-800">Title:</span>{" "}
-            {((page as { title?: string | null }).title || page.headline || "").trim() ||
-              "—"}{" "}
+            {isEditingTitle ? (
+              <span className="inline-flex items-center gap-2 align-middle">
+                <input
+                  type="text"
+                  value={titleDraft}
+                  onChange={(e) => setTitleDraft(e.target.value)}
+                  className="w-[340px] rounded-md border border-zinc-300 bg-white px-2 py-1 text-base text-zinc-800"
+                  placeholder="Enter page title"
+                />
+                <button
+                  type="button"
+                  title="Apply title"
+                  onClick={() => {
+                    const nextTitle = titleDraft.trim();
+                    if (!nextTitle) return;
+                    update("title" as any, nextTitle as any);
+                    update("headline", nextTitle as any);
+                    setIsEditingTitle(false);
+                  }}
+                  className="inline-flex items-center rounded-md border border-zinc-300 bg-white px-2 py-1 text-zinc-700 hover:bg-zinc-50"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  title="Cancel title edit"
+                  onClick={() => {
+                    setTitleDraft(currentTitle === "—" ? "" : currentTitle);
+                    setIsEditingTitle(false);
+                  }}
+                  className="inline-flex items-center rounded-md border border-zinc-300 bg-white px-2 py-1 text-zinc-700 hover:bg-zinc-50"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-2 align-middle">
+                <span>{currentTitle}</span>
+                <button
+                  type="button"
+                  title="Edit title"
+                  onClick={() => {
+                    setTitleDraft(currentTitle === "—" ? "" : currentTitle);
+                    setIsEditingTitle(true);
+                  }}
+                  className="inline-flex items-center rounded-md border border-zinc-300 bg-white px-2 py-1 text-zinc-700 hover:bg-zinc-50"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </span>
+            )}{" "}
             <span className="capitalize">({page.type})</span>
           </p>
           {/* <p className="text-sm text-zinc-500">
@@ -397,8 +588,9 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
           {message}
         </p>
       )}
+      {!isFixedDefaultHomepage && (
       <div className="rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600 default-homepage">
           Page mode
         </p>
         <p className="mt-1 text-xs text-zinc-500">
@@ -411,7 +603,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
               type="radio"
               name="page-mode"
               className="h-3.5 w-3.5 border border-zinc-400 text-zinc-900 focus:ring-zinc-900"
-              checked={pageMode === "single"}
+              checked={effectivePageMode === "single"}
               onChange={() => setPageMode("single")}
             />
             <span className="font-medium">Single form page</span>
@@ -424,7 +616,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
               type="radio"
               name="page-mode"
               className="h-3.5 w-3.5 border border-zinc-400 text-zinc-900 focus:ring-zinc-900"
-              checked={pageMode === "multistep"}
+              checked={effectivePageMode === "multistep"}
               onChange={() => {
                 setPageMode("multistep");
                 setTab("content");
@@ -438,11 +630,20 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
           </label>
         </div>
       </div>
+      )}
+      {isFixedDefaultHomepage && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+          This page is configured as the domain default homepage. Layout changes and
+          deletion are locked, but content remains editable.
+        </div>
+      )}
       <div className="border-b border-zinc-200 max-[768px]:overflow-x-auto max-[768px]:pb-1">
         <nav className="flex gap-4 text-sm font-medium text-zinc-600">
-          {(hideLayoutTab
-            ? (["content", "form", "seo"] as Tab[])
-            : (["content", "form", "seo", "layout"] as Tab[])
+          {(isFixedDefaultHomepage
+            ? (["content", "seo"] as Tab[])
+            : hideLayoutTab
+              ? (["content", "form", "seo"] as Tab[])
+              : (["content", "form", "seo", "layout"] as Tab[])
           ).map((t) => {
             const isActive = tab === t;
             const Icon =
@@ -462,7 +663,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                     ? "SEO"
                     : "Layout";
             const disabledInMultistep =
-              pageMode === "multistep" && t !== "content";
+              effectivePageMode === "multistep" && t !== "content";
             return (
               <button
                 key={t}
@@ -491,9 +692,354 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
         <div className="space-y-4">
           {tab === "content" && (
             <div className="space-y-4">
-              {pageMode === "single" ? (
+              {effectivePageMode === "single" ? (
                 <>
                   <div className="grid gap-4 md:grid-cols-1">
+                    {isFixedDefaultHomepage && (
+                      <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                          Default homepage settings
+                        </p>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="md:col-span-2">
+                            <div className="mb-2 flex items-center justify-between">
+                              <label className="block text-sm font-medium text-zinc-700">
+                                Navigation links
+                              </label>
+                              <button
+                                type="button"
+                                className="rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                                onClick={() =>
+                                  updateHeroLayout({
+                                    homeNavLinks: [
+                                      ...homeNavLinks,
+                                      { label: "", href: "" },
+                                    ],
+                                  })
+                                }
+                              >
+                                + Add link
+                              </button>
+                            </div>
+                            <div className="space-y-2">
+                              {homeNavLinks.map((item, idx) => (
+                                <div key={`home-nav-${idx}`} className="flex gap-2">
+                                  <input
+                                    className="col-span-4 flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+                                    placeholder="Label"
+                                    value={item.label ?? ""}
+                                    onChange={(e) => {
+                                      const next = [...homeNavLinks];
+                                      next[idx] = { ...next[idx], label: e.target.value };
+                                      updateHeroLayout({ homeNavLinks: next });
+                                    }}
+                                  />
+                                  <input
+                                    className="col-span-7 flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+                                    placeholder="/path or https://..."
+                                    value={item.href ?? ""}
+                                    onChange={(e) => {
+                                      const next = [...homeNavLinks];
+                                      next[idx] = { ...next[idx], href: e.target.value };
+                                      updateHeroLayout({ homeNavLinks: next });
+                                    }}
+                                  />
+                                  <SearchablePageSelector
+                                    options={domainPageOptions}
+                                    className="flex-[2]"
+                                    onSelect={(selectedSlug) => {
+                                      const next = [...homeNavLinks];
+                                      next[idx] = { ...next[idx], href: `/${selectedSlug}` };
+                                      updateHeroLayout({ homeNavLinks: next });
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="col-span-1 rounded-md w-[50px] border border-zinc-300 px-1 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                                    onClick={() => {
+                                      const next = homeNavLinks.filter((_, i) => i !== idx);
+                                      updateHeroLayout({ homeNavLinks: next });
+                                    }}
+                                  >
+                                    x
+                                  </button>
+                                </div>
+                              ))}
+                              {homeNavLinks.length === 0 && (
+                                <p className="text-xs text-zinc-500">
+                                  No links yet. Add links for top navigation.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="md:col-span-2">
+                            <div className="space-y-3">
+                              <label className="block text-sm font-medium text-zinc-700">
+                                Mega menu linked to navigation
+                              </label>
+                              {homeNavLinks.map((navItem, navIdx) => {
+                                const megaColumns = Array.isArray(navItem.megaMenuColumns)
+                                  ? navItem.megaMenuColumns
+                                  : [];
+                                return (
+                                  <div
+                                    key={`nav-mega-${navIdx}`}
+                                    className="rounded-md border border-zinc-200 bg-zinc-50 p-3"
+                                  >
+                                    <div className="mb-2 flex items-center justify-between">
+                                      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-600">
+                                        {navItem.label?.trim() || `Navigation ${navIdx + 1}`}
+                                      </p>
+                                      <button
+                                        type="button"
+                                        className="rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                                        onClick={() => {
+                                          const next = [...homeNavLinks];
+                                          const current = Array.isArray(next[navIdx].megaMenuColumns)
+                                            ? [...(next[navIdx].megaMenuColumns as any[])]
+                                            : [];
+                                          current.push({ title: "", links: [] });
+                                          next[navIdx] = {
+                                            ...next[navIdx],
+                                            megaMenuColumns: current,
+                                          };
+                                          updateHeroLayout({
+                                            homeNavLinks: next,
+                                            homeMegaMenuColumns: undefined,
+                                          });
+                                        }}
+                                      >
+                                        + Add column for this nav
+                                      </button>
+                                    </div>
+                                    <div className="space-y-3">
+                                      {megaColumns.map((column, colIdx) => (
+                                        <div
+                                          key={`nav-${navIdx}-mega-${colIdx}`}
+                                          className="rounded-md border border-zinc-200 bg-white p-3"
+                                        >
+                                          <div className="mb-2 flex gap-2">
+                                            <input
+                                              className="col-span-10 flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+                                              placeholder="Column title"
+                                              value={column.title ?? ""}
+                                              onChange={(e) => {
+                                                const next = [...homeNavLinks];
+                                                const current = Array.isArray(next[navIdx].megaMenuColumns)
+                                                  ? [...(next[navIdx].megaMenuColumns as any[])]
+                                                  : [];
+                                                current[colIdx] = {
+                                                  ...current[colIdx],
+                                                  title: e.target.value,
+                                                };
+                                                next[navIdx] = {
+                                                  ...next[navIdx],
+                                                  megaMenuColumns: current,
+                                                };
+                                                updateHeroLayout({
+                                                  homeNavLinks: next,
+                                                  homeMegaMenuColumns: undefined,
+                                                });
+                                              }}
+                                            />
+                                            <button
+                                              type="button"
+                                              className="col-span-2 rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                                              onClick={() => {
+                                                const next = [...homeNavLinks];
+                                                const current = Array.isArray(next[navIdx].megaMenuColumns)
+                                                  ? (next[navIdx].megaMenuColumns as any[]).filter(
+                                                      (_: unknown, i: number) => i !== colIdx,
+                                                    )
+                                                  : [];
+                                                next[navIdx] = {
+                                                  ...next[navIdx],
+                                                  megaMenuColumns: current,
+                                                };
+                                                updateHeroLayout({
+                                                  homeNavLinks: next,
+                                                  homeMegaMenuColumns: undefined,
+                                                });
+                                              }}
+                                            >
+                                              Remove
+                                            </button>
+                                          </div>
+                                          <div className="space-y-2">
+                                            {(Array.isArray(column.links) ? column.links : []).map(
+                                              (link, linkIdx) => (
+                                                <div
+                                                  key={`nav-${navIdx}-col-${colIdx}-item-${linkIdx}`}
+                                                  className="flex gap-2"
+                                                >
+                                                  <input
+                                                    className="col-span-4 flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+                                                    placeholder="Label"
+                                                    value={link.label ?? ""}
+                                                    onChange={(e) => {
+                                                      const next = [...homeNavLinks];
+                                                      const current = Array.isArray(next[navIdx].megaMenuColumns)
+                                                        ? [...(next[navIdx].megaMenuColumns as any[])]
+                                                        : [];
+                                                      const links = Array.isArray(current[colIdx]?.links)
+                                                        ? [...(current[colIdx].links as any[])]
+                                                        : [];
+                                                      links[linkIdx] = {
+                                                        ...links[linkIdx],
+                                                        label: e.target.value,
+                                                      };
+                                                      current[colIdx] = {
+                                                        ...current[colIdx],
+                                                        links,
+                                                      };
+                                                      next[navIdx] = {
+                                                        ...next[navIdx],
+                                                        megaMenuColumns: current,
+                                                      };
+                                                      updateHeroLayout({
+                                                        homeNavLinks: next,
+                                                        homeMegaMenuColumns: undefined,
+                                                      });
+                                                    }}
+                                                  />
+                                                  <input
+                                                    className="col-span-7 flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+                                                    placeholder="/path or https://..."
+                                                    value={link.href ?? ""}
+                                                    onChange={(e) => {
+                                                      const next = [...homeNavLinks];
+                                                      const current = Array.isArray(next[navIdx].megaMenuColumns)
+                                                        ? [...(next[navIdx].megaMenuColumns as any[])]
+                                                        : [];
+                                                      const links = Array.isArray(current[colIdx]?.links)
+                                                        ? [...(current[colIdx].links as any[])]
+                                                        : [];
+                                                      links[linkIdx] = {
+                                                        ...links[linkIdx],
+                                                        href: e.target.value,
+                                                      };
+                                                      current[colIdx] = {
+                                                        ...current[colIdx],
+                                                        links,
+                                                      };
+                                                      next[navIdx] = {
+                                                        ...next[navIdx],
+                                                        megaMenuColumns: current,
+                                                      };
+                                                      updateHeroLayout({
+                                                        homeNavLinks: next,
+                                                        homeMegaMenuColumns: undefined,
+                                                      });
+                                                    }}
+                                                  />
+                                                  <SearchablePageSelector
+                                                    options={domainPageOptions}
+                                                    className="flex-[2]"
+                                                    onSelect={(selectedSlug) => {
+                                                      const next = [...homeNavLinks];
+                                                      const current = Array.isArray(next[navIdx].megaMenuColumns)
+                                                        ? [...(next[navIdx].megaMenuColumns as any[])]
+                                                        : [];
+                                                      const links = Array.isArray(current[colIdx]?.links)
+                                                        ? [...(current[colIdx].links as any[])]
+                                                        : [];
+                                                      links[linkIdx] = {
+                                                        ...links[linkIdx],
+                                                        href: `/${selectedSlug}`,
+                                                      };
+                                                      current[colIdx] = {
+                                                        ...current[colIdx],
+                                                        links,
+                                                      };
+                                                      next[navIdx] = {
+                                                        ...next[navIdx],
+                                                        megaMenuColumns: current,
+                                                      };
+                                                      updateHeroLayout({
+                                                        homeNavLinks: next,
+                                                        homeMegaMenuColumns: undefined,
+                                                      });
+                                                    }}
+                                                  />
+                                                  <button
+                                                    type="button"
+                                                    className="col-span-1 w-[50px] rounded-md border border-zinc-300 px-1 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                                                    onClick={() => {
+                                                      const next = [...homeNavLinks];
+                                                      const current = Array.isArray(next[navIdx].megaMenuColumns)
+                                                        ? [...(next[navIdx].megaMenuColumns as any[])]
+                                                        : [];
+                                                      const links = Array.isArray(current[colIdx]?.links)
+                                                        ? (current[colIdx].links as any[]).filter(
+                                                            (_: unknown, i: number) => i !== linkIdx,
+                                                          )
+                                                        : [];
+                                                      current[colIdx] = {
+                                                        ...current[colIdx],
+                                                        links,
+                                                      };
+                                                      next[navIdx] = {
+                                                        ...next[navIdx],
+                                                        megaMenuColumns: current,
+                                                      };
+                                                      updateHeroLayout({
+                                                        homeNavLinks: next,
+                                                        homeMegaMenuColumns: undefined,
+                                                      });
+                                                    }}
+                                                  >
+                                                    x
+                                                  </button>
+                                                </div>
+                                              ),
+                                            )}
+                                            <button
+                                              type="button"
+                                              className="rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                                              onClick={() => {
+                                                const next = [...homeNavLinks];
+                                                const current = Array.isArray(next[navIdx].megaMenuColumns)
+                                                  ? [...(next[navIdx].megaMenuColumns as any[])]
+                                                  : [];
+                                                const links = Array.isArray(current[colIdx]?.links)
+                                                  ? [...(current[colIdx].links as any[])]
+                                                  : [];
+                                                links.push({ label: "", href: "" });
+                                                current[colIdx] = { ...current[colIdx], links };
+                                                next[navIdx] = {
+                                                  ...next[navIdx],
+                                                  megaMenuColumns: current,
+                                                };
+                                                updateHeroLayout({
+                                                  homeNavLinks: next,
+                                                  homeMegaMenuColumns: undefined,
+                                                });
+                                              }}
+                                            >
+                                              + Add item
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                      {megaColumns.length === 0 && (
+                                        <p className="text-xs text-zinc-500">
+                                          No mega menu columns linked to this navigation item.
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                              {homeNavLinks.length === 0 && (
+                                <p className="text-xs text-zinc-500">
+                                  Add navigation links first, then assign mega menu columns.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div className="space-y-3 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
                         Hero text & form intro
@@ -667,6 +1213,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                     </div>
                   </div>
 
+                  {!isFixedDefaultHomepage && (
                   <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
                       Form behavior
@@ -834,7 +1381,9 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                       </div>
                     )}
                   </div>
+                  )}
 
+                  {!isFixedDefaultHomepage && (
                   <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
                       Call to action & confirmation
@@ -879,6 +1428,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                       </div>
                     </div>
                   </div>
+                  )}
 
                   <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
@@ -1175,7 +1725,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
             </div>
           )}
           {tab === "form" && (
-            pageMode === "multistep" ? (
+            effectivePageMode === "multistep" ? (
               <div className="rounded-md border border-zinc-200 bg-white p-4 text-sm text-zinc-600 shadow-sm">
                 This page is a multistep entry. Form fields are configured on the
                 individual step pages instead of here.
@@ -1297,7 +1847,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
             )
           )}
           {tab === "layout" && (
-            pageMode === "multistep" ? (
+            effectivePageMode === "multistep" ? (
               <div className="rounded-md border border-zinc-200 bg-white p-4 text-sm text-zinc-600 shadow-sm">
                 This page is a multistep entry. Hero layout and grid positions are
                 controlled by the first step page.
@@ -1313,7 +1863,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
             )
           )}
           {tab === "seo" && (
-            pageMode === "multistep" ? (
+            effectivePageMode === "multistep" ? (
               <div className="rounded-md border border-zinc-200 bg-white p-4 text-sm text-zinc-600 shadow-sm">
                 This page is a multistep entry. SEO (title, description, canonical)
                 should be edited on the first step page; it will be used for the full

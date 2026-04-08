@@ -29,6 +29,15 @@ interface RichTextEditorProps {
   placeholder?: string;
   height?: number;
   fontOptions?: { label: string; cssFamily: string }[];
+  editorClassName?: string;
+  applyBlockqoute2ToLastTextElement?: boolean;
+  toolbarActions?: Array<{
+    id: string;
+    label: string;
+    title?: string;
+    active?: boolean;
+    onClick: () => void;
+  }>;
 }
 
 const DEFAULT_EDITOR_HEIGHT = 220;
@@ -82,6 +91,9 @@ export function RichTextEditor({
   placeholder = "",
   height = DEFAULT_EDITOR_HEIGHT,
   fontOptions,
+  editorClassName,
+  applyBlockqoute2ToLastTextElement = false,
+  toolbarActions = [],
 }: RichTextEditorProps) {
   const defaultSourceSans =
     '"Source Sans 3", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
@@ -517,6 +529,44 @@ export function RichTextEditor({
       editor.commands.setContent(nextValue);
     }
   }, [editor, value]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const root = editor.view.dom as HTMLElement;
+    const selector = [
+      "p",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "blockquote",
+      "li",
+      "strong",
+    ].join(",");
+    const applyClass = () => {
+      Array.from(root.querySelectorAll(".blockqoute2")).forEach((el) =>
+        el.classList.remove("blockqoute2"),
+      );
+      const nodes = Array.from(root.querySelectorAll(selector)) as HTMLElement[];
+      if (!applyBlockqoute2ToLastTextElement) return;
+      const candidates = nodes.filter((el) => {
+        if ((el.textContent || "").trim().length === 0) return false;
+        const parent = el.parentElement;
+        return !parent || !parent.closest("p,h1,h2,h3,h4,h5,h6,blockquote,li,strong");
+      });
+      const last = candidates[candidates.length - 1];
+      if (last) last.classList.add("blockqoute2");
+    };
+    applyClass();
+    editor.on("update", applyClass);
+    editor.on("selectionUpdate", applyClass);
+    return () => {
+      editor.off("update", applyClass);
+      editor.off("selectionUpdate", applyClass);
+    };
+  }, [editor, applyBlockqoute2ToLastTextElement]);
 
   const resolvedHeight = height ?? DEFAULT_EDITOR_HEIGHT;
 
@@ -1003,6 +1053,22 @@ export function RichTextEditor({
           >
             Tag
           </button>
+          {toolbarActions.map((action) => (
+            <button
+              key={action.id}
+              type="button"
+              title={action.title ?? action.label}
+              aria-label={action.title ?? action.label}
+              onClick={action.onClick}
+              className={`px-1.5 py-0.5 rounded ${
+                action.active
+                  ? "bg-zinc-900 text-white"
+                  : "text-zinc-700 hover:bg-zinc-200"
+              }`}
+            >
+              {action.label}
+            </button>
+          ))}
 
           {/* Clear formatting */}
           <button
@@ -1069,7 +1135,7 @@ export function RichTextEditor({
         </div>
         <div
           style={{ minHeight: resolvedHeight }}
-          className="bg-white text-sm"
+          className={`bg-white text-sm ${editorClassName ?? ""}`}
         >
           {editor && <EditorContent editor={editor} />}
           {!editor && (

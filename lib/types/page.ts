@@ -82,6 +82,13 @@ export interface LandingPageContent {
   formSchema?: FormSchema | null;
   pageLayout?: any | null;
   multistepSteps?: LandingPageContent[];
+  isFixedDefaultHomepage?: boolean;
+  defaultHomepageButtons?: {
+    id: string;
+    slug: string;
+    title: string;
+    heroImageUrl?: string | null;
+  }[];
   // Optional per-page social icon overrides; falls back to domain settings when undefined
   socialOverrides?: {
     linkedinUrl?: string | null;

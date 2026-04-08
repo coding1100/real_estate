@@ -18,6 +18,7 @@ interface PageRowActionsProps {
   pageId: string;
   slug: string;
   isMaster: boolean;
+  isFixedDefaultHomepage?: boolean;
   /** Row layout: master chip + ⋮ menu align horizontally and center with adjacent badges (e.g. Landing Pages V2). */
   inline?: boolean;
   /** When false, the master chip is not rendered here (show it elsewhere, e.g. next to the title). */
@@ -28,6 +29,7 @@ export function PageRowActions({
   pageId,
   slug,
   isMaster,
+  isFixedDefaultHomepage = false,
   inline = false,
   showMasterBadge = true,
 }: PageRowActionsProps) {
@@ -234,7 +236,13 @@ export function PageRowActions({
               <span>Copy link</span>
             </button>
             <div className="mt-1 border-t border-zinc-100 pt-1">
-              <DeletePageButton pageId={pageId} slug={slug} variant="menu" />
+              <DeletePageButton
+                pageId={pageId}
+                slug={slug}
+                variant="menu"
+                disabled={isFixedDefaultHomepage}
+                disabledReason="This domain default homepage is fixed and cannot be deleted."
+              />
             </div>
           </div>,
             document.body,
