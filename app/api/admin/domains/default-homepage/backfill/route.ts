@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
 
@@ -106,11 +107,11 @@ export async function POST(_req: NextRequest) {
           headline: sourcePage.headline ?? "Default Home Page",
           subheadline: sourcePage.subheadline ?? null,
           heroImageUrl: sourcePage.heroImageUrl ?? null,
-          sections: sourcePage.sections ?? template.sections,
+          sections: ((sourcePage.sections ?? template.sections ?? []) as Prisma.InputJsonValue),
           ctaText: sourcePage.ctaText ?? "Explore Landing Paths",
           successMessage: sourcePage.successMessage ?? "Thank you!",
           footerHtml: sourcePage.footerHtml ?? null,
-          formSchema: sourcePage.formSchema ?? template.formSchema,
+          formSchema: ((sourcePage.formSchema ?? template.formSchema ?? { fields: [] }) as Prisma.InputJsonValue),
         },
         select: { id: true, slug: true },
       });
