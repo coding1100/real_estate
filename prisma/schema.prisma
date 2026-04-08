@@ -51,6 +51,9 @@ model Domain {
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
   pages                   LandingPage[]
+  defaultHomepagePageId   String?
+  defaultHomepageButtonLimit Int @default(9)
+  defaultHomepagePage     LandingPage? @relation("DomainDefaultHomepage", fields: [defaultHomepagePageId], references: [id], onDelete: SetNull)
   leads                   Lead[]
 }
 
@@ -118,6 +121,7 @@ model LandingPage {
   updatedAt DateTime @updatedAt
   leads     Lead[]
   pageLayout PageLayout?
+  defaultHomepageForDomains Domain[] @relation("DomainDefaultHomepage")
 
   @@unique([domainId, slug])
 }

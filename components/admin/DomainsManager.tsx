@@ -28,6 +28,9 @@ interface DomainRow {
   instagramVisible: boolean;
   zillowUrl: string | null;
   zillowVisible: boolean;
+  defaultHomepagePageId: string | null;
+  defaultHomepageButtonLimit: number;
+  defaultHomepageOptions: { id: string; slug: string; label: string }[];
 }
 
 interface DomainsManagerProps {
@@ -55,6 +58,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<DomainRow | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [isBackfillingDefaults, setIsBackfillingDefaults] = useState(false);
   const [addFormError, setAddFormError] = useState<string | null>(null);
   const [newDomainForm, setNewDomainForm] = useState<DomainRow>({
     id: "new",
@@ -78,6 +82,9 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
     instagramVisible: true,
     zillowUrl: null,
     zillowVisible: true,
+    defaultHomepagePageId: null,
+    defaultHomepageButtonLimit: 9,
+    defaultHomepageOptions: [],
   });
   const { success: toastSuccess, error: toastError } = useAdminToast();
 
@@ -95,6 +102,108 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
 
   function updateDraft(patch: Partial<DomainRow>) {
     setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+  }
+
+  async function createDedicatedDefaultHomepage(domain: DomainRow) {
+    setSavingId(domain.id);
+    setError(null);
+    startTransition(async () => {
+      try {
+        const res = await fetch(`/api/admin/domains/${domain.id}/default-homepage`, {
+          method: "POST",
+          credentials: "include",
+        });
+        const data = (await res.json().catch(() => null)) as
+          | {
+              error?: string;
+              page?: { id: string; slug: string; title: string | null; headline: string };
+              defaultHomepagePageId?: string;
+            }
+          | null;
+        if (!res.ok) {
+          throw new Error(data?.error ?? "Failed to create dedicated default homepage.");
+        }
+        const page = data?.page;
+        setDomains((prev) =>
+          prev.map((d) => {
+            if (d.id !== domain.id) return d;
+            const options = [...d.defaultHomepageOptions];
+            if (page && !options.some((opt) => opt.id === page.id)) {
+              options.unshift({
+                id: page.id,
+                slug: page.slug,
+                label: (page.title ?? "").trim() || page.headline || page.slug,
+              });
+            }
+            return {
+              ...d,
+              defaultHomepageOptions: options,
+              defaultHomepagePageId:
+                data?.defaultHomepagePageId ?? d.defaultHomepagePageId,
+            };
+          }),
+        );
+        if (editingId === domain.id) {
+          setDraft((prev) => {
+            if (!prev || prev.id !== domain.id) return prev;
+            const pageId = data?.defaultHomepagePageId ?? prev.defaultHomepagePageId;
+            const pageLabel =
+              (page?.title ?? "").trim() || page?.headline || page?.slug || "";
+            const nextOptions = [...prev.defaultHomepageOptions];
+            if (page && !nextOptions.some((opt) => opt.id === page.id)) {
+              nextOptions.unshift({ id: page.id, slug: page.slug, label: pageLabel });
+            }
+            return {
+              ...prev,
+              defaultHomepagePageId: pageId,
+              defaultHomepageOptions: nextOptions,
+            };
+          });
+        }
+        toastSuccess("Dedicated default homepage created and assigned.");
+      } catch (e: any) {
+        const message = e?.message ?? "Failed to create dedicated default homepage.";
+        setError(message);
+        toastError(message);
+      } finally {
+        setSavingId(null);
+      }
+    });
+  }
+
+  async function backfillDefaultHomepageForAllDomains() {
+    setError(null);
+    setIsBackfillingDefaults(true);
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/admin/domains/default-homepage/backfill", {
+          method: "POST",
+          credentials: "include",
+        });
+        const data = (await res.json().catch(() => null)) as
+          | {
+              error?: string;
+              ok?: boolean;
+              createdCount?: number;
+              linkedCount?: number;
+              totalDomains?: number;
+            }
+          | null;
+        if (!res.ok) {
+          throw new Error(data?.error ?? "Failed to backfill default home pages.");
+        }
+        toastSuccess(
+          `Default home pages updated: ${data?.linkedCount ?? 0}/${data?.totalDomains ?? 0}. Created: ${data?.createdCount ?? 0}.`,
+        );
+        window.location.reload();
+      } catch (e: any) {
+        const message = e?.message ?? "Failed to backfill default home pages.";
+        setError(message);
+        toastError(message);
+      } finally {
+        setIsBackfillingDefaults(false);
+      }
+    });
   }
 
   async function saveDomain(domain: DomainRow) {
@@ -195,6 +304,15 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
             typeof data.domain.zillowVisible === "boolean"
               ? data.domain.zillowVisible
               : true,
+          defaultHomepagePageId:
+            data.domain.defaultHomepagePageId != null
+              ? String(data.domain.defaultHomepagePageId)
+              : null,
+          defaultHomepageButtonLimit:
+            typeof data.domain.defaultHomepageButtonLimit === "number"
+              ? data.domain.defaultHomepageButtonLimit
+              : domain.defaultHomepageButtonLimit,
+          defaultHomepageOptions: domain.defaultHomepageOptions ?? [],
         };
         setDomains((prev) => {
           if (isNew) {
@@ -268,6 +386,9 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
       instagramVisible: true,
       zillowUrl: null,
       zillowVisible: true,
+      defaultHomepagePageId: null,
+      defaultHomepageButtonLimit: 9,
+      defaultHomepageOptions: [],
     });
     setAddFormError(null);
     setAddDialogOpen(true);
@@ -322,6 +443,8 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
             instagramVisible: newDomainForm.instagramVisible,
             zillowUrl: newDomainForm.zillowUrl?.trim() || null,
             zillowVisible: newDomainForm.zillowVisible,
+            defaultHomepagePageId: null,
+            defaultHomepageButtonLimit: 9,
           }),
         });
         const data = await res.json();
@@ -374,6 +497,15 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
             typeof created.zillowVisible === "boolean"
               ? (created.zillowVisible as boolean)
               : true,
+          defaultHomepagePageId:
+            created.defaultHomepagePageId != null
+              ? String(created.defaultHomepagePageId)
+              : null,
+          defaultHomepageButtonLimit:
+            typeof created.defaultHomepageButtonLimit === "number"
+              ? (created.defaultHomepageButtonLimit as number)
+              : 9,
+          defaultHomepageOptions: [],
         };
         setDomains((prev) => [...prev, row].sort((a, b) => a.hostname.localeCompare(b.hostname)));
         setAddDialogOpen(false);
@@ -391,18 +523,28 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="text-lg font-semibold tracking-tight text-zinc-900">
           Domains
         </h1>
-        <button
-          type="button"
-          onClick={openAddDialog}
-          className="inline-flex items-center gap-2 rounded-md bg-zinc-900 px-3 py-1.5 text-lg font-medium text-white hover:bg-zinc-800"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Add domain
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={backfillDefaultHomepageForAllDomains}
+            disabled={isBackfillingDefaults || isPending}
+            className="inline-flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isBackfillingDefaults ? "Creating default homes..." : "Backfill default homes"}
+          </button>
+          <button
+            type="button"
+            onClick={openAddDialog}
+            className="inline-flex items-center gap-2 rounded-md bg-zinc-900 px-3 py-1.5 text-lg font-medium text-white hover:bg-zinc-800"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add domain
+          </button>
+        </div>
       </div>
 
       <Dialog
@@ -695,7 +837,71 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                         </p>
                       )}
 
-                     
+                      <label className="block text-[14px] font-medium text-zinc-700">
+                        Default home page
+                      </label>
+                      <p className="text-xs text-zinc-500">
+                        Choose which published page opens at "/" for this domain.
+                      </p>
+                      {isEditing ? (
+                        <select
+                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
+                          value={current.defaultHomepagePageId ?? ""}
+                          onChange={(e) =>
+                            updateDraft({
+                              defaultHomepagePageId: e.target.value || null,
+                            })
+                          }
+                        >
+                          <option value="">No fixed homepage</option>
+                          {current.defaultHomepageOptions.map((opt) => (
+                            <option key={opt.id} value={opt.id}>
+                              {opt.label} (/{opt.slug})
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <p className="text-md text-zinc-800">
+                          {d.defaultHomepageOptions.find(
+                            (opt) => opt.id === d.defaultHomepagePageId,
+                          )?.label ?? "No fixed homepage"}
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => createDedicatedDefaultHomepage(current)}
+                        disabled={isPending}
+                        className="inline-flex items-center gap-1 rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-60"
+                      >
+                        Create new default home page
+                      </button>
+                      <label className="block text-[14px] font-medium text-zinc-700">
+                        Number of page buttons on home
+                      </label>
+                      <p className="text-xs text-zinc-500">
+                        Controls how many page buttons appear on the homepage preview section (1-24).
+                      </p>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          min={1}
+                          max={24}
+                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
+                          value={current.defaultHomepageButtonLimit}
+                          onChange={(e) =>
+                            updateDraft({
+                              defaultHomepageButtonLimit: Math.min(
+                                24,
+                                Math.max(1, Number(e.target.value || 9)),
+                              ),
+                            })
+                          }
+                        />
+                      ) : (
+                        <p className="text-md text-zinc-800">
+                          {d.defaultHomepageButtonLimit}
+                        </p>
+                      )}
 
                       <label className="block text-[14px] font-medium text-zinc-700">
                         Notify email

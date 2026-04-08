@@ -10,6 +10,7 @@ import Image from "next/image";
 import { getDefaultBlocksForPage } from "@/lib/blocks/defaultBlocks";
 import { HomeValueExperience } from "./sections/HomeValueExperience";
 import { HomeValueMultistepFlow } from "./HomeValueMultistepFlow";
+import { FixedDefaultHomepage } from "./sections/FixedDefaultHomepage";
 import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
 import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 
@@ -74,6 +75,10 @@ export function SellerTemplate({
   utm,
   ctaForwardingRules,
 }: SellerTemplateProps) {
+  if (page.isFixedDefaultHomepage) {
+    return <FixedDefaultHomepage page={page} />;
+  }
+
   const heroFormSchema = page.formSchema ?? {
     fields: [],
   };

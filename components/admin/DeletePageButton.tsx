@@ -10,12 +10,16 @@ interface DeletePageButtonProps {
   pageId: string;
   slug: string;
   variant?: "default" | "menu";
+  disabled?: boolean;
+  disabledReason?: string;
 }
 
 export function DeletePageButton({
   pageId,
   slug,
   variant = "default",
+  disabled = false,
+  disabledReason = "This page cannot be deleted.",
 }: DeletePageButtonProps) {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -71,8 +75,12 @@ export function DeletePageButton({
     <div className={variant === "menu" ? "w-full" : "flex flex-col items-end gap-1"}>
       <button
         type="button"
-        onClick={() => setConfirmOpen(true)}
-        disabled={loading}
+        onClick={() => {
+          if (disabled) return;
+          setConfirmOpen(true);
+        }}
+        disabled={loading || disabled}
+        title={disabled ? disabledReason : undefined}
         className={triggerButtonClassName}
       >
         <Trash2 className="h-3.5 w-3.5" />

@@ -1,6 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "./prisma";
 import type { LandingPageContent } from "./types/page";
+import { getDomainDefaultHomepageSlug } from "./defaultHomepage";
+import {
+  getDefaultHomepageButtons,
+  isFixedDefaultHomepagePage,
+} from "./defaultHomepage";
 
 // Fixed multistep flow for market report
 const MARKET_REPORT_ENTRY_SLUG = "market-report";
@@ -318,6 +323,14 @@ export async function getLandingPage(
   }
 
   const content = pageToContent(page, pageLayout);
+  const fixedDefaultHomepage = await isFixedDefaultHomepagePage(page.id);
+  content.isFixedDefaultHomepage = fixedDefaultHomepage;
+  if (fixedDefaultHomepage) {
+    content.defaultHomepageButtons = await getDefaultHomepageButtons(
+      page.domainId,
+      page.id,
+    );
+  }
 
   if (stepSlugs && Array.isArray(stepSlugs) && stepSlugs.length > 0) {
     const steps: LandingPageContent[] = [];
@@ -349,5 +362,41 @@ export async function getLandingPage(
   content.slug = requestedSlug;
 
   return content;
+}
+
+export async function getDomainRootPublishedSlug(
+  hostname: string,
+): Promise<string | null> {
+  const domain = await prisma.domain.findFirst({
+    where: { hostname, isActive: true },
+    select: { id: true },
+  });
+  if (!domain) return null;
+
+  const defaultSlug = await getDomainDefaultHomepageSlug(domain.id);
+  if (defaultSlug) return defaultSlug;
+
+  const preferredSlug = (process.env.DOMAIN_ROOT_DEFAULT_SLUG ?? "").trim();
+  if (preferredSlug) {
+    const preferredPage = await prisma.landingPage.findFirst({
+      where: {
+        domainId: domain.id,
+        slug: preferredSlug,
+        status: "published",
+      },
+      select: { slug: true },
+    });
+    if (preferredPage?.slug) return preferredPage.slug;
+  }
+
+  const latestPublishedPage = await prisma.landingPage.findFirst({
+    where: {
+      domainId: domain.id,
+      status: "published",
+    },
+    orderBy: { updatedAt: "desc" },
+    select: { slug: true },
+  });
+  return latestPublishedPage?.slug ?? null;
 }
 

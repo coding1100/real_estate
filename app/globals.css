@@ -314,6 +314,12 @@ pre span{
   line-height: 1;
   top: -3px;
 }
+.default-homepage blockquote {
+  border-radius: 30px;
+  padding: 7px 20px !important;
+  display: inline-block;
+  
+}
 
 @media (max-width: 768px) {
   .hero-grid-wrapper {
