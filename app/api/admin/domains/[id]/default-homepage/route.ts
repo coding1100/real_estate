@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
 
@@ -75,11 +76,11 @@ export async function POST(_req: NextRequest, ctx: RouteContext) {
         `${domain.displayName} Main Domain Hub`,
       subheadline: source?.subheadline ?? null,
       heroImageUrl: source?.heroImageUrl ?? null,
-      sections: source?.sections ?? template.sections,
+      sections: ((source?.sections ?? template.sections ?? []) as Prisma.InputJsonValue),
       ctaText: source?.ctaText ?? "Explore Landing Paths",
       successMessage: source?.successMessage ?? "Thank you!",
       footerHtml: source?.footerHtml ?? null,
-      formSchema: source?.formSchema ?? template.formSchema,
+      formSchema: ((source?.formSchema ?? template.formSchema ?? { fields: [] }) as Prisma.InputJsonValue),
     },
     select: {
       id: true,
