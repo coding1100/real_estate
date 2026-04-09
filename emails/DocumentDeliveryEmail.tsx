@@ -7,6 +7,7 @@ export type DocumentDeliveryEmailProps = {
   domainHostname: string;
   pageSlug: string;
   documentNames: string[];
+  logoUrl?: string;
 };
 
 export default function DocumentDeliveryEmail({
@@ -14,6 +15,7 @@ export default function DocumentDeliveryEmail({
   domainHostname,
   pageSlug,
   documentNames,
+  logoUrl,
 }: DocumentDeliveryEmailProps) {
   const previewText = `Your documents from ${siteName}`;
 
@@ -22,6 +24,8 @@ export default function DocumentDeliveryEmail({
       previewText={previewText}
       title="Your requested documents"
       subtitle={`Thank you for connecting with ${siteName}`}
+      logoUrl={logoUrl}
+      brandName={siteName}
       footerNote="Documents are attached to this message. If you have questions, reply to this email or visit our website."
     >
       <Text

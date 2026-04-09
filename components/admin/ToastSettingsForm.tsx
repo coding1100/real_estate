@@ -41,6 +41,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
             toastErrorBody: theme.errorBody,
             toastAlertTitle: theme.alertTitle,
             toastAlertBody: theme.alertBody,
+            toastPosition: theme.position,
           }),
         });
         if (!res.ok) {
@@ -74,6 +75,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
       errorBody: "Please try again.",
       alertTitle: "Attention",
       alertBody: "Please review this information.",
+      position: "top-right",
     });
   }
 
@@ -94,6 +96,24 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2 md:col-span-2">
+            <h3 className="text-sm font-medium text-zinc-800">Toast position</h3>
+            <div className="rounded-md bg-zinc-50 p-3">
+              <label className="block text-xs font-medium text-zinc-600">
+                Screen placement
+              </label>
+              <select
+                value={theme.position}
+                onChange={(e) => update("position", e.target.value)}
+                className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+              >
+                <option value="top-right">Top right</option>
+                <option value="top-left">Top left</option>
+                <option value="bottom-right">Bottom right</option>
+                <option value="bottom-left">Bottom left</option>
+              </select>
+            </div>
+          </div>
           {/* Success toast configuration */}
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-zinc-800">Success toast</h3>

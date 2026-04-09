@@ -106,6 +106,24 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     return NextResponse.json({ error: "Page not found." }, { status: 404 });
   }
 
+  if (Object.prototype.hasOwnProperty.call(body, "status")) {
+    if (body.status !== "draft" && body.status !== "published") {
+      return NextResponse.json(
+        { error: 'status must be either "draft" or "published".' },
+        { status: 400 },
+      );
+    }
+    if (isFixedDefaultHomepage && body.status === "draft") {
+      return NextResponse.json(
+        {
+          error:
+            "This page is the fixed domain default homepage and cannot be unpublished.",
+        },
+        { status: 400 },
+      );
+    }
+  }
+
   // Keep slug aligned with canonical URL only when canonical is actually changed.
   if (
     Object.prototype.hasOwnProperty.call(body, "canonicalUrl") &&
