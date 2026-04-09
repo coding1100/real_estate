@@ -3,7 +3,6 @@ import {
   getAdminUiSettings,
   updateAdminUiSettings,
   EditorFontOption,
-  DEFAULT_EDITOR_FONTS,
 } from "@/lib/uiSettings";
 import {
   type CtaForwardingDocument,
@@ -34,6 +33,7 @@ export async function PATCH(req: NextRequest) {
     toastErrorBody: string;
     toastAlertTitle: string;
     toastAlertBody: string;
+    toastPosition: "top-right" | "top-left" | "bottom-right" | "bottom-left";
     editorFonts: EditorFontOption[];
     ctaForwardingRules: CtaForwardingRule[];
   }>;
@@ -94,6 +94,14 @@ export async function PATCH(req: NextRequest) {
   }
   if (typeof body.toastAlertBody === "string") {
     allowed.toastAlertBody = body.toastAlertBody;
+  }
+  if (
+    body.toastPosition === "top-right" ||
+    body.toastPosition === "top-left" ||
+    body.toastPosition === "bottom-right" ||
+    body.toastPosition === "bottom-left"
+  ) {
+    allowed.toastPosition = body.toastPosition;
   }
 
   if (Array.isArray(body.editorFonts)) {

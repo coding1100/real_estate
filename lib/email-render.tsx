@@ -2,6 +2,23 @@ import { render } from "@react-email/render";
 import DocumentDeliveryEmail from "@/emails/DocumentDeliveryEmail";
 import NewLeadEmail, { type LeadFieldRow } from "@/emails/NewLeadEmail";
 
+function resolveAbsoluteEmailAssetUrl(url?: string | null): string | undefined {
+  const raw = (url ?? "").trim();
+  if (!raw) return undefined;
+  if (/^https?:\/\//i.test(raw)) return raw;
+
+  const base =
+    (process.env.NEXT_PUBLIC_APP_URL ?? "").trim() ||
+    (process.env.NEXTAUTH_URL ?? "").trim();
+  if (!base) return undefined;
+
+  try {
+    return new URL(raw.startsWith("/") ? raw : `/${raw}`, base).toString();
+  } catch {
+    return undefined;
+  }
+}
+
 export function formLinesToFieldRows(lines: string[]): LeadFieldRow[] {
   return lines.map((line) => {
     const idx = line.indexOf(": ");
@@ -18,14 +35,17 @@ export async function renderNewLeadEmailHtml(props: {
   domainHostname: string;
   pageSlug: string;
   brandName: string;
+  logoUrl?: string | null;
   fieldRows: LeadFieldRow[];
 }): Promise<{ html: string; text: string }> {
+  const absoluteLogoUrl = resolveAbsoluteEmailAssetUrl(props.logoUrl);
   const el = (
     <NewLeadEmail
       leadType={props.leadType}
       domainHostname={props.domainHostname}
       pageSlug={props.pageSlug}
       brandName={props.brandName}
+      logoUrl={absoluteLogoUrl}
       fieldRows={props.fieldRows}
     />
   );
@@ -41,13 +61,16 @@ export async function renderDocumentDeliveryEmailHtml(props: {
   domainHostname: string;
   pageSlug: string;
   documentNames: string[];
+  logoUrl?: string | null;
 }): Promise<{ html: string; text: string }> {
+  const absoluteLogoUrl = resolveAbsoluteEmailAssetUrl(props.logoUrl);
   const el = (
     <DocumentDeliveryEmail
       siteName={props.siteName}
       domainHostname={props.domainHostname}
       pageSlug={props.pageSlug}
       documentNames={props.documentNames}
+      logoUrl={absoluteLogoUrl}
     />
   );
   const [html, text] = await Promise.all([

@@ -9,6 +9,7 @@ export type NewLeadEmailProps = {
   domainHostname: string;
   pageSlug: string;
   brandName: string;
+  logoUrl?: string;
   fieldRows: LeadFieldRow[];
 };
 
@@ -17,6 +18,7 @@ export default function NewLeadEmail({
   domainHostname,
   pageSlug,
   brandName,
+  logoUrl,
   fieldRows,
 }: NewLeadEmailProps) {
   const previewText = `New ${leadType} lead — ${domainHostname} / ${pageSlug}`;
@@ -26,6 +28,8 @@ export default function NewLeadEmail({
       previewText={previewText}
       title={`New ${leadType} lead`}
       subtitle={`${brandName} · ${domainHostname}`}
+      logoUrl={logoUrl}
+      brandName={brandName}
     >
       <Section
         style={{

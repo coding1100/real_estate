@@ -41,6 +41,7 @@ export function ToastProvider({
   const [toasts, setToasts] = React.useState<InternalToast[]>([]);
 
   const FALLBACK_THEME: ToastTheme = {
+    position: "top-right",
     successBg: "#ecfdf3",
     successText: "#166534",
     errorBg: "#fef2f2",
@@ -59,6 +60,7 @@ export function ToastProvider({
   };
 
   const mergedTheme: ToastTheme = {
+    position: theme?.position ?? FALLBACK_THEME.position,
     successBg: theme?.successBg ?? FALLBACK_THEME.successBg,
     successText: theme?.successText ?? FALLBACK_THEME.successText,
     errorBg: theme?.errorBg ?? FALLBACK_THEME.errorBg,
@@ -161,7 +163,17 @@ export function ToastProvider({
             </Toast>
           );
         })}
-        <ToastViewport />
+        <ToastViewport
+          className={
+            mergedTheme.position === "top-left"
+              ? "left-4 right-auto top-4 sm:left-6 sm:top-6"
+              : mergedTheme.position === "bottom-right"
+                ? "bottom-4 top-auto sm:bottom-6 sm:top-auto"
+                : mergedTheme.position === "bottom-left"
+                  ? "bottom-4 left-4 right-auto top-auto sm:bottom-6 sm:left-6 sm:top-auto"
+                  : undefined
+          }
+        />
       </ToastPrimitives.Provider>
     </ToastContext.Provider>
   );
