@@ -8,9 +8,9 @@ import { getAdminUiSettings } from "@/lib/uiSettings";
 export const metadata: Metadata = {
   title: "Admin - Real Estate",
   icons: {
-    icon: [{ url: "/api/favicon" }],
-    shortcut: [{ url: "/api/favicon" }],
-    apple: [{ url: "/api/favicon" }],
+    icon: [{ url: "/engel-volkers-logo.svg" }],
+    shortcut: [{ url: "/engel-volkers-logo.svg" }],
+    apple: [{ url: "/engel-volkers-logo.svg" }],
   },
 };
 
