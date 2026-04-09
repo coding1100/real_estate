@@ -17,13 +17,16 @@ import { DragDropPageLayoutEditor } from "@/components/admin/DragDropPageLayoutE
 import { MultistepPageSelector } from "@/components/admin/MultistepPageSelector";
 import {
   Eye,
+  EyeOff,
   ExternalLink,
   FileText,
+  Globe2,
   ListChecks,
   Search,
   LayoutDashboard,
   Pencil,
   Check,
+  Save,
   X,
 } from "lucide-react";
 import { useAdminToast } from "@/components/admin/useAdminToast";
@@ -311,7 +314,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
     });
   }
 
-  async function save(status?: "draft" | "published") {
+  async function save(nextStatus?: "draft" | "published") {
     setMessage(null);
     startSaving(async () => {
       const normalizedTitle = titleDraft.trim();
@@ -382,9 +385,8 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
           }));
         }
       }
-      if (status) {
-        body.status = status;
-        setStatus(status);
+      if (nextStatus) {
+        body.status = nextStatus;
       }
       const res = await fetch(`/api/admin/pages/${initialPage.dbId}`, {
         method: "PATCH",
@@ -392,11 +394,19 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        setMessage("Failed to save");
+        const data = (await res.json().catch(() => null)) as
+          | { error?: string }
+          | null;
+        const errorMessage =
+          (data && typeof data.error === "string" && data.error) ||
+          "Failed to save";
+        setMessage(errorMessage);
         errorToast(
-          status === "published"
+          nextStatus === "published"
             ? "Failed to publish page. Please try again."
-            : "Failed to save draft. Please try again.",
+            : nextStatus === "draft"
+              ? "Failed to unpublish page. Please try again."
+              : "Failed to save draft. Please try again.",
         );
         return;
       }
@@ -422,11 +432,21 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
       // Save buttons also commit pending title edits (without requiring check icon).
       setIsEditingTitle(false);
       setTitleDraft(body.title ?? body.headline ?? "");
-      const isPublishing = status === "published";
-      setMessage(isPublishing ? "Published" : "Saved");
+      const isPublishing = nextStatus === "published";
+      const isUnpublishing = nextStatus === "draft";
+      if (nextStatus) {
+        setStatus(nextStatus);
+      }
+      setMessage(
+        isPublishing ? "Published" : isUnpublishing ? "Unpublished" : "Saved",
+      );
       successToast(
-        isPublishing ? "Page published." : "Draft saved.",
-        isPublishing ? "Published" : "Saved",
+        isPublishing
+          ? "Page published."
+          : isUnpublishing
+            ? "Page moved to draft."
+            : "Draft saved.",
+        isPublishing ? "Published" : isUnpublishing ? "Unpublished" : "Saved",
       );
 
       // Refresh preview iframe so changes are visible - with cache busting
@@ -538,7 +558,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                   "noopener,noreferrer",
                 );
               }}
-              className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-1.5 font-medium text-zinc-800 shadow-sm hover:bg-zinc-50"
+              className="inline-flex items-center gap-1.5 !rounded-md border border-zinc-300 bg-white px-3 py-1.5 font-medium text-zinc-800 shadow-sm hover:bg-zinc-50"
             >
               <Eye className="h-3.5 w-3.5" />
               View draft
@@ -559,7 +579,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                   "noopener,noreferrer",
                 );
               }}
-              className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-1.5 font-medium text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 !rounded-md border border-zinc-300 bg-white px-3 py-1.5 font-medium text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ExternalLink className="h-3.5 w-3.5" />
               View live
@@ -568,16 +588,34 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
               type="button"
               onClick={() => save()}
               disabled={saving}
-              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 !rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:opacity-60"
             >
+              <Save className="h-3.5 w-3.5" />
               {saving ? "Saving..." : "Save draft"}
+            </button>
+            <button
+              type="button"
+              onClick={() => save("draft")}
+              disabled={saving || status !== "published" || isFixedDefaultHomepage}
+              title={
+                isFixedDefaultHomepage
+                  ? "This fixed default homepage cannot be unpublished."
+                  : status !== "published"
+                    ? "Page is already draft."
+                    : "Move this page from published to draft"
+              }
+              className="inline-flex items-center gap-1.5 !rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-900 shadow-sm hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <EyeOff className="h-3.5 w-3.5" />
+              {saving && status === "published" ? "Unpublishing..." : "Unpublish"}
             </button>
             <button
               type="button"
               onClick={() => save("published")}
               disabled={saving}
-              className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 !rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60"
             >
+              <Globe2 className="h-3.5 w-3.5" />
               {saving ? "Publishing..." : "Publish"}
             </button>
           </div>

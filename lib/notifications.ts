@@ -250,6 +250,130 @@ function flattenLeadFormDataForEmail(
   return lines;
 }
 
+function normalizeTemplateVariableKey(raw: string): string {
+  const normalized = String(raw ?? "")
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toLowerCase();
+  if (!normalized) return "";
+  if (/^[0-9]/.test(normalized)) return `field_${normalized}`;
+  return normalized;
+}
+
+function toTemplateVariableString(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => {
+        if (
+          typeof entry === "string" ||
+          typeof entry === "number" ||
+          typeof entry === "boolean"
+        ) {
+          return String(entry).trim();
+        }
+        return "";
+      })
+      .filter(Boolean)
+      .join(", ");
+  }
+  return "";
+}
+
+function splitFullName(fullName: string): { firstName: string; lastName: string } {
+  const clean = fullName.trim().replace(/\s+/g, " ");
+  if (!clean) return { firstName: "", lastName: "" };
+  const parts = clean.split(" ");
+  const firstName = parts[0] ?? "";
+  const lastName = parts.slice(1).join(" ").trim();
+  return { firstName, lastName };
+}
+
+function extractTemplateVariablesFromFormData(
+  formData: Record<string, unknown>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  const seen = new Set<unknown>();
+
+  const assignKey = (key: string, value: unknown) => {
+    const normalized = normalizeTemplateVariableKey(key);
+    if (!normalized) return;
+    if (isInternalFieldKey(normalized)) return;
+    const printable = toTemplateVariableString(value);
+    if (!printable) return;
+    if (!Object.prototype.hasOwnProperty.call(out, normalized)) {
+      out[normalized] = printable;
+    }
+  };
+
+  const visit = (node: unknown, pathParts: string[] = []) => {
+    if (node == null) return;
+    if (typeof node !== "object") {
+      if (pathParts.length > 0) {
+        assignKey(pathParts.join("_"), node);
+        assignKey(pathParts[pathParts.length - 1] ?? "", node);
+      }
+      return;
+    }
+    if (seen.has(node)) return;
+    seen.add(node);
+
+    if (Array.isArray(node)) {
+      if (pathParts.length > 0) {
+        assignKey(pathParts.join("_"), node);
+        assignKey(pathParts[pathParts.length - 1] ?? "", node);
+      }
+      node.forEach((entry, idx) => {
+        if (isPlainObject(entry) || Array.isArray(entry)) {
+          visit(entry, [...pathParts, String(idx + 1)]);
+        }
+      });
+      return;
+    }
+
+    for (const [rawKey, value] of Object.entries(node as Record<string, unknown>)) {
+      if (isInternalFieldKey(rawKey)) continue;
+      const nextPath = [...pathParts, rawKey];
+      if (isPlainObject(value) || Array.isArray(value)) {
+        visit(value, nextPath);
+        continue;
+      }
+      assignKey(nextPath.join("_"), value);
+      assignKey(rawKey, value);
+    }
+  };
+
+  visit(formData);
+
+  const fullName =
+    out.full_name ||
+    out.name ||
+    out.fullname ||
+    toTemplateVariableString((formData as Record<string, unknown>).name);
+
+  if (fullName) {
+    out.full_name = fullName;
+    if (!out.name) out.name = fullName;
+  }
+
+  if (!out.first_name || !out.last_name) {
+    const { firstName, lastName } = splitFullName(fullName || "");
+    if (!out.first_name && firstName) out.first_name = firstName;
+    if (!out.last_name && lastName) out.last_name = lastName;
+  }
+
+  if (!out.first_name) out.first_name = "there";
+
+  return out;
+}
+
 function collectCtaCandidates(formData: Record<string, unknown>): string[] {
   const candidates = new Set<string>();
   const direct = formData._ctaText;
@@ -401,6 +525,7 @@ export async function sendLeadNotifications(leadId: string) {
         domainHostname: domain.hostname,
         pageSlug: page.slug,
         brandName,
+        logoUrl: domain.logoUrl ?? null,
         fieldRows,
       });
 
@@ -473,6 +598,7 @@ export async function sendLeadNotifications(leadId: string) {
             domainHostname: domain.hostname,
             pageSlug: page.slug,
             documentNames,
+            logoUrl: domain.logoUrl ?? null,
           });
 
           const attachments = (
@@ -506,6 +632,9 @@ export async function sendLeadNotifications(leadId: string) {
           const resendTemplateId = rule?.resendTemplateId?.trim();
           if (resendTemplateId) {
             try {
+              const extractedFormVariables = extractTemplateVariablesFromFormData(
+                formData,
+              );
               const siteName = domain.displayName?.trim() || domain.hostname;
               const pageValue = page.slug;
               const websiteValue = domain.hostname;
@@ -521,6 +650,7 @@ export async function sendLeadNotifications(leadId: string) {
                 template: {
                   id: resendTemplateId,
                   variables: {
+                    ...extractedFormVariables,
                     siteName,
                     domainHostname: websiteValue,
                     pageSlug: pageValue,

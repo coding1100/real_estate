@@ -68,10 +68,21 @@ function normalizeFormVisibilityFields(
 export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
   const [error, setError] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [copiedFieldId, setCopiedFieldId] = useState<string | null>(null);
   const schema: FormSchema =
     value && Array.isArray((value as any).fields)
       ? value
       : { fields: [] };
+  const schemaFieldIds = Array.from(
+    new Set(
+      schema.fields
+        .map((field) => String(field.id ?? "").trim())
+        .filter((id) => id.length > 0),
+    ),
+  );
+  const [rawJsonText, setRawJsonText] = useState<string>(() =>
+    JSON.stringify(schema, null, 2),
+  );
 
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
@@ -227,9 +238,22 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
         throw new Error("Invalid schema: missing fields array");
       }
       onChange(parsed);
+      setRawJsonText(JSON.stringify(parsed, null, 2));
       setError(null);
     } catch (e: any) {
       setError(e.message ?? "Invalid JSON");
+    }
+  }
+
+  async function copyFieldId(id: string) {
+    try {
+      await navigator.clipboard.writeText(id);
+      setCopiedFieldId(id);
+      setTimeout(() => {
+        setCopiedFieldId((current) => (current === id ? null : current));
+      }, 1200);
+    } catch {
+      setCopiedFieldId(null);
     }
   }
 
@@ -720,12 +744,83 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
         );})}
       </div>
       <div>
-        <p className="mb-1 text-md font-medium text-zinc-700">
-          Raw JSON (advanced)
-        </p>
+        <div className="mb-1 flex items-center items-start gap-2">
+          <p className="text-md font-medium text-zinc-700">Raw JSON (advanced)</p>
+          <button
+            type="button"
+            onClick={() => {
+              setRawJsonText(JSON.stringify(schema, null, 2));
+              setError(null);
+            }}
+            className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-md font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            <svg
+              viewBox="0 0 20 20"
+              aria-hidden="true"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M16 10a6 6 0 1 1-1.76-4.24" />
+              <path d="M16 4v4h-4" />
+            </svg>
+            Refresh JSON
+          </button>
+        </div>
+        <div className="mb-2">
+          <p className="mb-1 text-[12px] font-medium text-zinc-500">
+            Schema Field IDs (for template variables)
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {schemaFieldIds.length > 0 ? (
+              schemaFieldIds.map((id) => (
+                <span
+                  key={id}
+                  className="inline-flex items-center gap-1 rounded-full border border-zinc-300 bg-zinc-50 px-2 py-0.5 font-mono text-[12px] text-zinc-700"
+                >
+                  {id}
+                  <button
+                    type="button"
+                    aria-label={`Copy ${id}`}
+                    title={`Copy ${id}`}
+                    onClick={() => {
+                      void copyFieldId(id);
+                    }}
+                    className="inline-flex h-4 w-4 items-center justify-center rounded text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800"
+                  >
+                    <svg
+                      viewBox="0 0 20 20"
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="7" y="3" width="10" height="12" rx="2" />
+                      <path d="M5 7H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1" />
+                    </svg>
+                  </button>
+                  {copiedFieldId === id ? (
+                    <span className="text-[10px] font-sans text-emerald-700">
+                      Copied
+                    </span>
+                  ) : null}
+                </span>
+              ))
+            ) : (
+              <span className="text-[12px] text-zinc-400">No field IDs yet.</span>
+            )}
+          </div>
+        </div>
         <textarea
           className="h-40 w-full rounded-md border border-zinc-300 px-2 py-1 text-md font-mono"
-          defaultValue={JSON.stringify(schema, null, 2)}
+          value={rawJsonText}
+          onChange={(e) => setRawJsonText(e.target.value)}
           onBlur={(e) => handleJsonChange(e.target.value)}
         />
         {error && <p className="mt-1 text-md text-red-500">{error}</p>}

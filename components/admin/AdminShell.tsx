@@ -23,7 +23,7 @@ interface AdminShellProps {
   toastTheme?: ToastTheme;
 }
 
-/** Avoid /admin/pages-2 matching the "Landing Pages" nav item via startsWith. */
+/** Keep /admin/pages and /admin/pages-2 active states isolated. */
 function navLinkActive(pathname: string, href: string): boolean {
   if (pathname === href) return true;
   if (href === "/admin/pages") {
@@ -33,7 +33,11 @@ function navLinkActive(pathname: string, href: string): boolean {
     );
   }
   if (href === "/admin/pages-2") {
-    return pathname === "/admin/pages-2";
+    return (
+      pathname === "/admin/pages-2" ||
+      pathname.startsWith("/admin/pages-2/") ||
+      pathname.startsWith("/admin/pages/")
+    );
   }
   if (href !== "/admin" && pathname.startsWith(`${href}/`)) return true;
   return false;
@@ -42,8 +46,8 @@ function navLinkActive(pathname: string, href: string): boolean {
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/domains", label: "Domains", icon: Globe2 },
-  { href: "/admin/pages", label: "Landing Pages", icon: FileText },
-  { href: "/admin/pages-2", label: "Landing Pages 2", icon: Copy },
+  // { href: "/admin/pages", label: "Landing Pages", icon: FileText },
+  { href: "/admin/pages-2", label: "Landing Pages", icon: FileText },
   { href: "/admin/templates", label: "Templates", icon: Layers },
   // { href: "/admin/webhooks", label: "Webhooks", icon: RadioTower },
   { href: "/admin/settings", label: "Settings", icon: Settings },

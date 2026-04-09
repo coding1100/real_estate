@@ -42,10 +42,57 @@ function findEmailInAnyField(input: unknown): string | null {
 }
 
 function findPhoneInAnyField(input: unknown): string | null {
+  const looksLikePhone = (value: string): boolean => {
+    const trimmed = value.trim();
+    if (!trimmed) return false;
+    if (trimmed.includes("@")) return false;
+    const digits = trimmed.replace(/\D/g, "");
+    return digits.length === 10 || (digits.length === 11 && digits.startsWith("1"));
+  };
+
+  const looksLikePhoneKey = (key: string): boolean => {
+    const normalized = key.trim().toLowerCase();
+    return (
+      normalized === "phone" ||
+      normalized.includes("phone") ||
+      normalized.includes("mobile") ||
+      normalized === "tel" ||
+      normalized.includes("telephone")
+    );
+  };
+
+  const seen = new Set<unknown>();
+  const findByPhoneKey = (node: unknown): string | null => {
+    if (!node || typeof node !== "object") return null;
+    if (seen.has(node)) return null;
+    seen.add(node);
+
+    if (Array.isArray(node)) {
+      for (const entry of node) {
+        const match = findByPhoneKey(entry);
+        if (match) return match;
+      }
+      return null;
+    }
+
+    for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+      if (typeof value === "string" && looksLikePhoneKey(key) && looksLikePhone(value)) {
+        return value.trim();
+      }
+      if (value && typeof value === "object") {
+        const nested = findByPhoneKey(value);
+        if (nested) return nested;
+      }
+    }
+    return null;
+  };
+
+  const keyed = findByPhoneKey(input);
+  if (keyed) return keyed;
+
   const values = collectStringValues(input);
   for (const v of values) {
-    const digits = v.replace(/\D/g, "");
-    if (digits.length >= 7) return v.trim();
+    if (looksLikePhone(v)) return v.trim();
   }
   return null;
 }

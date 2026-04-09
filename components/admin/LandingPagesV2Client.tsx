@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   DndContext,
   KeyboardSensor,
@@ -34,6 +35,7 @@ import {
   Plus,
   Search,
   Star,
+  X,
 } from "lucide-react";
 import { AddPageDialog } from "@/components/admin/AddPageDialog";
 import { PageRowActions } from "@/components/admin/PageRowActions";
@@ -341,11 +343,27 @@ export function LandingPagesV2Client({
   templates,
   pageOptions,
 }: Props) {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const initialQueryFromParams = searchParams.get("q") ?? "";
+  const initialDomainFromParams = searchParams.get("domain") ?? "";
+  const initialStatusFromParams = searchParams.get("status");
+  const initialTypeFromParams = searchParams.get("type");
   const [rows, setRows] = useState<PageListItem[]>(initialPages);
-  const [query, setQuery] = useState("");
-  const [domainId, setDomainId] = useState("");
-  const [status, setStatus] = useState<"all" | "published" | "draft">("all");
-  const [pageType, setPageType] = useState<"all" | "buyer" | "seller">("all");
+  const [query, setQuery] = useState(initialQueryFromParams);
+  const [domainId, setDomainId] = useState(initialDomainFromParams);
+  const [status, setStatus] = useState<"all" | "published" | "draft">(
+    initialStatusFromParams === "published" ||
+      initialStatusFromParams === "draft"
+      ? initialStatusFromParams
+      : "all",
+  );
+  const [pageType, setPageType] = useState<"all" | "buyer" | "seller">(
+    initialTypeFromParams === "buyer" || initialTypeFromParams === "seller"
+      ? initialTypeFromParams
+      : "all",
+  );
   const [notesOpenId, setNotesOpenId] = useState<string | null>(null);
   const [previewOpenId, setPreviewOpenId] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -441,12 +459,44 @@ export function LandingPagesV2Client({
     setRows(initialPages);
   }, [initialPages]);
 
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("q");
+    next.delete("domain");
+    next.delete("status");
+    next.delete("type");
+
+    const trimmedQuery = query.trim();
+    if (trimmedQuery) next.set("q", trimmedQuery);
+    if (domainId) next.set("domain", domainId);
+    if (status !== "all") next.set("status", status);
+    if (pageType !== "all") next.set("type", pageType);
+
+    const nextQuery = next.toString();
+    const currentQuery = searchParams.toString();
+    if (nextQuery === currentQuery) return;
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+      scroll: false,
+    });
+  }, [
+    query,
+    domainId,
+    status,
+    pageType,
+    pathname,
+    router,
+    searchParams,
+  ]);
+
   function clearFilters() {
     setQuery("");
     setDomainId("");
     setStatus("all");
     setPageType("all");
   }
+
+  const selectedDomainLabel =
+    domainId && domains.find((d) => d.id === domainId)?.hostname;
 
   const count = filtered.length;
   const openNotesPage = rows.find((p) => p.id === notesOpenId) ?? null;
@@ -613,7 +663,7 @@ export function LandingPagesV2Client({
               <button
                 type="button"
                 onClick={() => open()}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#228BE6] px-4 py-2.5 text-xl !rounded-lg font-semibold text-white shadow-sm hover:bg-[#1c7ed6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228BE6]"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#18181b] px-[15px] py-[10px] text-[18px] !rounded-lg font-semibold text-white shadow-sm hover:bg-[#000000] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228BE6]"
               >
                 <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
                 New Page
@@ -688,6 +738,48 @@ export function LandingPagesV2Client({
               <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#ADB5BD]" />
             </div>
           </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {query.trim().length > 0 && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="mt-2 inline-flex items-center gap-1 !rounded-full border border-[#C5DCF7] bg-[#E7F1FF] px-2.5 py-1 text-xs font-semibold text-[#1864AB] hover:bg-[#d8eaff]"
+            >
+              Search: {query.trim()}
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {selectedDomainLabel && (
+            <button
+              type="button"
+              onClick={() => setDomainId("")}
+              className="mt-2 inline-flex items-center gap-1 !rounded-full border border-[#DEE2E6] bg-[#F8F9FA] px-2.5 py-1 text-xs font-semibold text-[#495057] hover:bg-[#edf0f2]"
+            >
+              Domain: {selectedDomainLabel}
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {status !== "all" && (
+            <button
+              type="button"
+              onClick={() => setStatus("all")}
+              className="mt-2 inline-flex items-center gap-1 !rounded-full border border-[#DEE2E6] bg-[#F8F9FA] px-2.5 py-1 text-xs font-semibold uppercase text-[#495057] hover:bg-[#edf0f2]"
+            >
+              Status: {status}
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {pageType !== "all" && (
+            <button
+              type="button"
+              onClick={() => setPageType("all")}
+              className="mt-2 inline-flex items-center gap-1 !rounded-full border border-[#DEE2E6] bg-[#F8F9FA] px-2.5 py-1 text-xs font-semibold uppercase text-[#495057] hover:bg-[#edf0f2]"
+            >
+              Type: {pageType}
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
