@@ -800,6 +800,7 @@ export function LandingPagesV2Client({
         </button>
       </div>
 
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
