@@ -135,9 +135,9 @@ export async function generateMetadata({
       images: page.seo.ogImageUrl ? [page.seo.ogImageUrl] : [],
     },
     icons: {
-      icon: [{ url: "/api/favicon" }],
-      shortcut: [{ url: "/api/favicon" }],
-      apple: [{ url: "/api/favicon" }],
+      icon: [{ url: page.domain.faviconUrl || "/engel-volkers-logo.svg" }],
+      shortcut: [{ url: page.domain.faviconUrl || "/engel-volkers-logo.svg" }],
+      apple: [{ url: page.domain.faviconUrl || "/engel-volkers-logo.svg" }],
     },
     robots: page.seo.noIndex
       ? { index: false, follow: false }
