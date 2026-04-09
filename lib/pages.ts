@@ -4,6 +4,7 @@ import type { LandingPageContent } from "./types/page";
 import { getDomainDefaultHomepageSlug } from "./defaultHomepage";
 import {
   getDefaultHomepageButtons,
+  getDomainMasterBackgroundImage,
   isFixedDefaultHomepagePage,
 } from "./defaultHomepage";
 
@@ -330,6 +331,34 @@ export async function getLandingPage(
       page.domainId,
       page.id,
     );
+    try {
+      const masterBg = await getDomainMasterBackgroundImage(
+        page.domainId,
+        page.type,
+      );
+      if (masterBg) {
+        const sections = Array.isArray(content.sections) ? [...content.sections] : [];
+        const heroIndex = sections.findIndex((section) => section.kind === "hero");
+        if (heroIndex !== -1) {
+          const heroSection = sections[heroIndex];
+          sections[heroIndex] = {
+            ...heroSection,
+            props: {
+              ...(heroSection.props ?? {}),
+              // Dedicated fallback used by FixedDefaultHomepage when there are
+              // no published button pages to preview.
+              masterBackgroundImageUrl: masterBg,
+            },
+          };
+          content.sections = sections;
+        }
+      }
+    } catch (error) {
+      console.error(
+        "[getLandingPage] Failed to resolve master background image",
+        error,
+      );
+    }
   }
 
   if (stepSlugs && Array.isArray(stepSlugs) && stepSlugs.length > 0) {

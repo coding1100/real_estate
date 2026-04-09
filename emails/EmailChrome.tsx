@@ -4,6 +4,7 @@ import {
   Head,
   Heading,
   Html,
+  Img,
   Preview,
   Section,
   Text,
@@ -15,6 +16,8 @@ type EmailChromeProps = {
   previewText: string;
   title: string;
   subtitle?: string;
+  logoUrl?: string;
+  brandName?: string;
   children: ReactNode;
   footerNote?: string;
 };
@@ -23,6 +26,8 @@ export function EmailChrome({
   previewText,
   title,
   subtitle,
+  logoUrl,
+  brandName,
   children,
   footerNote,
 }: EmailChromeProps) {
@@ -68,10 +73,23 @@ export function EmailChrome({
             >
               Real estate leads
             </Text>
+            {logoUrl ? (
+              <Img
+                src={logoUrl}
+                alt={brandName ? `${brandName} logo` : "Brand logo"}
+                width={160}
+                style={{
+                  display: "block",
+                  margin: "12px 0 0",
+                  maxWidth: "220px",
+                  height: "auto",
+                }}
+              />
+            ) : null}
             <Heading
               as="h1"
               style={{
-                margin: "10px 0 0",
+                margin: logoUrl ? "12px 0 0" : "10px 0 0",
                 fontSize: "22px",
                 fontWeight: 700,
                 lineHeight: 1.25,

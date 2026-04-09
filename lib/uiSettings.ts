@@ -11,6 +11,7 @@ import {
 const SINGLETON_ID = "singleton";
 
 export interface ToastTheme {
+  position: "top-right" | "top-left" | "bottom-right" | "bottom-left";
   successBg: string;
   successText: string;
   errorBg: string;
@@ -45,6 +46,7 @@ export interface AdminUiSettings {
   toastErrorBody: string;
   toastAlertTitle: string;
   toastAlertBody: string;
+  toastPosition?: "top-right" | "top-left" | "bottom-right" | "bottom-left";
   editorFonts?: EditorFontOption[] | null;
   ctaForwardingRules?: CtaForwardingRule[] | null;
 }
@@ -59,6 +61,7 @@ export {
 } from "@/lib/editorFonts";
 
 export const DEFAULT_THEME: ToastTheme = {
+  position: "top-right",
   successBg: "#ecfdf3",
   successText: "#166534",
   errorBg: "#fef2f2",
@@ -199,6 +202,37 @@ async function ensureCtaForwardingColumn() {
   );
 }
 
+async function ensureToastPositionColumn() {
+  await prisma.$executeRawUnsafe(
+    'ALTER TABLE "AdminUiSettings" ADD COLUMN IF NOT EXISTS "toastPosition" TEXT',
+  );
+}
+
+function normalizeToastPosition(
+  value: unknown,
+): "top-right" | "top-left" | "bottom-right" | "bottom-left" {
+  return value === "top-left" ||
+    value === "bottom-right" ||
+    value === "bottom-left"
+    ? value
+    : "top-right";
+}
+
+async function readToastPosition(): Promise<
+  "top-right" | "top-left" | "bottom-right" | "bottom-left"
+> {
+  try {
+    await ensureToastPositionColumn();
+    const rows = await prisma.$queryRawUnsafe<Array<{ toastPosition: unknown }>>(
+      'SELECT "toastPosition" FROM "AdminUiSettings" WHERE "id" = $1 LIMIT 1',
+      SINGLETON_ID,
+    );
+    return normalizeToastPosition(rows?.[0]?.toastPosition);
+  } catch {
+    return DEFAULT_THEME.position;
+  }
+}
+
 async function readCtaForwardingRules(): Promise<CtaForwardingRule[]> {
   try {
     await ensureCtaForwardingColumn();
@@ -242,7 +276,9 @@ export async function getAdminUiSettings(): Promise<{
       },
     });
 
+    const toastPosition = await readToastPosition();
     const theme: ToastTheme = {
+      position: toastPosition,
       successBg: settings.toastSuccessBg || DEFAULT_THEME.successBg,
       successText: settings.toastSuccessText || DEFAULT_THEME.successText,
       errorBg: settings.toastErrorBg || DEFAULT_THEME.errorBg,
@@ -313,6 +349,7 @@ export async function getAdminUiSettings(): Promise<{
         toastErrorBody: DEFAULT_THEME.errorBody,
         toastAlertTitle: DEFAULT_THEME.alertTitle,
         toastAlertBody: DEFAULT_THEME.alertBody,
+        toastPosition: DEFAULT_THEME.position,
         editorFonts: DEFAULT_EDITOR_FONTS as any,
         ctaForwardingRules: [],
       };
@@ -344,6 +381,7 @@ export async function updateAdminUiSettings(
     | "toastErrorBody"
     | "toastAlertTitle"
     | "toastAlertBody"
+    | "toastPosition"
     | "editorFonts"
     | "ctaForwardingRules"
   >>,
@@ -426,6 +464,15 @@ export async function updateAdminUiSettings(
       },
     });
 
+    if (patch.toastPosition != null) {
+      await ensureToastPositionColumn();
+      await prisma.$executeRawUnsafe(
+        'UPDATE "AdminUiSettings" SET "toastPosition" = $1 WHERE "id" = $2',
+        normalizeToastPosition(patch.toastPosition),
+        SINGLETON_ID,
+      );
+    }
+
     if (patch.ctaForwardingRules != null) {
       await ensureCtaForwardingColumn();
       await prisma.$executeRawUnsafe(
@@ -435,7 +482,9 @@ export async function updateAdminUiSettings(
       );
     }
 
+    const toastPosition = await readToastPosition();
     const theme: ToastTheme = {
+      position: toastPosition,
       successBg: settings.toastSuccessBg || DEFAULT_THEME.successBg,
       successText: settings.toastSuccessText || DEFAULT_THEME.successText,
       errorBg: settings.toastErrorBg || DEFAULT_THEME.errorBg,
@@ -482,6 +531,10 @@ export async function updateAdminUiSettings(
         toastAlertTitle:
           patch.toastAlertTitle ?? DEFAULT_THEME.alertTitle,
         toastAlertBody: patch.toastAlertBody ?? DEFAULT_THEME.alertBody,
+        toastPosition:
+          patch.toastPosition != null
+            ? normalizeToastPosition(patch.toastPosition)
+            : DEFAULT_THEME.position,
         ctaForwardingRules: normalizeCtaForwardingRules(
           patch.ctaForwardingRules,
         ),

@@ -98,6 +98,7 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
   const backgroundImageUrl = String(
     hero.homeBackgroundImageUrl ?? page.heroImageUrl ?? "",
   );
+  const masterBackgroundImageUrl = String(hero.masterBackgroundImageUrl ?? "");
   const brightnessRaw = Number(hero.heroImageBrightness);
   const brightness = Number.isFinite(brightnessRaw)
     ? Math.min(1, Math.max(0, brightnessRaw))
@@ -369,10 +370,26 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
               </div>
             ) : (
               <div
-                className="flex items-center justify-center rounded-[18px] bg-black/40 text-sm text-white/70"
+                className="relative overflow-hidden rounded-[18px] border border-white/15 bg-black/40"
                 style={{ width: PREVIEW_BOX_W, height: PREVIEW_BOX_H }}
               >
-                No published pages available for preview.
+                {masterBackgroundImageUrl || backgroundImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={masterBackgroundImageUrl || backgroundImageUrl}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                    aria-hidden
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 via-zinc-700 to-zinc-900" />
+                )}
+                <div className="absolute inset-0 bg-black/45" />
+                <div className="relative z-10 flex h-full w-full items-center justify-center p-4">
+                  <span className="inline-flex rounded-md border border-white/40 bg-black/55 px-3 py-2 text-sm font-semibold text-white shadow">
+                    No published pages available for preview.
+                  </span>
+                </div>
               </div>
             )}
           </div>

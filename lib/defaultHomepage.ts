@@ -164,3 +164,81 @@ export async function getDefaultHomepageButtons(
   }));
 }
 
+export async function getDomainMasterBackgroundImage(
+  domainId: string,
+  pageType: string,
+): Promise<string | null> {
+  const extractMasterHeroBackground = (sections: unknown): string | null => {
+    if (!Array.isArray(sections)) return null;
+    const heroSection = sections.find(
+      (section) =>
+        section &&
+        typeof section === "object" &&
+        (section as { kind?: unknown }).kind === "hero",
+    ) as { props?: unknown } | undefined;
+    if (!heroSection || !heroSection.props || typeof heroSection.props !== "object") {
+      return null;
+    }
+    const value = (heroSection.props as { homeBackgroundImageUrl?: unknown })
+      .homeBackgroundImageUrl;
+    if (typeof value !== "string") return null;
+    const normalized = value.trim();
+    return normalized.length > 0 ? normalized : null;
+  };
+
+  const normalizedType = String(pageType ?? "").trim().toLowerCase();
+  const masterSlug = normalizedType === "buyer" ? "master-buyer" : "master-seller";
+  const masterType = normalizedType === "buyer" ? "buyer" : "seller";
+
+  const rows = (await prisma.$queryRaw<
+    {
+      heroImageUrl: string | null;
+      sections: unknown;
+    }[]
+  >`
+    SELECT lp."heroImageUrl", lp."sections"
+    FROM "LandingPage" lp
+    WHERE lp."domainId" = ${domainId}
+      AND lp."slug" = ${masterSlug}
+    ORDER BY CASE WHEN lp."status" = 'published' THEN 0 ELSE 1 END, lp."updatedAt" DESC
+    LIMIT 1
+  `) as { heroImageUrl: string | null; sections: unknown }[];
+
+  const fromSections = extractMasterHeroBackground(rows[0]?.sections);
+  if (fromSections) return fromSections;
+
+  const image = (rows[0]?.heroImageUrl ?? "").trim();
+  if (image.length > 0) return image;
+
+  // Fallback 1: any master page for this type across domains.
+  const globalMasterRows = (await prisma.$queryRaw<
+    { heroImageUrl: string | null; sections: unknown }[]
+  >`
+    SELECT lp."heroImageUrl", lp."sections"
+    FROM "LandingPage" lp
+    WHERE lp."slug" = ${masterSlug}
+    ORDER BY CASE WHEN lp."status" = 'published' THEN 0 ELSE 1 END, lp."updatedAt" DESC
+    LIMIT 1
+  `) as { heroImageUrl: string | null; sections: unknown }[];
+
+  const globalFromSections = extractMasterHeroBackground(
+    globalMasterRows[0]?.sections,
+  );
+  if (globalFromSections) return globalFromSections;
+
+  const globalImage = (globalMasterRows[0]?.heroImageUrl ?? "").trim();
+  if (globalImage.length > 0) return globalImage;
+
+  // Fallback 2: MasterTemplate.sections (locked buyer/seller template definition).
+  const templateRows = (await prisma.$queryRaw<{ sections: unknown }[]>`
+    SELECT mt."sections"
+    FROM "MasterTemplate" mt
+    WHERE mt."type" = ${masterType}
+    LIMIT 1
+  `) as { sections: unknown }[];
+  const templateFromSections = extractMasterHeroBackground(templateRows[0]?.sections);
+  if (templateFromSections) return templateFromSections;
+
+  return null;
+}
+
