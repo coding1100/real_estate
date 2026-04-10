@@ -167,7 +167,7 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={page.domain.logoUrl} alt={page.domain.displayName} className="h-10 w-auto max-h-[80px]" />
             ) : (
-              <span className="font-normal text-zinc-900">{page.domain.displayName}</span>
+              <span className="text-lg font-normal text-zinc-900" style={{ fontFamily: 'Source Sans 3' }}>{page.domain.displayName}</span>
             )}
           </div>
           <nav ref={navRef} className="flex items-center gap-5 text-sm text-zinc-700">
