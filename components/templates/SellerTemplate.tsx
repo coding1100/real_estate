@@ -38,7 +38,11 @@ function BrandHeader({ page }: { page: LandingPageContent }) {
               loading="lazy"
               className="h-[60px] w-auto object-contain max-[768px]:max-h-10 max-[768px]:max-w-[120px]"
             />
-          ) : null}
+          ) : (
+            <span className="text-lg font-normal text-zinc-900" style={{ fontFamily: 'Source Sans 3' }}>
+              {page.domain.displayName}
+            </span>
+          )}
         </div>
         <div className="flex items-center shrink-0">
           {page.domain.rightLogoUrl ? (
