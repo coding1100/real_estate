@@ -166,7 +166,9 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
             {page.domain.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={page.domain.logoUrl} alt={page.domain.displayName} className="h-10 w-auto max-h-[80px]" />
-            ) : null}
+            ) : (
+              <span className="font-normal text-zinc-900">{page.domain.displayName}</span>
+            )}
           </div>
           <nav ref={navRef} className="flex items-center gap-5 text-sm text-zinc-700">
             {(navLinks.length > 0 ? navLinks : [{ label: "Home", href: "#" }]).map((link, idx) => {
@@ -274,13 +276,13 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
             }}
           />
         )}
-        <div
+        {/* <div
           className="absolute inset-0"
           style={{
             background:
               "linear-gradient(110deg, rgba(18,45,84,0.88), rgba(43,81,126,0.62))",
           }}
-        />
+        /> */}
         <div className="relative z-10 mx-auto grid max-w-7xl gap-8 px-4 py-10 md:grid-cols-[50%_50%] md:items-center">
           <div className="space-y-6">
             <div
