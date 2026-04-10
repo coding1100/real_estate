@@ -38,11 +38,7 @@ function BrandHeader({ page }: { page: LandingPageContent }) {
               loading="lazy"
               className="h-[60px] w-auto object-contain max-[768px]:max-h-10 max-[768px]:max-w-[120px]"
             />
-          ) : (
-            <span className="text-md font-medium uppercase tracking-[0.2em] text-zinc-700 max-[768px]:text-sm truncate">
-              {page.domain.displayName}
-            </span>
-          )}
+          ) : null}
         </div>
         <div className="flex items-center shrink-0">
           {page.domain.rightLogoUrl ? (
@@ -54,16 +50,7 @@ function BrandHeader({ page }: { page: LandingPageContent }) {
               loading="lazy"
               className="max-h-[55px] w-auto object-contain max-[768px]:max-h-8 max-[768px]:max-w-[100px]"
             />
-          ) : (
-            <Image
-              src="/engel-volkers-logo.svg"
-              alt="Engel & Völkers"
-              width={150}
-              height={24}
-              loading="lazy"
-              className="h-6 w-auto object-contain max-[768px]:max-h-5 max-[768px]:max-w-[90px]"
-            />
-          )}
+          ) : null}
         </div>
       </div>
     </header>

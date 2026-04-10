@@ -179,6 +179,147 @@ ul,ol{
   list-style: initial;
   }
 
+/* Rich text editor + frontend list styles (selected via data-list-style) */
+.ProseMirror ul[data-list-style="tick"],
+.custom ul[data-list-style="tick"],
+.ProseMirror ul[data-list-style="arrow"],
+.custom ul[data-list-style="arrow"],
+.ProseMirror ul[data-list-style="dash"],
+.custom ul[data-list-style="dash"],
+.ProseMirror ul[data-list-style="plus"],
+.custom ul[data-list-style="plus"],
+.ProseMirror ul[data-list-style="star"],
+.custom ul[data-list-style="star"],
+.ProseMirror ul[data-list-style="diamond"],
+.custom ul[data-list-style="diamond"],
+.ProseMirror ul[data-list-style="triangle"],
+.custom ul[data-list-style="triangle"],
+.ProseMirror ul[data-list-style="chevron"],
+.custom ul[data-list-style="chevron"],
+.ProseMirror ul[data-list-style="sparkle"],
+.custom ul[data-list-style="sparkle"],
+.ProseMirror ul[data-list-style="pin"],
+.custom ul[data-list-style="pin"],
+.ProseMirror ul[data-list-style="none"],
+.custom ul[data-list-style="none"] {
+  list-style: none !important;
+  margin-left: 0;
+  padding-left: 0;
+}
+
+.ProseMirror ul[data-list-style="tick"] li,
+.custom ul[data-list-style="tick"] li,
+.ProseMirror ul[data-list-style="arrow"] li,
+.custom ul[data-list-style="arrow"] li,
+.ProseMirror ul[data-list-style="dash"] li,
+.custom ul[data-list-style="dash"] li,
+.ProseMirror ul[data-list-style="plus"] li,
+.custom ul[data-list-style="plus"] li,
+.ProseMirror ul[data-list-style="star"] li,
+.custom ul[data-list-style="star"] li {
+  position: relative;
+  padding-left: 1.35em;
+}
+.ProseMirror ul[data-list-style="diamond"] li,
+.custom ul[data-list-style="diamond"] li,
+.ProseMirror ul[data-list-style="triangle"] li,
+.custom ul[data-list-style="triangle"] li,
+.ProseMirror ul[data-list-style="chevron"] li,
+.custom ul[data-list-style="chevron"] li,
+.ProseMirror ul[data-list-style="sparkle"] li,
+.custom ul[data-list-style="sparkle"] li,
+.ProseMirror ul[data-list-style="pin"] li,
+.custom ul[data-list-style="pin"] li {
+  position: relative;
+  padding-left: 1.35em;
+}
+
+.ProseMirror ul[data-list-style="tick"] li::before,
+.custom ul[data-list-style="tick"] li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.ProseMirror ul[data-list-style="arrow"] li::before,
+.custom ul[data-list-style="arrow"] li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.ProseMirror ul[data-list-style="dash"] li::before,
+.custom ul[data-list-style="dash"] li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.ProseMirror ul[data-list-style="plus"] li::before,
+.custom ul[data-list-style="plus"] li::before {
+  content: "+";
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.ProseMirror ul[data-list-style="star"] li::before,
+.custom ul[data-list-style="star"] li::before {
+  content: "★";
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.ProseMirror ul[data-list-style="diamond"] li::before,
+.custom ul[data-list-style="diamond"] li::before {
+  content: "◆";
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.ProseMirror ul[data-list-style="triangle"] li::before,
+.custom ul[data-list-style="triangle"] li::before {
+  content: "▶";
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.ProseMirror ul[data-list-style="chevron"] li::before,
+.custom ul[data-list-style="chevron"] li::before {
+  content: "›";
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.ProseMirror ul[data-list-style="sparkle"] li::before,
+.custom ul[data-list-style="sparkle"] li::before {
+  content: "✦";
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.ProseMirror ul[data-list-style="pin"] li::before,
+.custom ul[data-list-style="pin"] li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.ProseMirror ul[data-list-style="circle"],
+.custom ul[data-list-style="circle"] {
+  list-style-type: circle !important;
+}
+
+.ProseMirror ul[data-list-style="square"],
+.custom ul[data-list-style="square"] {
+  list-style-type: square !important;
+}
+
+
 /* When a list has inline styles (from the editor), make children inherit them.
    This ensures list-level font/color applies consistently in admin + frontend. */
 .custom ul[style] li,
@@ -219,6 +360,28 @@ ul,ol{
     color: #2563eb !important;
     text-decoration: underline !important;
     text-underline-offset: 2px;
+  }
+  .ProseMirror {
+    --rte-col-guide: #a1a1aa;
+    --rte-col-bg: #fafafa;
+  }
+  .ProseMirror .rte-two-col-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 8px 0;
+  }
+  .ProseMirror .rte-two-col-col {
+    min-height: 120px;
+    padding: 10px;
+    border: 1px dotted var(--rte-col-guide, #a1a1aa);
+    background: var(--rte-col-bg, #fafafa);
+  }
+  .ProseMirror .rte-two-col-col > p {
+    margin: 0 0 8px;
+  }
+  .ProseMirror .rte-two-col-col > p:last-child {
+    margin-bottom: 0;
   }
 
 
@@ -291,6 +454,36 @@ pre span{
 .custom section{
   min-height: 800px;
 }
+.rte-two-col-row{
+  display: flex;
+  background: transparent !important;
+}
+.rte-two-col-col{
+  background: transparent !important;
+}
+/* Frontend render: hide editor guides but keep layout styles from inline markup */
+.custom {
+  --rte-col-guide: transparent;
+  --rte-col-bg: transparent;
+}
+.custom .rte-two-col-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 8px 0;
+}
+.custom .rte-two-col-col {
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--rte-col-guide, transparent);
+  background: var(--rte-col-bg, transparent);
+}
+.custom .rte-two-col-col > p {
+  margin: 0 0 8px;
+}
+.custom .rte-two-col-col > p:last-child {
+  margin-bottom: 0;
+}
 .form-area blockquote {
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
@@ -338,6 +531,10 @@ pre span{
   .template-preview-iframe {
     transform: scale(0.2) !important;
     transform-origin: top left;
+  }
+  .ProseMirror .rte-two-col-row,
+  .custom .rte-two-col-row {
+    grid-template-columns: 1fr;
   }
 }
 .blk-set blockquote {

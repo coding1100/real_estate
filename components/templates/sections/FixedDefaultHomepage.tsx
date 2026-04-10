@@ -166,9 +166,7 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
             {page.domain.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={page.domain.logoUrl} alt={page.domain.displayName} className="h-10 w-auto max-h-[80px]" />
-            ) : (
-              page.domain.displayName
-            )}
+            ) : null}
           </div>
           <nav ref={navRef} className="flex items-center gap-5 text-sm text-zinc-700">
             {(navLinks.length > 0 ? navLinks : [{ label: "Home", href: "#" }]).map((link, idx) => {
