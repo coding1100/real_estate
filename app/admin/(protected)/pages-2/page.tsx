@@ -6,7 +6,7 @@ export default async function LandingPagesV2Page() {
     await loadLandingPagesList();
 
   return (
-    <div className="min-h-full bg-[#F8F9FA] p-4 md:p-6">
+    <div className="min-h-full bg-[#F8F9FA]">
       <LandingPagesV2Client
         pages={tablePages}
         domains={domains}

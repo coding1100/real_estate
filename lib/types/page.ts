@@ -58,6 +58,7 @@ export interface LandingPageContent {
     accentColor: string;
     ga4Id?: string | null;
     metaPixelId?: string | null;
+    recaptchaSiteKey?: string | null;
     faviconUrl?: string | null;
     linkedinUrl?: string | null;
     linkedinVisible?: boolean | null;

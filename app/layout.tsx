@@ -13,6 +13,7 @@ import {
 import type { EditorFontOption } from "@/lib/editorFonts";
 import { getAdminUiSettings, getEnabledEditorFonts } from "@/lib/uiSettings";
 import { prisma } from "@/lib/prisma";
+import { withPrismaRetry } from "@/lib/prismaRetry";
 import {
   getRequestHostnameFromHeaders,
   resolveTenantHostname,
@@ -84,15 +85,17 @@ export async function generateMetadata(): Promise<Metadata> {
     ? [hostname, hostname.slice(4)]
     : [hostname, `www.${hostname}`];
 
-  const domain = await prisma.domain.findFirst({
-    where: {
-      hostname: { in: hostCandidates },
-      isActive: true,
-    },
-    select: {
-      faviconUrl: true,
-    },
-  });
+  const domain = await withPrismaRetry(() =>
+    prisma.domain.findFirst({
+      where: {
+        hostname: { in: hostCandidates },
+        isActive: true,
+      },
+      select: {
+        faviconUrl: true,
+      },
+    }),
+  );
 
   const iconUrl = domain?.faviconUrl || FALLBACK_FAVICON;
 

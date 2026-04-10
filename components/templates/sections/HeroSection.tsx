@@ -1,7 +1,6 @@
 import Image from "next/image";
 import type {
   HeroElementsByColumn,
-  HeroElementKind,
   LandingPageContent,
 } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
@@ -45,6 +44,10 @@ interface HeroLayoutConfig {
   formPostCtaText?: string;
   formFooterText?: string;
   heroImageBrightness?: number;
+  nextStepsSecondOnly?: boolean;
+  teamImageUrl?: string;
+  teamInfoHtml?: string;
+  teamTrustHtml?: string;
 }
 
 interface LayoutItem {
@@ -105,7 +108,7 @@ export function HeroSection({
   const isTeamShowcase = layout?.formStyle === "team-showcase";
   const isProfileOnlyNextSteps =
     isNextSteps &&
-    ((((layout as any)?.nextStepsSecondOnly as boolean | undefined) === true) ||
+    ((layout?.nextStepsSecondOnly === true) ||
       page.slug === "strategy-call");
 
   // Hero left: main card behavior
@@ -113,7 +116,7 @@ export function HeroSection({
   // - If the editor has been explicitly saved as empty string, suppress all
   //   fallback hero copy (headline/subheadline) and show nothing.
   // - If the field is undefined (never touched), use the normal defaults.
-  const leftMainRaw = (layout as any)?.leftMainHtml as string | undefined;
+  const leftMainRaw = layout?.leftMainHtml;
   const hasExplicitBlankHero = leftMainRaw === "";
   const leftMainHtml =
     typeof leftMainRaw === "string" && leftMainRaw.trim().length > 0
@@ -157,9 +160,9 @@ export function HeroSection({
     ? "w-full md:w-auto form-area"
     : "col-span-12 w-full md:col-span-4 md:w-auto";
 
-  const teamImageUrl = (layout as any)?.teamImageUrl as string | undefined;
-  const teamInfoHtml = (layout as any)?.teamInfoHtml as string | undefined;
-  const teamTrustHtml = (layout as any)?.teamTrustHtml as string | undefined;
+  const teamImageUrl = layout?.teamImageUrl;
+  const teamInfoHtml = layout?.teamInfoHtml;
+  const teamTrustHtml = layout?.teamTrustHtml;
   const normalizedPageCtaKey = normalizeCtaTitleKey(page.ctaText ?? "");
   const teamFallbackForwardUrl = (ctaForwardingRules ?? []).find((rule) => {
     const normalizedRule = normalizeCtaTitleKey(rule.ctaTitle);
@@ -210,7 +213,7 @@ export function HeroSection({
                 {formSchema && formSchema.fields?.length ? (
                   <DynamicForm
                     schema={formSchema}
-                    ctaText={page.ctaText}
+                    ctaText={page.ctaText}                    
                     successMessage={page.successMessage}
                     ctaForwardingRules={ctaForwardingRules}
                     ctaBgColor={ctaBgColor}
@@ -334,9 +337,6 @@ export function HeroSection({
                   />
                 ) : hasExplicitBlankHero ? null : (
                   <>
-                    <p className="mb-2 text-[14px] font-semibold uppercase tracking-[0.26em] text-zinc-300">
-                      {page.domain.displayName}
-                    </p>
                     {useHeroElements ? (
                       <div className="space-y-2">
                         {heroElements?.left
