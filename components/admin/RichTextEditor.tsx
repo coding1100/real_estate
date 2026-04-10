@@ -2,8 +2,9 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { Link2 } from "lucide-react";
+import { Columns2, Link2 } from "lucide-react";
 import { Node as TiptapNode } from "@tiptap/core";
+import { Extension } from "@tiptap/core";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Paragraph from "@tiptap/extension-paragraph";
@@ -83,6 +84,77 @@ const TagBlock = TiptapNode.create({
   },
 });
 
+// Bootstrap-like 2-column row container.
+const TwoColRow = TiptapNode.create({
+  name: "twoColRow",
+  group: "block",
+  content: "twoColCol twoColCol",
+  defining: true,
+  isolating: true,
+
+  parseHTML() {
+    return [{ tag: "div.rte-two-col-row" }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    const existingClass =
+      typeof (HTMLAttributes as Record<string, unknown>)?.class === "string"
+        ? ((HTMLAttributes as Record<string, unknown>).class as string)
+        : undefined;
+    const attrs = {
+      ...(HTMLAttributes || {}),
+      class: ["rte-two-col-row", existingClass].filter(Boolean).join(" "),
+    };
+    return ["div", attrs, 0];
+  },
+});
+
+// Each column can contain regular block content, including nested rows.
+const TwoColCol = TiptapNode.create({
+  name: "twoColCol",
+  group: "block",
+  content: "block+",
+  defining: true,
+
+  parseHTML() {
+    return [{ tag: "div.rte-two-col-col" }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    const existingClass =
+      typeof (HTMLAttributes as Record<string, unknown>)?.class === "string"
+        ? ((HTMLAttributes as Record<string, unknown>).class as string)
+        : undefined;
+    const attrs = {
+      ...(HTMLAttributes || {}),
+      class: ["rte-two-col-col", existingClass].filter(Boolean).join(" "),
+    };
+    return ["div", attrs, 0];
+  },
+});
+
+const ListStyleExtension = Extension.create({
+  name: "listStyleExtension",
+
+  addGlobalAttributes() {
+    return [
+      {
+        types: ["bulletList", "orderedList"],
+        attributes: {
+          dataListStyle: {
+            default: null,
+            parseHTML: (element) => element.getAttribute("data-list-style"),
+            renderHTML: (attributes) => {
+              if (!attributes.dataListStyle) return {};
+              return { "data-list-style": attributes.dataListStyle };
+            },
+          },
+        },
+      },
+    ];
+  },
+});
+
 export function RichTextEditor({
   label,
   value,
@@ -123,6 +195,7 @@ export function RichTextEditor({
   );
   const [currentFontSize, setCurrentFontSize] = useState("14px");
   const [currentLineHeight, setCurrentLineHeight] = useState("1");
+  const [currentListStyle, setCurrentListStyle] = useState("dot");
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkDraft, setLinkDraft] = useState("");
   const [linkError, setLinkError] = useState<string | null>(null);
@@ -194,6 +267,62 @@ export function RichTextEditor({
     setShowLinkDialog(false);
   };
 
+  const insertTwoColumnTemplate = () => {
+    if (!editor) return;
+    editor.chain().focus().insertContent({
+      type: "twoColRow",
+      content: [
+        {
+          type: "twoColCol",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Column 1" }],
+            },
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Add your left column content here." }],
+            },
+          ],
+        },
+        {
+          type: "twoColCol",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Column 2" }],
+            },
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Add your right column content here." }],
+            },
+          ],
+        },
+      ],
+    }).run();
+  };
+
+  const insertGeneralIcon = (icon: string) => {
+    if (!editor || !icon) return;
+    editor.chain().focus().insertContent(icon).run();
+  };
+
+  const applyListStyle = (style: string) => {
+    if (!editor) return;
+    const chain = editor.chain().focus();
+    if (!editor.isActive("bulletList")) {
+      chain.toggleBulletList().run();
+    }
+    editor
+      .chain()
+      .focus()
+      .updateAttributes("bulletList", {
+        dataListStyle: style === "dot" ? null : style,
+      })
+      .run();
+    setCurrentListStyle(style);
+  };
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -205,6 +334,9 @@ export function RichTextEditor({
       }),
       ParagraphWithStyle,
       TagBlock,
+      TwoColRow,
+      TwoColCol,
+      ListStyleExtension,
       Underline,
       TextStyle,
       FontFamily,
@@ -504,6 +636,13 @@ export function RichTextEditor({
         }
       }
       setCurrentLineHeight(lh);
+
+      if (editor.isActive("bulletList")) {
+        const attrs = editor.getAttributes("bulletList") as {
+          dataListStyle?: string | null;
+        };
+        setCurrentListStyle(attrs.dataListStyle || "dot");
+      }
     };
 
     editor.on("selectionUpdate", updateFromSelection);
@@ -806,6 +945,36 @@ export function RichTextEditor({
           >
             ®
           </button>
+          <select
+            title="Insert general icon"
+            aria-label="Insert general icon"
+            defaultValue=""
+            className="ml-1 rounded border border-zinc-300 bg-white px-1 py-0.5 text-xs text-zinc-700"
+            onChange={(e) => {
+              const icon = e.target.value;
+              if (!icon) return;
+              insertGeneralIcon(icon);
+              e.target.value = "";
+            }}
+          >
+            <option value="">Insert icon</option>
+            <option value="→">Arrow Right (→)</option>
+            <option value="←">Arrow Left (←)</option>
+            <option value="↗">Arrow Up-Right (↗)</option>
+            <option value="•">Dot (•)</option>
+            <option value="◦">Circle Hollow (◦)</option>
+            <option value="■">Square (■)</option>
+            <option value="★">Star (★)</option>
+            <option value="✓">Check (✓)</option>
+            <option value="+">Plus (+)</option>
+            <option value="◆">Diamond (◆)</option>
+            <option value="▶">Triangle (▶)</option>
+            <option value="›">Chevron (›)</option>
+            <option value="✦">Sparkle (✦)</option>
+            <option value="✉">Mail (✉)</option>
+            <option value="☎">Phone (☎)</option>
+            <option value="📍">Pin (📍)</option>
+          </select>
 
           {/* Alignment */}
           <div className="ml-1 inline-flex rounded border border-zinc-300 bg-white">
@@ -953,31 +1122,36 @@ export function RichTextEditor({
           </select>
 
           {/* Lists */}
+          <select
+            title="List style"
+            aria-label="List style"
+            className="ml-1 rounded border border-zinc-300 bg-white px-1 py-0.5 text-xs text-zinc-700"
+            value={currentListStyle}
+            onChange={(e) => applyListStyle(e.target.value)}
+          >
+            <option value="dot">List: Dot</option>
+            <option value="circle">List: Circle</option>
+            <option value="square">List: Square</option>
+            <option value="tick">List: Tick</option>
+            <option value="arrow">List: Arrow</option>
+            <option value="dash">List: Dash</option>
+            <option value="plus">List: Plus</option>
+            <option value="star">List: Star</option>
+            <option value="diamond">List: Diamond</option>
+            <option value="triangle">List: Triangle</option>
+            <option value="chevron">List: Chevron</option>
+            <option value="sparkle">List: Sparkle</option>
+            <option value="pin">List: Pin</option>
+            <option value="none">List: No marker</option>
+          </select>
           <button
             type="button"
-            title="Bulleted list"
-            aria-label="Bulleted list"
-            onClick={() => editor?.chain().focus().toggleBulletList().run()}
-            className={`px-1.5 py-0.5 rounded ${
-              editor?.isActive("bulletList")
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-700 hover:bg-zinc-200"
-            }`}
+            title="Insert 2 equal columns (50/50)"
+            aria-label="Insert 2 equal columns (50/50)"
+            onClick={insertTwoColumnTemplate}
+            className="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-zinc-700 hover:bg-zinc-200"
           >
-            • List
-          </button>
-          <button
-            type="button"
-            title="Numbered list"
-            aria-label="Numbered list"
-            onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-            className={`px-1.5 py-0.5 rounded ${
-              editor?.isActive("orderedList")
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-700 hover:bg-zinc-200"
-            }`}
-          >
-            1. List
+            <Columns2 className="h-3.5 w-3.5" />
           </button>
 
           {/* Indent / Outdent for list items */}

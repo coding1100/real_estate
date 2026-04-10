@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "./prisma";
+import { withPrismaRetry } from "./prismaRetry";
 import type { LandingPageContent } from "./types/page";
 import { getDomainDefaultHomepageSlug } from "./defaultHomepage";
 import {
@@ -170,7 +171,8 @@ export async function getLandingPage(
 
   let page: PageRow | null = null;
   try {
-    page = await prisma.landingPage.findFirst({
+    page = await withPrismaRetry(() =>
+      prisma.landingPage.findFirst({
       where: {
         slug: fetchSlug,
         ...(includeDraft ? {} : { status: "published" }),
@@ -180,7 +182,8 @@ export async function getLandingPage(
         },
       },
       include: { domain: true },
-    });
+    }),
+    );
   } catch (err) {
     console.error("[getLandingPage] Primary query failed", err);
     page = null;
@@ -189,35 +192,41 @@ export async function getLandingPage(
   if (!page && options?.allowFallbackToAnyDomain) {
     try {
       // First, try to find a published page with this slug on any active domain.
-      page = await prisma.landingPage.findFirst({
+      page = await withPrismaRetry(() =>
+        prisma.landingPage.findFirst({
         where: {
           slug: fetchSlug,
           ...(includeDraft ? {} : { status: "published" }),
           domain: { isActive: true },
         },
         include: { domain: true },
-      });
+      }),
+      );
 
       // If still not found, fall back to any status on any active domain.
       if (!page) {
-        page = await prisma.landingPage.findFirst({
+        page = await withPrismaRetry(() =>
+          prisma.landingPage.findFirst({
           where: {
             slug: fetchSlug,
             domain: { isActive: true },
           },
           include: { domain: true },
-        });
+        }),
+        );
       }
 
       // Additional safety for executive relocation in preview environments.
       if (!page && requestedSlug === EXEC_REL_ENTRY_SLUG) {
-        page = await prisma.landingPage.findFirst({
+        page = await withPrismaRetry(() =>
+          prisma.landingPage.findFirst({
           where: {
             slug: EXEC_REL_ENTRY_SLUG,
             domain: { isActive: true },
           },
           include: { domain: true },
-        });
+        }),
+        );
       }
     } catch (err) {
       console.error("[getLandingPage] Fallback query failed", err);
@@ -236,14 +245,16 @@ export async function getLandingPage(
     }
     if (!includeDraft) {
       try {
-        const draftRow = await prisma.landingPage.findFirst({
+        const draftRow = await withPrismaRetry(() =>
+          prisma.landingPage.findFirst({
           where: {
             slug: fetchSlug,
             domain: { hostname, isActive: true },
             NOT: { status: "published" },
           },
           include: { domain: true },
-        });
+        }),
+        );
         if (draftRow?.domain) {
           throw new UnpublishedLandingPageError(
             draftRow.domain.displayName,
@@ -273,14 +284,16 @@ export async function getLandingPage(
       _entrySlug: string,
       stepSlugList: readonly string[],
     ) => {
-      const candidatePages = await prisma.landingPage.findMany({
+      const candidatePages = await withPrismaRetry(() =>
+        prisma.landingPage.findMany({
         where: {
           slug: { in: stepSlugList as any },
           domainId: page.domainId,
           ...(includeDraft ? {} : { status: "published" }),
         },
         select: { slug: true },
-      });
+      }),
+      );
       const existingSlugs = new Set(candidatePages.map((p) => p.slug));
       const inferred: string[] = [];
       for (const s of stepSlugList) {
@@ -315,9 +328,11 @@ export async function getLandingPage(
 
   let pageLayout: { layoutData: unknown } | null = null;
   try {
-    const layout = await prisma.pageLayout.findUnique({
+    const layout = await withPrismaRetry(() =>
+      prisma.pageLayout.findUnique({
       where: { pageId: page.id },
-    });
+      }),
+    );
     if (layout) pageLayout = { layoutData: layout.layoutData };
   } catch {
     // PageLayout table may not exist if migration has not been applied
@@ -364,20 +379,24 @@ export async function getLandingPage(
   if (stepSlugs && Array.isArray(stepSlugs) && stepSlugs.length > 0) {
     const steps: LandingPageContent[] = [];
     for (const stepSlug of stepSlugs) {
-      const stepPage = await prisma.landingPage.findFirst({
+      const stepPage = await withPrismaRetry(() =>
+        prisma.landingPage.findFirst({
         where: {
           slug: stepSlug,
           domainId: page.domainId,
           ...(includeDraft ? {} : { status: "published" }),
         },
         include: { domain: true },
-      });
+        }),
+      );
       if (!stepPage?.domain) continue;
       let stepLayout: { layoutData: unknown } | null = null;
       try {
-        const sl = await prisma.pageLayout.findUnique({
+        const sl = await withPrismaRetry(() =>
+          prisma.pageLayout.findUnique({
           where: { pageId: stepPage.id },
-        });
+          }),
+        );
         if (sl) stepLayout = { layoutData: sl.layoutData };
       } catch {
         // ignore
@@ -396,10 +415,12 @@ export async function getLandingPage(
 export async function getDomainRootPublishedSlug(
   hostname: string,
 ): Promise<string | null> {
-  const domain = await prisma.domain.findFirst({
+  const domain = await withPrismaRetry(() =>
+    prisma.domain.findFirst({
     where: { hostname, isActive: true },
     select: { id: true },
-  });
+    }),
+  );
   if (!domain) return null;
 
   const defaultSlug = await getDomainDefaultHomepageSlug(domain.id);
@@ -407,25 +428,29 @@ export async function getDomainRootPublishedSlug(
 
   const preferredSlug = (process.env.DOMAIN_ROOT_DEFAULT_SLUG ?? "").trim();
   if (preferredSlug) {
-    const preferredPage = await prisma.landingPage.findFirst({
+    const preferredPage = await withPrismaRetry(() =>
+      prisma.landingPage.findFirst({
       where: {
         domainId: domain.id,
         slug: preferredSlug,
         status: "published",
       },
       select: { slug: true },
-    });
+      }),
+    );
     if (preferredPage?.slug) return preferredPage.slug;
   }
 
-  const latestPublishedPage = await prisma.landingPage.findFirst({
+  const latestPublishedPage = await withPrismaRetry(() =>
+    prisma.landingPage.findFirst({
     where: {
       domainId: domain.id,
       status: "published",
     },
     orderBy: { updatedAt: "desc" },
     select: { slug: true },
-  });
+    }),
+  );
   return latestPublishedPage?.slug ?? null;
 }
 
