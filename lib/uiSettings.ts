@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { withPrismaRetry } from "@/lib/prismaRetry";
 import type { EditorFontOption } from "@/lib/editorFonts";
 import { DEFAULT_EDITOR_FONTS } from "@/lib/editorFonts";
 import {
@@ -197,15 +198,42 @@ function normalizeCtaForwardingRules(
 }
 
 async function ensureCtaForwardingColumn() {
-  await prisma.$executeRawUnsafe(
-    'ALTER TABLE "AdminUiSettings" ADD COLUMN IF NOT EXISTS "ctaForwardingRules" JSONB',
+  await withPrismaRetry(() =>
+    prisma.$executeRawUnsafe(
+      'ALTER TABLE "AdminUiSettings" ADD COLUMN IF NOT EXISTS "ctaForwardingRules" JSONB',
+    ),
   );
 }
 
 async function ensureToastPositionColumn() {
-  await prisma.$executeRawUnsafe(
-    'ALTER TABLE "AdminUiSettings" ADD COLUMN IF NOT EXISTS "toastPosition" TEXT',
+  await withPrismaRetry(() =>
+    prisma.$executeRawUnsafe(
+      'ALTER TABLE "AdminUiSettings" ADD COLUMN IF NOT EXISTS "toastPosition" TEXT',
+    ),
   );
+}
+
+let ensureToastPositionColumnPromise: Promise<void> | null = null;
+let ensureCtaForwardingColumnPromise: Promise<void> | null = null;
+
+async function ensureToastPositionColumnOnce() {
+  if (!ensureToastPositionColumnPromise) {
+    ensureToastPositionColumnPromise = ensureToastPositionColumn().catch((err) => {
+      ensureToastPositionColumnPromise = null;
+      throw err;
+    });
+  }
+  await ensureToastPositionColumnPromise;
+}
+
+async function ensureCtaForwardingColumnOnce() {
+  if (!ensureCtaForwardingColumnPromise) {
+    ensureCtaForwardingColumnPromise = ensureCtaForwardingColumn().catch((err) => {
+      ensureCtaForwardingColumnPromise = null;
+      throw err;
+    });
+  }
+  await ensureCtaForwardingColumnPromise;
 }
 
 function normalizeToastPosition(
@@ -222,10 +250,12 @@ async function readToastPosition(): Promise<
   "top-right" | "top-left" | "bottom-right" | "bottom-left"
 > {
   try {
-    await ensureToastPositionColumn();
-    const rows = await prisma.$queryRawUnsafe<Array<{ toastPosition: unknown }>>(
+    await ensureToastPositionColumnOnce();
+    const rows = await withPrismaRetry(() =>
+      prisma.$queryRawUnsafe<Array<{ toastPosition: unknown }>>(
       'SELECT "toastPosition" FROM "AdminUiSettings" WHERE "id" = $1 LIMIT 1',
       SINGLETON_ID,
+      ),
     );
     return normalizeToastPosition(rows?.[0]?.toastPosition);
   } catch {
@@ -235,10 +265,12 @@ async function readToastPosition(): Promise<
 
 async function readCtaForwardingRules(): Promise<CtaForwardingRule[]> {
   try {
-    await ensureCtaForwardingColumn();
-    const rows = await prisma.$queryRawUnsafe<Array<{ ctaForwardingRules: unknown }>>(
+    await ensureCtaForwardingColumnOnce();
+    const rows = await withPrismaRetry(() =>
+      prisma.$queryRawUnsafe<Array<{ ctaForwardingRules: unknown }>>(
       'SELECT "ctaForwardingRules" FROM "AdminUiSettings" WHERE "id" = $1 LIMIT 1',
       SINGLETON_ID,
+      ),
     );
     return normalizeCtaForwardingRules(rows?.[0]?.ctaForwardingRules);
   } catch {
@@ -252,7 +284,7 @@ export async function getAdminUiSettings(): Promise<{
   editorFonts: EditorFontOption[];
 }> {
   try {
-    const settings = await prisma.adminUiSettings.upsert({
+    const settings = await withPrismaRetry(() => prisma.adminUiSettings.upsert({
       where: { id: SINGLETON_ID },
       update: {},
       create: {
@@ -274,7 +306,7 @@ export async function getAdminUiSettings(): Promise<{
         toastAlertBody: DEFAULT_THEME.alertBody,
         editorFonts: DEFAULT_EDITOR_FONTS as any,
       },
-    });
+    }));
 
     const toastPosition = await readToastPosition();
     const theme: ToastTheme = {
@@ -387,7 +419,7 @@ export async function updateAdminUiSettings(
   >>,
 ): Promise<{ settings: AdminUiSettings; theme: ToastTheme }> {
   try {
-    const settings = await prisma.adminUiSettings.upsert({
+    const settings = await withPrismaRetry(() => prisma.adminUiSettings.upsert({
       where: { id: SINGLETON_ID },
       update: {
         ...(patch.toastSuccessBg != null && {
@@ -462,24 +494,24 @@ export async function updateAdminUiSettings(
         toastAlertBody: patch.toastAlertBody ?? DEFAULT_THEME.alertBody,
         editorFonts: (patch.editorFonts as any) ?? (DEFAULT_EDITOR_FONTS as any),
       },
-    });
+    }));
 
     if (patch.toastPosition != null) {
-      await ensureToastPositionColumn();
-      await prisma.$executeRawUnsafe(
+      await ensureToastPositionColumnOnce();
+      await withPrismaRetry(() => prisma.$executeRawUnsafe(
         'UPDATE "AdminUiSettings" SET "toastPosition" = $1 WHERE "id" = $2',
         normalizeToastPosition(patch.toastPosition),
         SINGLETON_ID,
-      );
+      ));
     }
 
     if (patch.ctaForwardingRules != null) {
-      await ensureCtaForwardingColumn();
-      await prisma.$executeRawUnsafe(
+      await ensureCtaForwardingColumnOnce();
+      await withPrismaRetry(() => prisma.$executeRawUnsafe(
         'UPDATE "AdminUiSettings" SET "ctaForwardingRules" = $1 WHERE "id" = $2',
         JSON.stringify(normalizeCtaForwardingRules(patch.ctaForwardingRules)),
         SINGLETON_ID,
-      );
+      ));
     }
 
     const toastPosition = await readToastPosition();

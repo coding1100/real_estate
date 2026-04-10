@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { withPrismaRetry } from "@/lib/prismaRetry";
 
 type DomainDefaultHomepageRow = {
   pageId: string;
@@ -20,14 +21,14 @@ export async function getDomainDefaultHomepageSlug(
   domainId: string,
 ): Promise<string | null> {
   try {
-    const rows = (await prisma.$queryRaw<DomainDefaultHomepageRow[]>`
+    const rows = (await withPrismaRetry(() => prisma.$queryRaw<DomainDefaultHomepageRow[]>`
       SELECT lp."id" AS "pageId", lp."slug" AS "slug"
       FROM "Domain" d
       JOIN "LandingPage" lp ON lp."id" = d."defaultHomepagePageId"
       WHERE d."id" = ${domainId}
         AND lp."status" = 'published'
       LIMIT 1
-    `) as DomainDefaultHomepageRow[];
+    `)) as DomainDefaultHomepageRow[];
     return rows[0]?.slug ?? null;
   } catch (error) {
     if (!isMissingColumnError(error)) {
@@ -39,12 +40,12 @@ export async function getDomainDefaultHomepageSlug(
 
 export async function isFixedDefaultHomepagePage(pageId: string): Promise<boolean> {
   try {
-    const rows = (await prisma.$queryRaw<{ id: string }[]>`
+    const rows = (await withPrismaRetry(() => prisma.$queryRaw<{ id: string }[]>`
       SELECT d."id"
       FROM "Domain" d
       WHERE d."defaultHomepagePageId" = ${pageId}
       LIMIT 1
-    `) as { id: string }[];
+    `)) as { id: string }[];
     return rows.length > 0;
   } catch (error) {
     if (!isMissingColumnError(error)) {
@@ -56,11 +57,11 @@ export async function isFixedDefaultHomepagePage(pageId: string): Promise<boolea
 
 export async function getFixedHomepagePageIds(): Promise<Set<string>> {
   try {
-    const rows = (await prisma.$queryRaw<{ pageId: string }[]>`
+    const rows = (await withPrismaRetry(() => prisma.$queryRaw<{ pageId: string }[]>`
       SELECT d."defaultHomepagePageId" AS "pageId"
       FROM "Domain" d
       WHERE d."defaultHomepagePageId" IS NOT NULL
-    `) as { pageId: string }[];
+    `)) as { pageId: string }[];
     return new Set(rows.map((row) => row.pageId).filter(Boolean));
   } catch (error) {
     if (!isMissingColumnError(error)) {
@@ -78,14 +79,14 @@ export async function validateDefaultHomepageSelection(
   const trimmed = pageId.trim();
   if (!trimmed) return null;
 
-  const rows = (await prisma.$queryRaw<{ id: string }[]>`
+  const rows = (await withPrismaRetry(() => prisma.$queryRaw<{ id: string }[]>`
     SELECT lp."id"
     FROM "LandingPage" lp
     WHERE lp."id" = ${trimmed}
       AND lp."domainId" = ${domainId}
       AND lp."status" = 'published'
     LIMIT 1
-  `) as { id: string }[];
+  `)) as { id: string }[];
 
   if (rows.length === 0) {
     throw new Error("Default homepage must be a published page from this domain.");
@@ -106,14 +107,14 @@ export async function getDefaultHomepageButtons(
 ): Promise<DefaultHomepageButtonItem[]> {
   let limit = 9;
   try {
-    const domainLimitRows = (await prisma.$queryRaw<
+    const domainLimitRows = (await withPrismaRetry(() => prisma.$queryRaw<
       { defaultHomepageButtonLimit: number | null }[]
     >`
       SELECT d."defaultHomepageButtonLimit"
       FROM "Domain" d
       WHERE d."id" = ${domainId}
       LIMIT 1
-    `) as { defaultHomepageButtonLimit: number | null }[];
+    `)) as { defaultHomepageButtonLimit: number | null }[];
     const requestedLimit = Number(domainLimitRows[0]?.defaultHomepageButtonLimit ?? 9);
     limit = Math.max(
       1,
@@ -125,7 +126,7 @@ export async function getDefaultHomepageButtons(
     }
   }
 
-  const ordered = (await prisma.$queryRaw<
+  const ordered = (await withPrismaRetry(() => prisma.$queryRaw<
     {
       id: string;
       slug: string;
@@ -147,7 +148,7 @@ export async function getDefaultHomepageButtons(
       AND lp."id" <> ${excludePageId}
     ORDER BY COALESCE(lp."adminListOrder", 0) ASC, lp."slug" ASC
     LIMIT ${limit}
-  `) as {
+  `)) as {
     id: string;
     slug: string;
     title: string | null;
@@ -190,7 +191,7 @@ export async function getDomainMasterBackgroundImage(
   const masterSlug = normalizedType === "buyer" ? "master-buyer" : "master-seller";
   const masterType = normalizedType === "buyer" ? "buyer" : "seller";
 
-  const rows = (await prisma.$queryRaw<
+  const rows = (await withPrismaRetry(() => prisma.$queryRaw<
     {
       heroImageUrl: string | null;
       sections: unknown;
@@ -202,7 +203,7 @@ export async function getDomainMasterBackgroundImage(
       AND lp."slug" = ${masterSlug}
     ORDER BY CASE WHEN lp."status" = 'published' THEN 0 ELSE 1 END, lp."updatedAt" DESC
     LIMIT 1
-  `) as { heroImageUrl: string | null; sections: unknown }[];
+  `)) as { heroImageUrl: string | null; sections: unknown }[];
 
   const fromSections = extractMasterHeroBackground(rows[0]?.sections);
   if (fromSections) return fromSections;
@@ -211,7 +212,7 @@ export async function getDomainMasterBackgroundImage(
   if (image.length > 0) return image;
 
   // Fallback 1: any master page for this type across domains.
-  const globalMasterRows = (await prisma.$queryRaw<
+  const globalMasterRows = (await withPrismaRetry(() => prisma.$queryRaw<
     { heroImageUrl: string | null; sections: unknown }[]
   >`
     SELECT lp."heroImageUrl", lp."sections"
@@ -219,7 +220,7 @@ export async function getDomainMasterBackgroundImage(
     WHERE lp."slug" = ${masterSlug}
     ORDER BY CASE WHEN lp."status" = 'published' THEN 0 ELSE 1 END, lp."updatedAt" DESC
     LIMIT 1
-  `) as { heroImageUrl: string | null; sections: unknown }[];
+  `)) as { heroImageUrl: string | null; sections: unknown }[];
 
   const globalFromSections = extractMasterHeroBackground(
     globalMasterRows[0]?.sections,
@@ -230,12 +231,12 @@ export async function getDomainMasterBackgroundImage(
   if (globalImage.length > 0) return globalImage;
 
   // Fallback 2: MasterTemplate.sections (locked buyer/seller template definition).
-  const templateRows = (await prisma.$queryRaw<{ sections: unknown }[]>`
+  const templateRows = (await withPrismaRetry(() => prisma.$queryRaw<{ sections: unknown }[]>`
     SELECT mt."sections"
     FROM "MasterTemplate" mt
     WHERE mt."type" = ${masterType}
     LIMIT 1
-  `) as { sections: unknown }[];
+  `)) as { sections: unknown }[];
   const templateFromSections = extractMasterHeroBackground(templateRows[0]?.sections);
   if (templateFromSections) return templateFromSections;
 
