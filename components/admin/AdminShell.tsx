@@ -7,7 +7,7 @@ import {
   LayoutDashboard,
   Globe2,
   FileText,
-  Copy,
+  Trash2,
   Layers,
   Menu,
   LogOut,
@@ -21,6 +21,7 @@ interface AdminShellProps {
   children: ReactNode;
   userEmail?: string | null;
   toastTheme?: ToastTheme;
+  archivedWithLeadsCount?: number;
 }
 
 /** Keep /admin/pages and /admin/pages-2 active states isolated. */
@@ -35,8 +36,15 @@ function navLinkActive(pathname: string, href: string): boolean {
   if (href === "/admin/pages-2") {
     return (
       pathname === "/admin/pages-2" ||
-      pathname.startsWith("/admin/pages-2/") ||
+      pathname.startsWith("/admin/pages-2/") &&
+        !pathname.startsWith("/admin/pages-2/archived") ||
       pathname.startsWith("/admin/pages/")
+    );
+  }
+  if (href === "/admin/pages-2/archived") {
+    return (
+      pathname === "/admin/pages-2/archived" ||
+      pathname.startsWith("/admin/pages-2/archived/")
     );
   }
   if (href !== "/admin" && pathname.startsWith(`${href}/`)) return true;
@@ -48,12 +56,18 @@ const navItems = [
   { href: "/admin/domains", label: "Domains", icon: Globe2 },
   // { href: "/admin/pages", label: "Landing Pages", icon: FileText },
   { href: "/admin/pages-2", label: "Landing Pages", icon: FileText },
+  { href: "/admin/pages-2/archived", label: "Archived Pages", icon: Trash2 },
   { href: "/admin/templates", label: "Templates", icon: Layers },
   // { href: "/admin/webhooks", label: "Webhooks", icon: RadioTower },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
-export function AdminShell({ children, userEmail, toastTheme }: AdminShellProps) {
+export function AdminShell({
+  children,
+  userEmail,
+  toastTheme,
+  archivedWithLeadsCount = 0,
+}: AdminShellProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = React.useState(false);
 
@@ -120,7 +134,17 @@ export function AdminShell({ children, userEmail, toastTheme }: AdminShellProps)
                 >
                   <Icon className="h-5 w-5 shrink-0 " />
                   {!collapsed && (
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate inline-flex items-center gap-2">
+                      {item.label}
+                      {item.href === "/admin/pages-2/archived" &&
+                      archivedWithLeadsCount > 0 ? (
+                        <span
+                          className="inline-block h-2 w-2 rounded-full bg-red-500"
+                          title={`${archivedWithLeadsCount} archived page(s) contain leads`}
+                          aria-label={`${archivedWithLeadsCount} archived page(s) contain leads`}
+                        />
+                      ) : null}
+                    </span>
                   )}
                 </Link>
               );
@@ -154,7 +178,17 @@ export function AdminShell({ children, userEmail, toastTheme }: AdminShellProps)
                       }`}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{item.label}</span>
+                      <span className="truncate inline-flex items-center gap-2">
+                        {item.label}
+                        {item.href === "/admin/pages-2/archived" &&
+                        archivedWithLeadsCount > 0 ? (
+                          <span
+                            className="inline-block h-2 w-2 rounded-full bg-red-500"
+                            title={`${archivedWithLeadsCount} archived page(s) contain leads`}
+                            aria-label={`${archivedWithLeadsCount} archived page(s) contain leads`}
+                          />
+                        ) : null}
+                      </span>
                     </Link>
                   );
                 })}

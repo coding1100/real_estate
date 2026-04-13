@@ -19,7 +19,7 @@ export default async function EditPage({ params }: EditPageProps) {
   let page;
   try {
     page = await prisma.landingPage.findUnique({
-      where: { id },
+      where: { id, deletedAt: null },
       include: { domain: true },
     });
   } catch (err) {
@@ -34,6 +34,7 @@ export default async function EditPage({ params }: EditPageProps) {
   const domain = page.domain;
   const fixedDefaultHomepage = await isFixedDefaultHomepagePage(page.id);
   const allPages = await prisma.landingPage.findMany({
+    where: { deletedAt: null },
     select: {
       id: true,
       slug: true,

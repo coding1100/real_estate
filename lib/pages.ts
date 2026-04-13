@@ -175,6 +175,7 @@ export async function getLandingPage(
       prisma.landingPage.findFirst({
       where: {
         slug: fetchSlug,
+        deletedAt: null,
         ...(includeDraft ? {} : { status: "published" }),
         domain: {
           hostname,
@@ -196,6 +197,7 @@ export async function getLandingPage(
         prisma.landingPage.findFirst({
         where: {
           slug: fetchSlug,
+          deletedAt: null,
           ...(includeDraft ? {} : { status: "published" }),
           domain: { isActive: true },
         },
@@ -209,6 +211,7 @@ export async function getLandingPage(
           prisma.landingPage.findFirst({
           where: {
             slug: fetchSlug,
+            deletedAt: null,
             domain: { isActive: true },
           },
           include: { domain: true },
@@ -222,6 +225,7 @@ export async function getLandingPage(
           prisma.landingPage.findFirst({
           where: {
             slug: EXEC_REL_ENTRY_SLUG,
+            deletedAt: null,
             domain: { isActive: true },
           },
           include: { domain: true },
@@ -249,6 +253,7 @@ export async function getLandingPage(
           prisma.landingPage.findFirst({
           where: {
             slug: fetchSlug,
+            deletedAt: null,
             domain: { hostname, isActive: true },
             NOT: { status: "published" },
           },
@@ -289,6 +294,7 @@ export async function getLandingPage(
         where: {
           slug: { in: stepSlugList as any },
           domainId: page.domainId,
+          deletedAt: null,
           ...(includeDraft ? {} : { status: "published" }),
         },
         select: { slug: true },
@@ -384,6 +390,7 @@ export async function getLandingPage(
         where: {
           slug: stepSlug,
           domainId: page.domainId,
+          deletedAt: null,
           ...(includeDraft ? {} : { status: "published" }),
         },
         include: { domain: true },
@@ -432,6 +439,7 @@ export async function getDomainRootPublishedSlug(
       prisma.landingPage.findFirst({
       where: {
         domainId: domain.id,
+        deletedAt: null,
         slug: preferredSlug,
         status: "published",
       },
@@ -445,6 +453,7 @@ export async function getDomainRootPublishedSlug(
     prisma.landingPage.findFirst({
     where: {
       domainId: domain.id,
+      deletedAt: null,
       status: "published",
     },
     orderBy: { updatedAt: "desc" },
