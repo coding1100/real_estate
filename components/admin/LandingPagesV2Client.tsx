@@ -45,6 +45,7 @@ import { getPageCategoryLabel } from "@/lib/admin/pageCategoryLabel";
 
 type Props = {
   pages: PageListItem[];
+  viewMode?: "active" | "archived";
   domains: { id: string; hostname: string }[];
   templates: { id: string; type: string; name: string }[];
   pageOptions: {
@@ -71,9 +72,19 @@ function formatLastModified(value: string) {
   return `Last modified: ${formatted}`;
 }
 
+function truncateWords(input: string, wordLimit: number): string {
+  const normalized = input.trim().replace(/\s+/g, " ");
+  if (!normalized) return "";
+  const words = normalized.split(" ");
+  if (words.length <= wordLimit) return normalized;
+  return `${words.slice(0, wordLimit).join(" ")}...`;
+}
+
 type SortableLandingPageRowProps = {
   page: PageListItem;
   isMaster: boolean;
+  isDeleted: boolean;
+  archivedView: boolean;
   title: string;
   category: string;
   published: boolean;
@@ -85,6 +96,8 @@ type SortableLandingPageRowProps = {
 function SortableLandingPageRow({
   page,
   isMaster,
+  isDeleted,
+  archivedView,
   title,
   category,
   published,
@@ -215,8 +228,10 @@ function SortableLandingPageRow({
             <div className="sm:w-[260px] sm:border-x sm:border-[#E9ECEF] sm:px-5 sm:py-1 !w-full">
               <p className="text-[12px] font-medium text-[#ADB5BD]">Notes</p>
               <div className="mt-1 flex items-center justify-between gap-2">
-                <p className="min-w-0 flex-1 truncate whitespace-nowrap text-[14px] font-semibold text-[#343A40]">
-                  {page.notes?.trim() || "No notes added yet."}
+                <p className="min-w-0 flex-1 line-clamp-3 whitespace-normal break-words text-[14px] font-semibold leading-5 text-[#343A40]">
+                  {page.notes?.trim()
+                    ? truncateWords(page.notes, 40)
+                    : "No notes added yet."}
                 </p>
                 <button
                   type="button"
@@ -265,6 +280,11 @@ function SortableLandingPageRow({
                     <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#C5DCF7] bg-[#E7F1FF] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#1864AB]">
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#228BE6]" aria-hidden />
                       PUBLISHED
+                    </span>
+                  ) : isDeleted ? (
+                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#f5d0fe] bg-[#fdf4ff] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#a21caf]">
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#d946ef]" aria-hidden />
+                      ARCHIVED
                     </span>
                   ) : (
                     <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#DEE2E6] bg-[#F8F9FA] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#495057]">
@@ -322,6 +342,8 @@ function SortableLandingPageRow({
                   pageId={page.id}
                   slug={page.slug}
                   isMaster={isMaster}
+                  isDeleted={isDeleted}
+                  archivedView={archivedView}
                   isFixedDefaultHomepage={page.isFixedDefaultHomepage}
                   inline
                   showMasterBadge={false}
@@ -339,6 +361,7 @@ function SortableLandingPageRow({
 
 export function LandingPagesV2Client({
   pages: initialPages,
+  viewMode = "active",
   domains,
   templates,
   pageOptions,
@@ -353,9 +376,10 @@ export function LandingPagesV2Client({
   const [rows, setRows] = useState<PageListItem[]>(initialPages);
   const [query, setQuery] = useState(initialQueryFromParams);
   const [domainId, setDomainId] = useState(initialDomainFromParams);
-  const [status, setStatus] = useState<"all" | "published" | "draft">(
+  const [status, setStatus] = useState<"all" | "published" | "draft" | "deleted">(
     initialStatusFromParams === "published" ||
-      initialStatusFromParams === "draft"
+      initialStatusFromParams === "draft" ||
+      initialStatusFromParams === "deleted"
       ? initialStatusFromParams
       : "all",
   );
@@ -385,6 +409,10 @@ export function LandingPagesV2Client({
 
   const filtered = useMemo(() => {
     let list = rows;
+    list =
+      viewMode === "archived"
+        ? list.filter((p) => !!p.deletedAt)
+        : list.filter((p) => !p.deletedAt);
     const q = query.trim().toLowerCase();
     if (q) {
       list = list.filter((p) => {
@@ -401,13 +429,17 @@ export function LandingPagesV2Client({
       list = list.filter((p) => p.domainId === domainId);
     }
     if (status !== "all") {
-      list = list.filter((p) => p.status === status);
+      if (status === "deleted") {
+        list = list.filter((p) => !!p.deletedAt);
+      } else {
+        list = list.filter((p) => p.status === status && !p.deletedAt);
+      }
     }
     if (pageType !== "all") {
       list = list.filter((p) => p.type === pageType);
     }
     return list;
-  }, [rows, query, domainId, status, pageType]);
+  }, [rows, query, domainId, status, pageType, viewMode]);
 
   const grouped = useMemo(() => {
     const order: string[] = [];
@@ -629,14 +661,16 @@ export function LandingPagesV2Client({
         <div>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight text-[#212529]">
-              Landing Pages
+              {viewMode === "archived" ? "Archived Pages" : "Landing Pages"}
             </h1>
             <span className="rounded-md bg-[#E7F1FF] px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-[#1c7ed6] ring-1 ring-[#C5DCF7]">
               V2
             </span>
           </div>
           <p className="mt-1 text-sm text-[#6C757D]">
-            Manage and optimize your conversion funnels
+            {viewMode === "archived"
+              ? "Restore or permanently delete archived pages"
+              : "Manage and optimize your conversion funnels"}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:justify-end">
@@ -654,22 +688,24 @@ export function LandingPagesV2Client({
           >
             <HelpCircle className="h-6 w-6" />
           </button>
-          <AddPageDialog
-            domains={domains}
-            templates={templates}
-            defaultTemplate="buyer"
-            pages={pageOptions}
-            trigger={(open) => (
-              <button
-                type="button"
-                onClick={() => open()}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#18181b] px-[15px] py-[10px] text-[18px] !rounded-lg font-semibold text-white shadow-sm hover:bg-[#000000] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228BE6]"
-              >
-                <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
-                New Page
-              </button>
-            )}
-          />
+          {viewMode !== "archived" ? (
+            <AddPageDialog
+              domains={domains}
+              templates={templates}
+              defaultTemplate="buyer"
+              pages={pageOptions}
+              trigger={(open) => (
+                <button
+                  type="button"
+                  onClick={() => open()}
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#18181b] px-[15px] py-[10px] text-[18px] !rounded-lg font-semibold text-white shadow-sm hover:bg-[#000000] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228BE6]"
+                >
+                  <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
+                  New Page
+                </button>
+              )}
+            />
+          ) : null}
         </div>
       </div>
 
@@ -712,13 +748,18 @@ export function LandingPagesV2Client({
                 aria-label="Status filter"
                 value={status}
                 onChange={(e) =>
-                  setStatus(e.target.value as "all" | "published" | "draft")
+                  setStatus(
+                    e.target.value as "all" | "published" | "draft" | "deleted",
+                  )
                 }
                 className={selectClass}
               >
                 <option value="all">All statuses</option>
                 <option value="published">Published</option>
                 <option value="draft">Draft</option>
+                {viewMode !== "archived" ? (
+                  <option value="deleted">Archived</option>
+                ) : null}
               </select>
               <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#ADB5BD]" />
             </div>
@@ -811,7 +852,10 @@ export function LandingPagesV2Client({
             const pagesForDomain = grouped.map.get(domain) ?? [];
             if (pagesForDomain.length === 0) return null;
             const activeCount = pagesForDomain.filter(
-              (p) => p.status === "published",
+              (p) =>
+                viewMode === "archived"
+                  ? !!p.deletedAt
+                  : p.status === "published" && !p.deletedAt,
             ).length;
 
             return (
@@ -830,7 +874,8 @@ export function LandingPagesV2Client({
                       {domain}
                     </Link>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#868E96]">
-                      {activeCount} active page{activeCount === 1 ? "" : "s"}
+                      {activeCount} {viewMode === "archived" ? "archived" : "active"} page
+                      {activeCount === 1 ? "" : "s"}
                     </p>
                   </div>
                 </div>
@@ -846,13 +891,16 @@ export function LandingPagesV2Client({
                           (page.title || page.headline || page.slug).trim() ||
                           page.slug;
                         const category = getPageCategoryLabel(page);
-                        const published = page.status === "published";
+                        const isDeleted = !!page.deletedAt;
+                        const published = page.status === "published" && !isDeleted;
                         const isMaster = isMasterSlug(page.slug);
                         return (
                           <SortableLandingPageRow
                             key={page.id}
                             page={page}
                             isMaster={isMaster}
+                            isDeleted={isDeleted}
+                            archivedView={viewMode === "archived"}
                             title={title}
                             category={category}
                             published={published}
@@ -874,7 +922,9 @@ export function LandingPagesV2Client({
 
           {count === 0 && (
             <p className="rounded-2xl border border-dashed border-[#E9ECEF] bg-white py-12 text-center text-sm text-[#6C757D]">
-              No pages match your filters.
+              {viewMode === "archived"
+                ? "No archived pages found."
+                : "No pages match your filters."}
             </p>
           )}
           {previewOpenId && (() => {

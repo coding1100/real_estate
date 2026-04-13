@@ -27,6 +27,7 @@ export async function getDomainDefaultHomepageSlug(
       JOIN "LandingPage" lp ON lp."id" = d."defaultHomepagePageId"
       WHERE d."id" = ${domainId}
         AND lp."status" = 'published'
+        AND lp."deletedAt" IS NULL
       LIMIT 1
     `)) as DomainDefaultHomepageRow[];
     return rows[0]?.slug ?? null;
@@ -85,6 +86,7 @@ export async function validateDefaultHomepageSelection(
     WHERE lp."id" = ${trimmed}
       AND lp."domainId" = ${domainId}
       AND lp."status" = 'published'
+      AND lp."deletedAt" IS NULL
     LIMIT 1
   `)) as { id: string }[];
 
@@ -145,6 +147,7 @@ export async function getDefaultHomepageButtons(
     FROM "LandingPage" lp
     WHERE lp."domainId" = ${domainId}
       AND lp."status" = 'published'
+      AND lp."deletedAt" IS NULL
       AND lp."id" <> ${excludePageId}
     ORDER BY COALESCE(lp."adminListOrder", 0) ASC, lp."slug" ASC
     LIMIT ${limit}
@@ -201,6 +204,7 @@ export async function getDomainMasterBackgroundImage(
     FROM "LandingPage" lp
     WHERE lp."domainId" = ${domainId}
       AND lp."slug" = ${masterSlug}
+      AND lp."deletedAt" IS NULL
     ORDER BY CASE WHEN lp."status" = 'published' THEN 0 ELSE 1 END, lp."updatedAt" DESC
     LIMIT 1
   `)) as { heroImageUrl: string | null; sections: unknown }[];
@@ -218,6 +222,7 @@ export async function getDomainMasterBackgroundImage(
     SELECT lp."heroImageUrl", lp."sections"
     FROM "LandingPage" lp
     WHERE lp."slug" = ${masterSlug}
+      AND lp."deletedAt" IS NULL
     ORDER BY CASE WHEN lp."status" = 'published' THEN 0 ELSE 1 END, lp."updatedAt" DESC
     LIMIT 1
   `)) as { heroImageUrl: string | null; sections: unknown }[];

@@ -1,7 +1,7 @@
 import { LandingPagesV2Client } from "@/components/admin/LandingPagesV2Client";
 import { loadLandingPagesList } from "@/lib/admin/loadLandingPagesList";
 
-export default async function LandingPagesV2Page() {
+export default async function ArchivedLandingPagesV2Page() {
   const { tablePages, pageOptions, domains, templates } =
     await loadLandingPagesList();
 
@@ -9,7 +9,7 @@ export default async function LandingPagesV2Page() {
     <div className="min-h-full bg-[#F8F9FA]">
       <LandingPagesV2Client
         pages={tablePages}
-        viewMode="active"
+        viewMode="archived"
         domains={domains}
         templates={templates}
         pageOptions={pageOptions}

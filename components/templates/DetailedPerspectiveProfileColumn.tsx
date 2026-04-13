@@ -66,7 +66,7 @@ export function DetailedPerspectiveProfileColumn({ layout }: Props) {
   };
 
   const imageBoxBaseClass =
-    "max-w-full overflow-hidden rounded-[4px] bg-white";
+    "max-w-full overflow-hidden rounded-[4px]";
   const imageBoxClass = isVertical
     ? `${imageBoxBaseClass} mx-auto`
     : `${imageBoxBaseClass} shrink-0`;

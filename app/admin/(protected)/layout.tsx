@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getServerAuthSession } from "@/lib/auth";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { getAdminUiSettings } from "@/lib/uiSettings";
+import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "Admin - Real Estate",
@@ -25,9 +26,26 @@ export default async function AdminProtectedLayout({
   }
 
   const { theme } = await getAdminUiSettings();
+  let archivedWithLeadsCount = 0;
+  try {
+    const rows = await prisma.$queryRaw<Array<{ count: bigint | number }>>`
+      SELECT COUNT(DISTINCT lp."id") AS "count"
+      FROM "LandingPage" lp
+      JOIN "Lead" l ON l."pageId" = lp."id"
+      WHERE lp."deletedAt" IS NOT NULL
+    `;
+    const raw = rows[0]?.count ?? 0;
+    archivedWithLeadsCount = Number(raw);
+  } catch {
+    archivedWithLeadsCount = 0;
+  }
 
   return (
-    <AdminShell userEmail={session.user?.email} toastTheme={theme}>
+    <AdminShell
+      userEmail={session.user?.email}
+      toastTheme={theme}
+      archivedWithLeadsCount={archivedWithLeadsCount}
+    >
       {children}
     </AdminShell>
   );

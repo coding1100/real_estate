@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
         slug: "master-seller",
         type: "seller",
         domainId: domainIdStr,
+        deletedAt: null,
       },
       orderBy: { updatedAt: "desc" },
     });
@@ -110,6 +111,7 @@ export async function POST(req: NextRequest) {
         slug: "master-buyer",
         type: "buyer",
         domainId: domainIdStr,
+        deletedAt: null,
       },
       orderBy: { updatedAt: "desc" },
     });
@@ -119,12 +121,12 @@ export async function POST(req: NextRequest) {
   if (!basePage) {
     if (typeStr === "seller") {
       basePage = await prisma.landingPage.findFirst({
-        where: { slug: "master-seller", type: "seller" },
+        where: { slug: "master-seller", type: "seller", deletedAt: null },
         orderBy: { updatedAt: "desc" },
       });
     } else if (typeStr === "buyer") {
       basePage = await prisma.landingPage.findFirst({
-        where: { slug: "master-buyer", type: "buyer" },
+        where: { slug: "master-buyer", type: "buyer", deletedAt: null },
         orderBy: { updatedAt: "desc" },
       });
     }
@@ -132,7 +134,7 @@ export async function POST(req: NextRequest) {
 
   if (!basePage) {
     basePage = await prisma.landingPage.findFirst({
-      where: { masterTemplateId: String(masterTemplateId) },
+      where: { masterTemplateId: String(masterTemplateId), deletedAt: null },
       orderBy: { updatedAt: "desc" },
     });
   }
@@ -159,6 +161,7 @@ export async function POST(req: NextRequest) {
   const existingWithSlug = await prisma.landingPage.findFirst({
     where: {
       slug: normalizedSlug,
+      deletedAt: null,
     },
     select: { id: true, domainId: true },
   });
