@@ -158,7 +158,11 @@ export function asUnpublishedLandingPageError(
 export async function getLandingPage(
   hostname: string,
   slug: string,
-  options?: { allowFallbackToAnyDomain?: boolean; includeDraft?: boolean },
+  options?: {
+    allowFallbackToAnyDomain?: boolean;
+    includeDraft?: boolean;
+    includeArchived?: boolean;
+  },
 ): Promise<LandingPageContent> {
   const requestedSlug = slug;
 
@@ -168,6 +172,7 @@ export async function getLandingPage(
     requestedSlug === EXEC_REL_ENTRY_SLUG ? EXEC_REL_STEP_SLUGS[0] : requestedSlug;
 
   const includeDraft = options?.includeDraft === true;
+  const includeArchived = options?.includeArchived === true;
 
   let page: PageRow | null = null;
   try {
@@ -175,7 +180,7 @@ export async function getLandingPage(
       prisma.landingPage.findFirst({
       where: {
         slug: fetchSlug,
-        deletedAt: null,
+        ...(includeArchived ? {} : { deletedAt: null }),
         ...(includeDraft ? {} : { status: "published" }),
         domain: {
           hostname,
@@ -197,7 +202,7 @@ export async function getLandingPage(
         prisma.landingPage.findFirst({
         where: {
           slug: fetchSlug,
-          deletedAt: null,
+          ...(includeArchived ? {} : { deletedAt: null }),
           ...(includeDraft ? {} : { status: "published" }),
           domain: { isActive: true },
         },
@@ -211,7 +216,7 @@ export async function getLandingPage(
           prisma.landingPage.findFirst({
           where: {
             slug: fetchSlug,
-            deletedAt: null,
+            ...(includeArchived ? {} : { deletedAt: null }),
             domain: { isActive: true },
           },
           include: { domain: true },
@@ -225,7 +230,7 @@ export async function getLandingPage(
           prisma.landingPage.findFirst({
           where: {
             slug: EXEC_REL_ENTRY_SLUG,
-            deletedAt: null,
+            ...(includeArchived ? {} : { deletedAt: null }),
             domain: { isActive: true },
           },
           include: { domain: true },
@@ -294,7 +299,7 @@ export async function getLandingPage(
         where: {
           slug: { in: stepSlugList as any },
           domainId: page.domainId,
-          deletedAt: null,
+          ...(includeArchived ? {} : { deletedAt: null }),
           ...(includeDraft ? {} : { status: "published" }),
         },
         select: { slug: true },
@@ -390,7 +395,7 @@ export async function getLandingPage(
         where: {
           slug: stepSlug,
           domainId: page.domainId,
-          deletedAt: null,
+          ...(includeArchived ? {} : { deletedAt: null }),
           ...(includeDraft ? {} : { status: "published" }),
         },
         include: { domain: true },

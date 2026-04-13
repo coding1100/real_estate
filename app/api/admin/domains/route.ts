@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
     instagramVisible,
     zillowUrl,
     zillowVisible,
+    defaultHomepageButtons,
   } = body ?? {};
 
   const normalizedHostname = normalizeHostname(String(hostname ?? ""));
@@ -162,6 +163,18 @@ export async function POST(req: NextRequest) {
         zillowVisible,
       },
     });
+    if (Array.isArray(defaultHomepageButtons)) {
+      await prisma.$executeRaw`
+        UPDATE "Domain"
+        SET "defaultHomepageButtons" = ${JSON.stringify(defaultHomepageButtons)}::jsonb,
+            "updatedAt" = NOW()
+        WHERE "id" = ${domain.id}
+      `;
+      domain = {
+        ...domain,
+        defaultHomepageButtons: defaultHomepageButtons as any,
+      } as typeof domain;
+    }
   } catch (error: unknown) {
     try {
       await removeProjectDomain(normalizedHostname);

@@ -12,6 +12,7 @@ type NavLink = {
   megaMenuColumns?: MegaColumn[];
 };
 type MegaColumn = { title?: string; links?: NavLink[] };
+type HomepageButton = NonNullable<LandingPageContent["defaultHomepageButtons"]>[number];
 
 function safeArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
@@ -65,6 +66,12 @@ function applyBlockqoute2ToLastTextElement(html: string): string {
 }
 
 export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
+  const deriveSlugFromHref = (href: string | null | undefined): string => {
+    const normalized = String(href ?? "").trim();
+    if (!normalized.startsWith("/")) return "";
+    const path = normalized.split("?")[0]?.split("#")[0] ?? "";
+    return path.replace(/^\/+/, "").trim();
+  };
   const PREVIEW_CANVAS_W = 1280;
   const PREVIEW_CANVAS_H = 1100;
   const PREVIEW_BOX_W = 560;
@@ -111,8 +118,17 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
         : leftTopHtml,
     [leftTopHtml, useBlockquote2],
   );
-  const buttons = useMemo(() => page.defaultHomepageButtons ?? [], [page.defaultHomepageButtons]);
-  const [selectedSlug, setSelectedSlug] = useState<string>(buttons[0]?.slug ?? "");
+  const buttons = useMemo<HomepageButton[]>(
+    () => page.defaultHomepageButtons ?? [],
+    [page.defaultHomepageButtons],
+  );
+  const initialButton = useMemo(
+    () => buttons.find((button) => button.isFeatured) ?? buttons[0],
+    [buttons],
+  );
+  const [selectedSlug, setSelectedSlug] = useState<string>(
+    initialButton?.slug || deriveSlugFromHref(initialButton?.href) || "",
+  );
   const [previewLoading, setPreviewLoading] = useState(true);
   const [openMegaIndex, setOpenMegaIndex] = useState<number | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
@@ -291,23 +307,41 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
             />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {buttons.map((item) => (
-                <button
+              {buttons.map((item) => {
+                const itemSlug = item.slug || deriveSlugFromHref(item.href);
+                return (
+                  <button
                   key={item.id}
                   type="button"
                   onClick={() => {
-                    setPreviewLoading(true);
-                    setSelectedSlug(item.slug);
+                    const derivedSlug = itemSlug;
+                    if (derivedSlug) {
+                      setPreviewLoading(true);
+                      setSelectedSlug(derivedSlug);
+                      return;
+                    }
+                    const href = resolveNavHref(item.href ?? "");
+                    const target = item.target === "_blank" ? "_blank" : "_self";
+                    if (href !== "#") {
+                      window.open(
+                        href,
+                        target,
+                        target === "_blank" ? "noopener,noreferrer" : undefined,
+                      );
+                    }
                   }}
-                  className={`!rounded-[15px] border px-3 py-2 text-left text-sm ${
-                    selectedPreviewSlug === item.slug
+                  className={`!rounded-[10px] border px-3 py-2 text-left text-sm ${
+                    selectedPreviewSlug === itemSlug
                       ? "border-[#f0cd72] bg-[#f0cd72] text-zinc-900"
-                      : "border-white/25 bg-white/10 text-white"
+                      : item.isFeatured
+                        ? "border-[#f0cd72]/70 bg-[#f0cd72]/20 text-white"
+                        : "border-white/25 bg-white/10 text-white"
                   }`}
                 >
                   {item.title}
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
 
           </div>

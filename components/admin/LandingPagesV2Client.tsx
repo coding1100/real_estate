@@ -341,6 +341,7 @@ function SortableLandingPageRow({
                 <PageRowActions
                   pageId={page.id}
                   slug={page.slug}
+                  domainHostname={page.domainHostname}
                   isMaster={isMaster}
                   isDeleted={isDeleted}
                   archivedView={archivedView}
@@ -663,9 +664,9 @@ export function LandingPagesV2Client({
             <h1 className="text-2xl font-bold tracking-tight text-[#212529]">
               {viewMode === "archived" ? "Archived Pages" : "Landing Pages"}
             </h1>
-            <span className="rounded-md bg-[#E7F1FF] px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-[#1c7ed6] ring-1 ring-[#C5DCF7]">
+            {/* <span className="rounded-md bg-[#E7F1FF] px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-[#1c7ed6] ring-1 ring-[#C5DCF7]">
               V2
-            </span>
+            </span> */}
           </div>
           <p className="mt-1 text-sm text-[#6C757D]">
             {viewMode === "archived"

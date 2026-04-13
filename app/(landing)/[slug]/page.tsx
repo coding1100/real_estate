@@ -70,6 +70,7 @@ export async function generateMetadata({
   const query = (await (searchParams as any)) ?? {};
   const { hostname, isPreviewHost, isPlatformHost, rawHostname } =
     await getHostContextFromHeaders();
+  const includeDraft = shouldIncludeDraftForLandingRequest(rawHostname, query);
   const hostnameOverride =
     (isPreviewHost || isPlatformHost) && query
       ? getPreviewHostnameOverride(query)
@@ -79,7 +80,8 @@ export async function generateMetadata({
   try {
     page = await getLandingPage(effectiveHostname, slug, {
       allowFallbackToAnyDomain: isPreviewHost,
-      includeDraft: shouldIncludeDraftForLandingRequest(rawHostname, query),
+      includeDraft,
+      includeArchived: includeDraft,
     });
   } catch (e) {
     const unpublished = asUnpublishedLandingPageError(e);
@@ -164,11 +166,13 @@ export default async function LandingPage({ params, searchParams }: RouteParams)
       ? getPreviewHostnameOverride(query)
       : null;
   const effectiveHostname = hostnameOverride || hostname;
+  const includeDraft = shouldIncludeDraftForLandingRequest(rawHostname, query);
   let page;
   try {
     page = await getLandingPage(effectiveHostname, slug, {
       allowFallbackToAnyDomain: isPreviewHost,
-      includeDraft: shouldIncludeDraftForLandingRequest(rawHostname, query),
+      includeDraft,
+      includeArchived: includeDraft,
     });
   } catch (e) {
     const unpublished = asUnpublishedLandingPageError(e);
