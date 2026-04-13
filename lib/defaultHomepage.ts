@@ -101,6 +101,9 @@ export type DefaultHomepageButtonItem = {
   slug: string;
   title: string;
   heroImageUrl: string | null;
+  href?: string | null;
+  target?: "_self" | "_blank";
+  isFeatured?: boolean;
 };
 
 export async function getDefaultHomepageButtons(
@@ -160,11 +163,76 @@ export async function getDefaultHomepageButtons(
     adminListOrder: number;
   }[];
 
+  type CustomHomepageButton = {
+    id?: string;
+    label?: string;
+    href?: string;
+    target?: string;
+    isActive?: boolean;
+    isFeatured?: boolean;
+    linkedPageId?: string;
+  };
+  const customRows = (await withPrismaRetry(() => prisma.$queryRaw<
+    { defaultHomepageButtons: unknown }[]
+  >`
+    SELECT d."defaultHomepageButtons"
+    FROM "Domain" d
+    WHERE d."id" = ${domainId}
+    LIMIT 1
+  `)) as { defaultHomepageButtons: unknown }[];
+  const rawCustomButtons = customRows[0]?.defaultHomepageButtons;
+  const customButtons = Array.isArray(rawCustomButtons)
+    ? (rawCustomButtons as CustomHomepageButton[])
+    : [];
+  const activeCustomButtons = customButtons.filter(
+    (item) => item && item.isActive !== false,
+  );
+
+  if (activeCustomButtons.length > 0) {
+    const pageById = new Map(ordered.map((row) => [row.id, row]));
+    const slugById = new Map(ordered.map((row) => [row.id, row.slug]));
+    const hrefToSlug = (href: string | undefined): string => {
+      const normalized = String(href ?? "").trim();
+      if (!normalized.startsWith("/")) return "";
+      const path = normalized.split("?")[0]?.split("#")[0] ?? "";
+      const slug = path.replace(/^\/+/, "").trim();
+      return slug;
+    };
+
+    return activeCustomButtons.map((button, index) => {
+      const linked = button.linkedPageId ? pageById.get(button.linkedPageId) : undefined;
+      const href = (button.href ?? "").trim();
+      const slugFromHref = hrefToSlug(href);
+      const linkedSlug = button.linkedPageId ? slugById.get(button.linkedPageId) : "";
+      const slug = linkedSlug || slugFromHref || "";
+      const title =
+        (button.label ?? "").trim() ||
+        (linked?.title ?? "").trim() ||
+        linked?.headline ||
+        slug ||
+        `Button ${index + 1}`;
+      const target = button.target === "_blank" ? "_blank" : "_self";
+
+      return {
+        id: button.id?.trim() || `custom-${index + 1}`,
+        slug,
+        title,
+        heroImageUrl: linked?.heroImageUrl ?? null,
+        href: href || (slug ? `/${slug}` : null),
+        target,
+        isFeatured: button.isFeatured === true,
+      };
+    });
+  }
+
   return ordered.map((row) => ({
     id: row.id,
     slug: row.slug,
     title: (row.title ?? "").trim() || row.headline || row.slug,
     heroImageUrl: row.heroImageUrl ?? null,
+    href: `/${row.slug}`,
+    target: "_self",
+    isFeatured: false,
   }));
 }
 

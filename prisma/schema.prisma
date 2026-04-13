@@ -53,6 +53,7 @@ model Domain {
   pages                   LandingPage[]
   defaultHomepagePageId   String?
   defaultHomepageButtonLimit Int @default(9)
+  defaultHomepageButtons  Json?
   defaultHomepagePage     LandingPage? @relation("DomainDefaultHomepage", fields: [defaultHomepagePageId], references: [id], onDelete: SetNull)
   leads                   Lead[]
 }
