@@ -26,25 +26,24 @@ export default async function AdminProtectedLayout({
   }
 
   const { theme } = await getAdminUiSettings();
-  let archivedWithLeadsCount = 0;
+  let archivedCount = 0;
   try {
     const rows = await prisma.$queryRaw<Array<{ count: bigint | number }>>`
-      SELECT COUNT(DISTINCT lp."id") AS "count"
+      SELECT COUNT(*) AS "count"
       FROM "LandingPage" lp
-      JOIN "Lead" l ON l."pageId" = lp."id"
       WHERE lp."deletedAt" IS NOT NULL
     `;
     const raw = rows[0]?.count ?? 0;
-    archivedWithLeadsCount = Number(raw);
+    archivedCount = Number(raw);
   } catch {
-    archivedWithLeadsCount = 0;
+    archivedCount = 0;
   }
 
   return (
     <AdminShell
       userEmail={session.user?.email}
       toastTheme={theme}
-      archivedWithLeadsCount={archivedWithLeadsCount}
+      archivedWithLeadsCount={archivedCount}
     >
       {children}
     </AdminShell>

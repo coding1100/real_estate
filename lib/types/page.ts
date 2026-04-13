@@ -89,6 +89,9 @@ export interface LandingPageContent {
     slug: string;
     title: string;
     heroImageUrl?: string | null;
+    href?: string | null;
+    target?: "_self" | "_blank";
+    isFeatured?: boolean;
   }[];
   // Optional per-page social icon overrides; falls back to domain settings when undefined
   socialOverrides?: {
