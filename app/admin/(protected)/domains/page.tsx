@@ -81,6 +81,27 @@ export default async function DomainsPage() {
     pageOptionsByDomain.set(page.domainId, current);
   }
 
+  const normalizeHomepageButtons = (value: unknown) => {
+    if (!Array.isArray(value)) return [];
+    return value
+      .filter((item) => item && typeof item === "object")
+      .map((item, index) => {
+        const obj = item as Record<string, unknown>;
+        const target: "_self" | "_blank" =
+          obj.target === "_blank" ? "_blank" : "_self";
+        return {
+          id: String(obj.id ?? `btn-${index + 1}`),
+          label: String(obj.label ?? ""),
+          href: String(obj.href ?? ""),
+          target,
+          isActive: obj.isActive !== false,
+          isFeatured: obj.isFeatured === true,
+          linkedPageId:
+            obj.linkedPageId != null ? String(obj.linkedPageId) : null,
+        };
+      });
+  };
+
   type DomainRow = (typeof domains)[number];
   const initialDomains = domains.map((d: DomainRow) => ({
     id: d.id || "",
@@ -107,6 +128,7 @@ export default async function DomainsPage() {
     defaultHomepagePageId: defaultByDomainId.get(d.id)?.pageId ?? null,
     defaultHomepageButtonLimit: defaultByDomainId.get(d.id)?.buttonLimit ?? 9,
     defaultHomepageOptions: pageOptionsByDomain.get(d.id) ?? [],
+    defaultHomepageButtons: normalizeHomepageButtons(d.defaultHomepageButtons),
   }));
 
   return <DomainsManager initialDomains={initialDomains} />;

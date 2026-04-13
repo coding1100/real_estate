@@ -293,6 +293,24 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
         defaultHomepageButtonLimit: nextDefaultHomepageButtonLimit,
       } as typeof domain;
     }
+    if (Object.prototype.hasOwnProperty.call(body, "defaultHomepageButtons")) {
+      await prisma.$executeRaw`
+        UPDATE "Domain"
+        SET "defaultHomepageButtons" = ${
+          Array.isArray(body.defaultHomepageButtons)
+            ? JSON.stringify(body.defaultHomepageButtons)
+            : "null"
+        }::jsonb,
+            "updatedAt" = NOW()
+        WHERE "id" = ${id}
+      `;
+      domain = {
+        ...domain,
+        defaultHomepageButtons: Array.isArray(body.defaultHomepageButtons)
+          ? body.defaultHomepageButtons
+          : null,
+      } as typeof domain;
+    }
   } catch (error: unknown) {
     if (hostnameChanged) {
       try {

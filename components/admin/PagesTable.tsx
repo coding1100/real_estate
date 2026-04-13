@@ -383,6 +383,7 @@ function PagesTableRowBody({
       <PageRowActions
         pageId={page.id}
         slug={page.slug}
+        domainHostname={page.domainHostname}
         isMaster={isMaster}
         isFixedDefaultHomepage={page.isFixedDefaultHomepage}
       />

@@ -17,6 +17,7 @@ import { useAdminToast } from "@/components/admin/useAdminToast";
 interface PageRowActionsProps {
   pageId: string;
   slug: string;
+  domainHostname?: string;
   isMaster: boolean;
   isDeleted?: boolean;
   archivedView?: boolean;
@@ -30,6 +31,7 @@ interface PageRowActionsProps {
 export function PageRowActions({
   pageId,
   slug,
+  domainHostname,
   isMaster,
   isDeleted = false,
   archivedView = false,
@@ -42,12 +44,17 @@ export function PageRowActions({
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [panelPos, setPanelPos] = useState<{
     top: number;
+    bottom: number;
     left: number;
     width: number;
+    openUp: boolean;
   } | null>(null);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const { success, error } = useAdminToast();
+  const draftPreviewHref = `/${encodeURIComponent(slug)}?preview=1${
+    domainHostname ? `&domain=${encodeURIComponent(domainHostname)}` : ""
+  }`;
 
   const MENU_WIDTH = 176;
 
@@ -55,12 +62,22 @@ export function PageRowActions({
     const btn = buttonRef.current;
     if (!btn) return;
     const rect = btn.getBoundingClientRect();
+    const estimatedMenuHeight = archivedView || isDeleted ? 220 : 260;
+    const viewportPadding = 8;
+
     let left = rect.right - MENU_WIDTH;
     left = Math.max(8, Math.min(left, window.innerWidth - MENU_WIDTH - 8));
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const openUp =
+      spaceBelow < estimatedMenuHeight + viewportPadding &&
+      spaceAbove > spaceBelow;
     setPanelPos({
-      top: rect.bottom + 4,
+      top: openUp ? rect.top - 4 : rect.bottom + 4,
+      bottom: window.innerHeight - rect.top + 4,
       left,
       width: MENU_WIDTH,
+      openUp,
     });
   }
 
@@ -145,14 +162,25 @@ export function PageRowActions({
             <div
               ref={panelRef}
               role="menu"
-              className="fixed z-[200] overflow-hidden rounded-md border border-zinc-200 bg-white py-1 text-sm shadow-lg"
+              className="fixed z-[50] overflow-hidden rounded-md border border-zinc-200 bg-white py-1 text-sm shadow-lg"
               style={{
-                top: panelPos.top,
+                top: panelPos.openUp ? undefined : panelPos.top,
+                bottom: panelPos.openUp ? panelPos.bottom : undefined,
                 left: panelPos.left,
                 width: panelPos.width,
               }}
             >
-            {!archivedView ? (
+            {archivedView ? (
+              <a
+                href={draftPreviewHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                <span>View draft page</span>
+              </a>
+            ) : (
               <>
                 <a
                   href={`/${slug}`}
@@ -242,7 +270,7 @@ export function PageRowActions({
                   <span>Copy link</span>
                 </button>
               </>
-            ) : null}
+            )}
             <div className="mt-1 border-t border-zinc-100 pt-1">
               {isDeleted && archivedView ? (
                 <DeletePageButton

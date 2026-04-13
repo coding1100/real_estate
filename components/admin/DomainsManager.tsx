@@ -31,6 +31,15 @@ interface DomainRow {
   defaultHomepagePageId: string | null;
   defaultHomepageButtonLimit: number;
   defaultHomepageOptions: { id: string; slug: string; label: string }[];
+  defaultHomepageButtons: {
+    id: string;
+    label: string;
+    href: string;
+    target: "_self" | "_blank";
+    isActive: boolean;
+    isFeatured: boolean;
+    linkedPageId: string | null;
+  }[];
 }
 
 interface DomainsManagerProps {
@@ -85,6 +94,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
     defaultHomepagePageId: null,
     defaultHomepageButtonLimit: 9,
     defaultHomepageOptions: [],
+    defaultHomepageButtons: [],
   });
   const { success: toastSuccess, error: toastError } = useAdminToast();
 
@@ -102,6 +112,54 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
 
   function updateDraft(patch: Partial<DomainRow>) {
     setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+  }
+
+  function addDraftHomepageButton() {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const nextIndex = prev.defaultHomepageButtons.length + 1;
+      return {
+        ...prev,
+        defaultHomepageButtons: [
+          ...prev.defaultHomepageButtons,
+          {
+            id: `btn-${Date.now()}`,
+            label: `Button ${nextIndex}`,
+            href: "",
+            target: "_self",
+            isActive: true,
+            isFeatured: false,
+            linkedPageId: null,
+          },
+        ],
+      };
+    });
+  }
+
+  function updateDraftHomepageButton(
+    index: number,
+    patch: Partial<DomainRow["defaultHomepageButtons"][number]>,
+  ) {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = [...prev.defaultHomepageButtons];
+      const current = next[index];
+      if (!current) return prev;
+      next[index] = { ...current, ...patch };
+      return { ...prev, defaultHomepageButtons: next };
+    });
+  }
+
+  function removeDraftHomepageButton(index: number) {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        defaultHomepageButtons: prev.defaultHomepageButtons.filter(
+          (_item, idx) => idx !== index,
+        ),
+      };
+    });
   }
 
   async function createDedicatedDefaultHomepage(domain: DomainRow) {
@@ -313,6 +371,18 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
               ? data.domain.defaultHomepageButtonLimit
               : domain.defaultHomepageButtonLimit,
           defaultHomepageOptions: domain.defaultHomepageOptions ?? [],
+          defaultHomepageButtons: Array.isArray(data.domain.defaultHomepageButtons)
+            ? data.domain.defaultHomepageButtons.map((item: any, index: number) => ({
+                id: String(item?.id ?? `btn-${index + 1}`),
+                label: String(item?.label ?? ""),
+                href: String(item?.href ?? ""),
+                target: item?.target === "_blank" ? "_blank" : "_self",
+                isActive: item?.isActive !== false,
+                isFeatured: item?.isFeatured === true,
+                linkedPageId:
+                  item?.linkedPageId != null ? String(item.linkedPageId) : null,
+              }))
+            : domain.defaultHomepageButtons ?? [],
         };
         setDomains((prev) => {
           if (isNew) {
@@ -389,6 +459,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
       defaultHomepagePageId: null,
       defaultHomepageButtonLimit: 9,
       defaultHomepageOptions: [],
+      defaultHomepageButtons: [],
     });
     setAddFormError(null);
     setAddDialogOpen(true);
@@ -445,6 +516,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
             zillowVisible: newDomainForm.zillowVisible,
             defaultHomepagePageId: null,
             defaultHomepageButtonLimit: 9,
+            defaultHomepageButtons: [],
           }),
         });
         const data = await res.json();
@@ -506,6 +578,18 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
               ? (created.defaultHomepageButtonLimit as number)
               : 9,
           defaultHomepageOptions: [],
+          defaultHomepageButtons: Array.isArray(created.defaultHomepageButtons)
+            ? (created.defaultHomepageButtons as any[]).map((item, index) => ({
+                id: String(item?.id ?? `btn-${index + 1}`),
+                label: String(item?.label ?? ""),
+                href: String(item?.href ?? ""),
+                target: item?.target === "_blank" ? "_blank" : "_self",
+                isActive: item?.isActive !== false,
+                isFeatured: item?.isFeatured === true,
+                linkedPageId:
+                  item?.linkedPageId != null ? String(item.linkedPageId) : null,
+              }))
+            : [],
         };
         setDomains((prev) => [...prev, row].sort((a, b) => a.hostname.localeCompare(b.hostname)));
         setAddDialogOpen(false);
@@ -536,14 +620,14 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
           >
             {isBackfillingDefaults ? "Creating default homes..." : "Backfill default homes"}
           </button>
-          <button
-            type="button"
-            onClick={openAddDialog}
+        <button
+          type="button"
+          onClick={openAddDialog}
             className="inline-flex items-center gap-2 rounded-lg bg-[#18181b] px-[15px] py-[10px] text-[18px] !rounded-lg font-semibold text-white shadow-sm hover:bg-[#000000] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228BE6]"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add domain
-          </button>
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add domain
+        </button>
         </div>
       </div>
 
@@ -817,7 +901,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                   </div>
 
                   {/* Main editable fields */}
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-1">
                     <div className="space-y-2">
                       <label className="block text-[14px] font-medium text-zinc-700">
                         Display name
@@ -837,71 +921,237 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                         </p>
                       )}
 
-                      <label className="block text-[14px] font-medium text-zinc-700">
-                        Default home page
-                      </label>
-                      <p className="text-xs text-zinc-500">
-                        Choose which published page opens at "/" for this domain.
-                      </p>
-                      {isEditing ? (
-                        <select
-                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
-                          value={current.defaultHomepagePageId ?? ""}
-                          onChange={(e) =>
-                            updateDraft({
-                              defaultHomepagePageId: e.target.value || null,
-                            })
-                          }
+                      <div className="rounded-xl border border-zinc-200 bg-gradient-to-b from-zinc-50 to-white p-4 space-y-4">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                            Default Home Experience
+                          </p>
+                          <p className="mt-1 text-xs text-zinc-500">
+                            Control homepage source, button count, and custom CTA cards.
+                          </p>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <label className="block text-[13px] font-semibold text-zinc-700">
+                              Default home page
+                            </label>
+                            <p className="text-xs text-zinc-500">
+                              Choose which published page opens at "/" for this domain.
+                            </p>
+                            {isEditing ? (
+                              <select
+                                className="w-full rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-sm"
+                                value={current.defaultHomepagePageId ?? ""}
+                                onChange={(e) =>
+                                  updateDraft({
+                                    defaultHomepagePageId: e.target.value || null,
+                                  })
+                                }
+                              >
+                                <option value="">No fixed homepage</option>
+                                {current.defaultHomepageOptions.map((opt) => (
+                                  <option key={opt.id} value={opt.id}>
+                                    {opt.label} (/{opt.slug})
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <p className="rounded-md border border-zinc-200 bg-white px-2.5 py-2 text-sm text-zinc-800">
+                                {d.defaultHomepageOptions.find(
+                                  (opt) => opt.id === d.defaultHomepagePageId,
+                                )?.label ?? "No fixed homepage"}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="block text-[13px] font-semibold text-zinc-700">
+                              Number of page buttons
+                            </label>
+                            <p className="text-xs text-zinc-500">
+                              Controls how many page buttons appear on homepage preview (1-24).
+                            </p>
+                            {isEditing ? (
+                              <input
+                                type="number"
+                                min={1}
+                                max={24}
+                                className="w-full rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-sm"
+                                value={current.defaultHomepageButtonLimit}
+                                onChange={(e) =>
+                                  updateDraft({
+                                    defaultHomepageButtonLimit: Math.min(
+                                      24,
+                                      Math.max(1, Number(e.target.value || 9)),
+                                    ),
+                                  })
+                                }
+                              />
+                            ) : (
+                              <p className="rounded-md border border-zinc-200 bg-white px-2.5 py-2 text-sm text-zinc-800">
+                                {d.defaultHomepageButtonLimit}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => createDedicatedDefaultHomepage(current)}
+                          disabled={isPending}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-60"
                         >
-                          <option value="">No fixed homepage</option>
-                          {current.defaultHomepageOptions.map((opt) => (
-                            <option key={opt.id} value={opt.id}>
-                              {opt.label} (/{opt.slug})
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <p className="text-md text-zinc-800">
-                          {d.defaultHomepageOptions.find(
-                            (opt) => opt.id === d.defaultHomepagePageId,
-                          )?.label ?? "No fixed homepage"}
-                        </p>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => createDedicatedDefaultHomepage(current)}
-                        disabled={isPending}
-                        className="inline-flex items-center gap-1 rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-60"
-                      >
-                        Create new default home page
-                      </button>
-                      <label className="block text-[14px] font-medium text-zinc-700">
-                        Number of page buttons on home
-                      </label>
-                      <p className="text-xs text-zinc-500">
-                        Controls how many page buttons appear on the homepage preview section (1-24).
-                      </p>
-                      {isEditing ? (
-                        <input
-                          type="number"
-                          min={1}
-                          max={24}
-                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
-                          value={current.defaultHomepageButtonLimit}
-                          onChange={(e) =>
-                            updateDraft({
-                              defaultHomepageButtonLimit: Math.min(
-                                24,
-                                Math.max(1, Number(e.target.value || 9)),
-                              ),
-                            })
-                          }
-                        />
-                      ) : (
-                        <p className="text-md text-zinc-800">
-                          {d.defaultHomepageButtonLimit}
-                        </p>
-                      )}
+                          Create new default home page
+                        </button>
+
+                        <div className="space-y-3 rounded-lg border border-zinc-200 bg-white p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <label className="block text-[13px] font-semibold text-zinc-700">
+                              Homepage buttons (custom text + URL)
+                            </label>
+                            {isEditing && (
+                              <button
+                                type="button"
+                                onClick={addDraftHomepageButton}
+                                className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2.5 py-1 text-xs text-zinc-700 hover:bg-zinc-100"
+                              >
+                                <Plus className="h-3 w-3" />
+                                Add button
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-xs text-zinc-500">
+                            Leave empty to use automatic published-page buttons.
+                          </p>
+                        {(isEditing
+                          ? current.defaultHomepageButtons
+                          : d.defaultHomepageButtons
+                        ).length === 0 ? (
+                          <div className="rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-xs text-zinc-500">
+                            No custom buttons configured.
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {(isEditing
+                              ? current.defaultHomepageButtons
+                              : d.defaultHomepageButtons
+                            ).map((btn, idx) => (
+                              <div
+                                key={`${btn.id}-${idx}`}
+                                className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-3"
+                              >
+                                <div className="grid gap-2 md:grid-cols-4">
+                                  {isEditing ? (
+                                    <>
+                                      <input
+                                        className="w-full rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-xs"
+                                        value={btn.label}
+                                        onChange={(e) =>
+                                          updateDraftHomepageButton(idx, { label: e.target.value })
+                                        }
+                                        placeholder="Button text"
+                                      />
+                                      
+                                      <select
+                                        className="w-full rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-xs md:col-span-2"
+                                        value={btn.linkedPageId ?? ""}
+                                        onChange={(e) => {
+                                          const nextPageId = e.target.value || null;
+                                          const selectedPage = current.defaultHomepageOptions.find(
+                                            (option) => option.id === nextPageId,
+                                          );
+                                          updateDraftHomepageButton(idx, {
+                                            linkedPageId: nextPageId,
+                                            href: selectedPage
+                                              ? `/${selectedPage.slug}`
+                                              : btn.href,
+                                            label: selectedPage
+                                              ? btn.label || selectedPage.label
+                                              : btn.label,
+                                          });
+                                        }}
+                                      >
+                                        <option value="">Attach page (optional)</option>
+                                        {current.defaultHomepageOptions.map((option) => (
+                                          <option key={option.id} value={option.id}>
+                                            {option.label} (/{option.slug})
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <input
+                                        className="w-full rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-xs read-only"
+                                        value={btn.href}
+                                        onChange={(e) =>
+                                          updateDraftHomepageButton(idx, { href: e.target.value })
+                                        }
+                                        placeholder="/target-slug or https://example.com"
+                                      />
+                                    </>
+                                  ) : (
+                                    <>
+                                      <p className="text-xs text-zinc-700">{btn.label || "Untitled"}</p>
+                                      <p className="text-xs text-zinc-500 break-all">{btn.href || "—"}</p>
+                                    </>
+                                  )}
+                                </div>
+                                {isEditing && (
+                                  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+                                    <label className="inline-flex items-center gap-1">
+                                      <input
+                                        type="checkbox"
+                                        checked={btn.isActive}
+                                        onChange={(e) =>
+                                          updateDraftHomepageButton(idx, {
+                                            isActive: e.target.checked,
+                                          })
+                                        }
+                                      />
+                                      Active
+                                    </label>
+                                    <label className="inline-flex items-center gap-1">
+                                      <input
+                                        type="checkbox"
+                                        checked={btn.isFeatured}
+                                        onChange={(e) =>
+                                          updateDraftHomepageButton(idx, {
+                                            isFeatured: e.target.checked,
+                                          })
+                                        }
+                                      />
+                                      Featured (yellow)
+                                    </label>
+                                    <select
+                                      className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs"
+                                      value={btn.target}
+                                      onChange={(e) =>
+                                        updateDraftHomepageButton(idx, {
+                                          target:
+                                            e.target.value === "_blank"
+                                              ? "_blank"
+                                              : "_self",
+                                        })
+                                      }
+                                    >
+                                      <option value="_self">Open same tab</option>
+                                      <option value="_blank">Open new tab</option>
+                                    </select>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeDraftHomepageButton(idx)}
+                                      className="ml-auto inline-flex items-center gap-1 rounded-md border border-red-200 bg-white px-2 py-1 text-xs text-red-700 hover:bg-red-50"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                      Remove
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        </div>
+                      </div>
 
                       <label className="block text-[14px] font-medium text-zinc-700">
                         Notify email
