@@ -36,6 +36,15 @@ function deriveSlugFromCanonicalUrl(canonicalUrl: string): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
+function normalizeSlug(input: string): string {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 export async function PATCH(req: NextRequest, ctx: RouteContext) {
   const session = await getServerAuthSession();
   if (!session) {
@@ -64,12 +73,36 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     delete body.notes;
   }
 
-  let existingPage;
+  let existingPage:
+    | {
+        domainId: string;
+        canonicalUrl: string | null;
+        slug: string;
+        deletedAt: Date | null;
+        archivedSlug: string | null;
+      }
+    | null = null;
   try {
-    existingPage = await prisma.landingPage.findUnique({
-      where: { id },
-      select: { domainId: true, canonicalUrl: true },
-    });
+    const rows = await prisma.$queryRaw<
+      Array<{
+        domainId: string;
+        canonicalUrl: string | null;
+        slug: string;
+        deletedAt: Date | null;
+        archivedSlug: string | null;
+      }>
+    >`
+      SELECT
+        "domainId",
+        "canonicalUrl",
+        "slug",
+        "deletedAt",
+        "archivedSlug"
+      FROM "LandingPage"
+      WHERE "id" = ${id}
+      LIMIT 1
+    `;
+    existingPage = rows[0] ?? null;
   } catch (error: unknown) {
     const code =
       typeof error === "object" &&
@@ -93,10 +126,24 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
       );
     }
 
-    console.error(
-      "[pages] prisma.landingPage.findUnique failed while loading page for PATCH",
-      { id, error },
-    );
+    const dbCode =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      typeof (error as { code?: unknown }).code === "string"
+        ? ((error as { code: string }).code)
+        : null;
+    if (dbCode === "42703") {
+      return NextResponse.json(
+        {
+          error:
+            'Soft-delete columns are missing. Run:\nALTER TABLE "LandingPage" ADD COLUMN "deletedAt" TIMESTAMP(3), ADD COLUMN "deletedBy" TEXT, ADD COLUMN "archivedSlug" TEXT;',
+        },
+        { status: 500 },
+      );
+    }
+
+    console.error("[pages] Failed while loading page for PATCH", { id, error });
     return NextResponse.json(
       { error: "Failed to load page from the database." },
       { status: 500 },
@@ -105,6 +152,69 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
   if (!existingPage) {
     return NextResponse.json({ error: "Page not found." }, { status: 404 });
   }
+
+  if (body.action === "restore") {
+    if (!existingPage.deletedAt) {
+      return NextResponse.json(
+        { error: "Page is already active." },
+        { status: 400 },
+      );
+    }
+
+    const rawBaseSlug = (existingPage.archivedSlug || existingPage.slug || "").trim();
+    const normalizedBaseSlug = normalizeSlug(rawBaseSlug || "restored-page");
+    let resolvedSlug = normalizedBaseSlug;
+
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      const candidate =
+        attempt === 0
+          ? normalizedBaseSlug
+          : attempt === 1
+            ? `${normalizedBaseSlug}-restored`
+            : `${normalizedBaseSlug}-restored-${attempt}`;
+      const rows = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT "id"
+        FROM "LandingPage"
+        WHERE "domainId" = ${existingPage.domainId}
+          AND "slug" = ${candidate}
+          AND "deletedAt" IS NULL
+          AND "id" <> ${id}
+        LIMIT 1
+      `;
+      if (rows.length === 0) {
+        resolvedSlug = candidate;
+        break;
+      }
+    }
+
+    await prisma.$executeRaw`
+      UPDATE "LandingPage"
+      SET "deletedAt" = NULL,
+          "deletedBy" = NULL,
+          "archivedSlug" = NULL,
+          "slug" = ${resolvedSlug},
+          "updatedAt" = NOW()
+      WHERE "id" = ${id}
+    `;
+
+    const restoredPage = await prisma.landingPage.findUnique({
+      where: { id },
+    });
+    if (!restoredPage) {
+      return NextResponse.json({ error: "Page not found." }, { status: 404 });
+    }
+
+    revalidatePath(`/${restoredPage.slug}`);
+    revalidatePath("/");
+    return NextResponse.json(
+      {
+        page: restoredPage,
+        restoredSlug: restoredPage.slug,
+      },
+      { status: 200 },
+    );
+  }
+  delete body.action;
 
   if (Object.prototype.hasOwnProperty.call(body, "status")) {
     if (body.status !== "draft" && body.status !== "published") {
@@ -150,13 +260,14 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     const normalizedSlug = body.slug.trim().toLowerCase();
 
     // Enforce global uniqueness: slug must be unique across all domains/pages.
-    const existing = await prisma.landingPage.findFirst({
-      where: {
-        slug: normalizedSlug,
-        NOT: { id },
-      },
-      select: { id: true },
-    });
+    const existing = await prisma.$queryRaw<{ id: string }[]>`
+      SELECT "id"
+      FROM "LandingPage"
+      WHERE "slug" = ${normalizedSlug}
+        AND "id" <> ${id}
+        AND "deletedAt" IS NULL
+      LIMIT 1
+    `;
     if (existing) {
       return NextResponse.json(
         {
@@ -396,7 +507,7 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
   }
 }
 
-export async function DELETE(_req: NextRequest, ctx: RouteContext) {
+export async function DELETE(req: NextRequest, ctx: RouteContext) {
   const session = await getServerAuthSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -413,10 +524,34 @@ export async function DELETE(_req: NextRequest, ctx: RouteContext) {
 
   try {
     // Load the page to get its slug.
-    const pageToDelete = await prisma.landingPage.findUnique({
-      where: { id },
-      select: { slug: true },
-    });
+    const pageRows = await prisma.$queryRaw<
+      Array<{ id: string; slug: string; deletedAt: Date | null }>
+    >`
+      SELECT "id", "slug", "deletedAt"
+      FROM "LandingPage"
+      WHERE "id" = ${id}
+      LIMIT 1
+    `;
+    const pageToDelete = pageRows[0] ?? null;
+    if (!pageToDelete) {
+      return NextResponse.json({ error: "Page not found." }, { status: 404 });
+    }
+    if (pageToDelete.deletedAt) {
+      const isPermanent = req.nextUrl.searchParams.get("permanent") === "1";
+      if (!isPermanent) {
+        return NextResponse.json(
+          { error: "Page is already archived." },
+          { status: 400 },
+        );
+      }
+
+      await prisma.$transaction([
+        prisma.lead.deleteMany({ where: { pageId: id } }),
+        prisma.pageLayout.deleteMany({ where: { pageId: id } }),
+        prisma.landingPage.delete({ where: { id } }),
+      ]);
+      return NextResponse.json({ ok: true, deleted: "permanent" }, { status: 200 });
+    }
 
     // If we have a slug, scan for any entry pages whose multistepStepSlugs
     // array includes this slug. We do this filtering in application code to
@@ -448,13 +583,39 @@ export async function DELETE(_req: NextRequest, ctx: RouteContext) {
       }
     }
 
-    await prisma.$transaction([
-      prisma.lead.deleteMany({ where: { pageId: id } }),
-      prisma.pageLayout.deleteMany({ where: { pageId: id } }),
-      prisma.landingPage.delete({ where: { id } }),
-    ]);
+    const archivedSlugValue = `${pageToDelete.slug}--archived-${pageToDelete.id.slice(
+      0,
+      8,
+    )}-${Date.now()}`;
+    await prisma.$executeRaw`
+      UPDATE "LandingPage"
+      SET "deletedAt" = NOW(),
+          "deletedBy" = ${session.user?.email ?? "admin"},
+          "archivedSlug" = COALESCE("archivedSlug", "slug"),
+          "slug" = ${archivedSlugValue},
+          "status" = 'draft',
+          "updatedAt" = NOW()
+      WHERE "id" = ${id}
+        AND "deletedAt" IS NULL
+    `;
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (err) {
+    const code =
+      typeof err === "object" &&
+      err !== null &&
+      "code" in err &&
+      typeof (err as { code?: unknown }).code === "string"
+        ? ((err as { code: string }).code)
+        : null;
+    if (code === "42703") {
+      return NextResponse.json(
+        {
+          error:
+            'Soft-delete columns are missing. Run:\nALTER TABLE "LandingPage" ADD COLUMN "deletedAt" TIMESTAMP(3), ADD COLUMN "deletedBy" TEXT, ADD COLUMN "archivedSlug" TEXT;',
+        },
+        { status: 500 },
+      );
+    }
     console.error(err);
     return NextResponse.json(
       {

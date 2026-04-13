@@ -57,7 +57,7 @@ export default async function DomainsPage() {
   );
 
   const publishedPages = await prisma.landingPage.findMany({
-    where: { status: "published" },
+    where: { status: "published", deletedAt: null },
     select: {
       id: true,
       slug: true,

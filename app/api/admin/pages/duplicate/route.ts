@@ -66,6 +66,13 @@ export async function POST(req: NextRequest) {
   const original = await prisma.landingPage.findUnique({
     where: { id: pageId },
   });
+  if (original?.deletedAt) {
+    return NextResponse.json(
+      { error: "Archived pages cannot be duplicated. Restore first." },
+      { status: 400 },
+    );
+  }
+
   if (!original) {
     return NextResponse.json(
       { error: "Page not found" },
@@ -87,6 +94,7 @@ export async function POST(req: NextRequest) {
     const conflict = await prisma.landingPage.findFirst({
       where: {
         slug: normalizedSlug,
+        deletedAt: null,
       },
       select: { id: true },
     });
@@ -110,6 +118,7 @@ export async function POST(req: NextRequest) {
       const existing = await prisma.landingPage.findFirst({
         where: {
           slug: candidate,
+          deletedAt: null,
         },
         select: { id: true },
       });

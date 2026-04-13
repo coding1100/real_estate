@@ -78,6 +78,9 @@ model LandingPage {
   masterTemplate   MasterTemplate @relation(fields: [masterTemplateId], references: [id])
   type             String
   status           String   @default("draft")
+  deletedAt        DateTime?
+  deletedBy        String?
+  archivedSlug     String?
   bookmarked       Boolean  @default(false)
   /// Sort order within /admin/pages for a given domain (drag-and-drop).
   adminListOrder   Int      @default(0)
