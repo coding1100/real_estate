@@ -271,72 +271,75 @@ function SortableLandingPageRow({
           </div>
           <div className="col-span-2 min-w-0 pl-[10px]">
             <div className="grid grid-cols-12">
-              <div className="col-span-10 flex-1 flex items-center justify-end">
-                <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-1.5 border-t border-[#E9ECEF] pt-3 sm:border-t-0 sm:pt-0">
-                  <span className="inline-flex shrink-0 items-center rounded-md bg-[#F1F3F5] border border-[#dcdcdc] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#495057]">
-                    {category}
-                  </span>
-                  {published ? (
-                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#C5DCF7] bg-[#E7F1FF] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#1864AB]">
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#228BE6]" aria-hidden />
-                      PUBLISHED
+              {!archivedView ? (
+                <div className="col-span-10 flex-1 flex items-center justify-end">
+                  <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-1.5 border-t border-[#E9ECEF] pt-3 sm:border-t-0 sm:pt-0">
+                    <span className="inline-flex shrink-0 items-center rounded-md bg-[#F1F3F5] border border-[#dcdcdc] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#495057]">
+                      {category}
                     </span>
-                  ) : isDeleted ? (
-                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#f5d0fe] bg-[#fdf4ff] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#a21caf]">
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#d946ef]" aria-hidden />
-                      ARCHIVED
-                    </span>
-                  ) : (
-                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#DEE2E6] bg-[#F8F9FA] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#495057]">
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#868E96]" aria-hidden />
-                      DRAFT
-                    </span>
-                  )}
-                  {isMultistep &&
-                    Array.isArray(page.multistepStepSlugs) &&
-                    page.multistepStepSlugs.length > 0 && (
-                      <span className="inline-flex shrink-0">
-                        <button
-                          ref={badgeRef}
-                          type="button"
-                          onMouseEnter={() => setTooltipOpen(true)}
-                          onMouseLeave={() => setTooltipOpen(false)}
-                          onFocus={() => setTooltipOpen(true)}
-                          onBlur={() => setTooltipOpen(false)}
-                          className="inline-flex cursor-help items-center !rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-800"
-                        >
-                          MULTISTEP
-                        </button>
-                        {tooltipOpen &&
-                          tooltipPos &&
-                          typeof document !== "undefined" &&
-                          createPortal(
-                            <div
-                              className="pointer-events-none fixed z-[220] w-80 rounded-lg border border-zinc-200 bg-white p-3 text-left shadow-xl"
-                              style={{ top: tooltipPos.top, left: tooltipPos.left }}
-                            >
-                              <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
-                                Multistep flow
-                              </p>
-                              <p className="mt-1 text-xs font-medium text-zinc-700">
-                                {page.multistepStepSlugs.length} page
-                                {page.multistepStepSlugs.length === 1 ? "" : "s"}
-                              </p>
-                              <ol className="mt-2 max-h-44 list-decimal space-y-1 overflow-y-auto pl-4 text-[12px] text-zinc-700">
-                                {page.multistepStepSlugs.map((slug, idx) => (
-                                  <li key={`${page.id}-tooltip-${slug}-${idx}`} className="break-words">
-                                    <span className="font-mono">{slug}</span>
-                                  </li>
-                                ))}
-                              </ol>
-                            </div>,
-                            document.body,
-                          )}
+                    {published ? (
+                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#C5DCF7] bg-[#E7F1FF] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#1864AB]">
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#228BE6]" aria-hidden />
+                        PUBLISHED
+                      </span>
+                    ) : isDeleted ? (
+                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#f5d0fe] bg-[#fdf4ff] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#a21caf]">
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#d946ef]" aria-hidden />
+                        ARCHIVED
+                      </span>
+                    ) : (
+                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#DEE2E6] bg-[#F8F9FA] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#495057]">
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#868E96]" aria-hidden />
+                        DRAFT
                       </span>
                     )}
-
+                    {isMultistep &&
+                      Array.isArray(page.multistepStepSlugs) &&
+                      page.multistepStepSlugs.length > 0 && (
+                        <span className="inline-flex shrink-0">
+                          <button
+                            ref={badgeRef}
+                            type="button"
+                            onMouseEnter={() => setTooltipOpen(true)}
+                            onMouseLeave={() => setTooltipOpen(false)}
+                            onFocus={() => setTooltipOpen(true)}
+                            onBlur={() => setTooltipOpen(false)}
+                            className="inline-flex cursor-help items-center !rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-800"
+                          >
+                            MULTISTEP
+                          </button>
+                          {tooltipOpen &&
+                            tooltipPos &&
+                            typeof document !== "undefined" &&
+                            createPortal(
+                              <div
+                                className="pointer-events-none fixed z-[220] w-80 rounded-lg border border-zinc-200 bg-white p-3 text-left shadow-xl"
+                                style={{ top: tooltipPos.top, left: tooltipPos.left }}
+                              >
+                                <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                                  Multistep flow
+                                </p>
+                                <p className="mt-1 text-xs font-medium text-zinc-700">
+                                  {page.multistepStepSlugs.length} page
+                                  {page.multistepStepSlugs.length === 1 ? "" : "s"}
+                                </p>
+                                <ol className="mt-2 max-h-44 list-decimal space-y-1 overflow-y-auto pl-4 text-[12px] text-zinc-700">
+                                  {page.multistepStepSlugs.map((slug, idx) => (
+                                    <li key={`${page.id}-tooltip-${slug}-${idx}`} className="break-words">
+                                      <span className="font-mono">{slug}</span>
+                                    </li>
+                                  ))}
+                                </ol>
+                              </div>,
+                              document.body,
+                            )}
+                        </span>
+                      )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="col-span-10" />
+              )}
               <div className="col-span-2 flex items-center justify-end">
                 <PageRowActions
                   pageId={page.id}
