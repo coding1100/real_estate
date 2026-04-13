@@ -97,6 +97,10 @@ export default async function DomainsPage() {
           href: String(obj.href ?? ""),
           target,
           styleMode,
+          ctaBgColor: String(obj.ctaBgColor ?? ""),
+          ctaTextColor: String(obj.ctaTextColor ?? ""),
+          ctaActiveBgColor: String(obj.ctaActiveBgColor ?? ""),
+          ctaActiveTextColor: String(obj.ctaActiveTextColor ?? ""),
           isActive: obj.isActive !== false,
           isFeatured: obj.isFeatured === true,
           linkedPageId:
