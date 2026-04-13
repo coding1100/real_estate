@@ -104,6 +104,10 @@ export type DefaultHomepageButtonItem = {
   href?: string | null;
   target?: "_self" | "_blank";
   styleMode?: "light" | "dark";
+  ctaBgColor?: string;
+  ctaTextColor?: string;
+  ctaActiveBgColor?: string;
+  ctaActiveTextColor?: string;
   isFeatured?: boolean;
 };
 
@@ -170,6 +174,10 @@ export async function getDefaultHomepageButtons(
     href?: string;
     target?: string;
     styleMode?: string;
+    ctaBgColor?: string;
+    ctaTextColor?: string;
+    ctaActiveBgColor?: string;
+    ctaActiveTextColor?: string;
     isActive?: boolean;
     isFeatured?: boolean;
     linkedPageId?: string;
@@ -224,6 +232,10 @@ export async function getDefaultHomepageButtons(
         href: href || (slug ? `/${slug}` : null),
         target,
         styleMode,
+        ctaBgColor: (button.ctaBgColor ?? "").trim(),
+        ctaTextColor: (button.ctaTextColor ?? "").trim(),
+        ctaActiveBgColor: (button.ctaActiveBgColor ?? "").trim(),
+        ctaActiveTextColor: (button.ctaActiveTextColor ?? "").trim(),
         isFeatured: button.isFeatured === true,
       };
     });
@@ -237,6 +249,10 @@ export async function getDefaultHomepageButtons(
     href: `/${row.slug}`,
     target: "_self",
     styleMode: "light",
+    ctaBgColor: "",
+    ctaTextColor: "",
+    ctaActiveBgColor: "",
+    ctaActiveTextColor: "",
     isFeatured: false,
   }));
 }
