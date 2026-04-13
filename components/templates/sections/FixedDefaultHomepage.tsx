@@ -29,6 +29,28 @@ function resolveNavHref(rawHref: string | undefined): string {
   return href;
 }
 
+function normalizeHexColor(value: string | undefined, fallback: string): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return fallback;
+  const expanded = raw.startsWith("#") ? raw : `#${raw}`;
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(expanded) ? expanded : fallback;
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const normalized = normalizeHexColor(hex, "#000000").replace("#", "");
+  const full =
+    normalized.length === 3
+      ? normalized
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : normalized;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 function applyBlockqoute2ToLastTextElement(html: string): string {
   if (!html || typeof window === "undefined") return html;
   try {
@@ -122,6 +144,32 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
     () => page.defaultHomepageButtons ?? [],
     [page.defaultHomepageButtons],
   );
+  const globalCtaStyleMode = useMemo<"light" | "dark">(
+    () => (buttons[0]?.styleMode === "dark" ? "dark" : "light"),
+    [buttons],
+  );
+  const ctaColors = useMemo(() => {
+    const defaults =
+      globalCtaStyleMode === "dark"
+        ? {
+            bg: "#18181b",
+            text: "#ffffff",
+            activeBg: "#f0cd72",
+            activeText: "#111827",
+          }
+        : {
+            bg: "#ffffff",
+            text: "#111827",
+            activeBg: "#f0cd72",
+            activeText: "#111827",
+          };
+    return {
+      bg: normalizeHexColor(buttons[0]?.ctaBgColor, defaults.bg),
+      text: normalizeHexColor(buttons[0]?.ctaTextColor, defaults.text),
+      activeBg: normalizeHexColor(buttons[0]?.ctaActiveBgColor, defaults.activeBg),
+      activeText: normalizeHexColor(buttons[0]?.ctaActiveTextColor, defaults.activeText),
+    };
+  }, [buttons, globalCtaStyleMode]);
   const initialButton = useMemo(
     () => buttons[0],
     [buttons],
@@ -309,7 +357,6 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {buttons.map((item) => {
                 const itemSlug = item.slug || deriveSlugFromHref(item.href);
-                const isDarkStyle = item.styleMode === "dark";
                 const isSelected = selectedPreviewSlug === itemSlug;
                 return (
                   <button
@@ -332,13 +379,15 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
                       );
                     }
                   }}
-                  className={`!rounded-[10px] px-3 py-2 text-left text-sm font-medium transition-colors ${
+                  className={`!rounded-[10px] px-3 py-2 text-left text-lg !text-center font-medium ${
                     isSelected
-                      ? "bg-[#f0cd72] text-zinc-900"
-                      : isDarkStyle
-                        ? "bg-zinc-900/85 text-white hover:bg-zinc-900"
-                        : "bg-white/95 text-zinc-900 hover:bg-white"
+                      ? ""
+                      : "hover:opacity-95"
                   }`}
+                  style={{
+                    backgroundColor: isSelected ? ctaColors.activeBg : ctaColors.bg,
+                    color: isSelected ? ctaColors.activeText : ctaColors.text,
+                  }}
                 >
                   {item.title}
                   </button>

@@ -37,6 +37,10 @@ interface DomainRow {
     href: string;
     target: "_self" | "_blank";
     styleMode: "light" | "dark";
+    ctaBgColor: string;
+    ctaTextColor: string;
+    ctaActiveBgColor: string;
+    ctaActiveTextColor: string;
     isActive: boolean;
     isFeatured: boolean;
     linkedPageId: string | null;
@@ -129,6 +133,10 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
             href: "",
             target: "_self",
             styleMode: "light",
+            ctaBgColor: "",
+            ctaTextColor: "",
+            ctaActiveBgColor: "",
+            ctaActiveTextColor: "",
             isActive: true,
             isFeatured: false,
             linkedPageId: null,
@@ -160,6 +168,26 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         defaultHomepageButtons: prev.defaultHomepageButtons.filter(
           (_item, idx) => idx !== index,
         ),
+      };
+    });
+  }
+
+  function setHomepageButtonsColorConfig(
+    patch: Partial<{
+      ctaBgColor: string;
+      ctaTextColor: string;
+      ctaActiveBgColor: string;
+      ctaActiveTextColor: string;
+    }>,
+  ) {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        defaultHomepageButtons: prev.defaultHomepageButtons.map((button) => ({
+          ...button,
+          ...patch,
+        })),
       };
     });
   }
@@ -380,6 +408,10 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                 href: String(item?.href ?? ""),
                 target: item?.target === "_blank" ? "_blank" : "_self",
                 styleMode: item?.styleMode === "dark" ? "dark" : "light",
+                ctaBgColor: String(item?.ctaBgColor ?? ""),
+                ctaTextColor: String(item?.ctaTextColor ?? ""),
+                ctaActiveBgColor: String(item?.ctaActiveBgColor ?? ""),
+                ctaActiveTextColor: String(item?.ctaActiveTextColor ?? ""),
                 isActive: item?.isActive !== false,
                 isFeatured: item?.isFeatured === true,
                 linkedPageId:
@@ -588,6 +620,10 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                 href: String(item?.href ?? ""),
                 target: item?.target === "_blank" ? "_blank" : "_self",
                 styleMode: item?.styleMode === "dark" ? "dark" : "light",
+                ctaBgColor: String(item?.ctaBgColor ?? ""),
+                ctaTextColor: String(item?.ctaTextColor ?? ""),
+                ctaActiveBgColor: String(item?.ctaActiveBgColor ?? ""),
+                ctaActiveTextColor: String(item?.ctaActiveTextColor ?? ""),
                 isActive: item?.isActive !== false,
                 isFeatured: item?.isFeatured === true,
                 linkedPageId:
@@ -1015,19 +1051,114 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                               Homepage buttons (custom text + URL)
                             </label>
                             {isEditing && (
-                              <button
-                                type="button"
-                                onClick={addDraftHomepageButton}
-                                className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2.5 py-1 text-xs text-zinc-700 hover:bg-zinc-100"
-                              >
-                                <Plus className="h-3 w-3" />
-                                Add button
-                              </button>
+                              <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5">
+                                <button
+                                  type="button"
+                                  onClick={addDraftHomepageButton}
+                                  className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 shadow-sm hover:bg-zinc-100"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                  Add button
+                                </button>
+                              </div>
                             )}
                           </div>
                           <p className="text-xs text-zinc-500">
                             Leave empty to use automatic published-page buttons.
                           </p>
+                          {isEditing && (
+                            <div className="rounded-xl border border-zinc-200 bg-gradient-to-b from-zinc-50 to-white p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+                                CTA Colors
+                              </p>
+                              <div className="grid gap-2 md:grid-cols-4">
+                              <label className="space-y-1.5 rounded-lg border border-zinc-200 bg-white p-2">
+                                <span className="block text-[11px] font-semibold text-zinc-700">CTA BG color</span>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="color"
+                                    className="h-8 w-8 rounded-md border border-zinc-300 bg-white p-0 shadow-sm"
+                                    value={current.defaultHomepageButtons[0]?.ctaBgColor || "#ffffff"}
+                                    onChange={(e) =>
+                                      setHomepageButtonsColorConfig({ ctaBgColor: e.target.value })
+                                    }
+                                  />
+                                  <input
+                                    className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1 font-mono text-xs uppercase tracking-wide"
+                                    value={current.defaultHomepageButtons[0]?.ctaBgColor || ""}
+                                    onChange={(e) =>
+                                      setHomepageButtonsColorConfig({ ctaBgColor: e.target.value })
+                                    }
+                                    placeholder="#ffffff"
+                                  />
+                                </div>
+                              </label>
+                              <label className="space-y-1.5 rounded-lg border border-zinc-200 bg-white p-2">
+                                <span className="block text-[11px] font-semibold text-zinc-700">CTA text color</span>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="color"
+                                    className="h-8 w-8 rounded-md border border-zinc-300 bg-white p-0 shadow-sm"
+                                    value={current.defaultHomepageButtons[0]?.ctaTextColor || "#111827"}
+                                    onChange={(e) =>
+                                      setHomepageButtonsColorConfig({ ctaTextColor: e.target.value })
+                                    }
+                                  />
+                                  <input
+                                    className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1 font-mono text-xs uppercase tracking-wide"
+                                    value={current.defaultHomepageButtons[0]?.ctaTextColor || ""}
+                                    onChange={(e) =>
+                                      setHomepageButtonsColorConfig({ ctaTextColor: e.target.value })
+                                    }
+                                    placeholder="#111827"
+                                  />
+                                </div>
+                              </label>
+                              <label className="space-y-1.5 rounded-lg border border-zinc-200 bg-white p-2">
+                                <span className="block text-[11px] font-semibold text-zinc-700">CTA Active BG color</span>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="color"
+                                    className="h-8 w-8 rounded-md border border-zinc-300 bg-white p-0 shadow-sm"
+                                    value={current.defaultHomepageButtons[0]?.ctaActiveBgColor || "#f0cd72"}
+                                    onChange={(e) =>
+                                      setHomepageButtonsColorConfig({ ctaActiveBgColor: e.target.value })
+                                    }
+                                  />
+                                  <input
+                                    className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1 font-mono text-xs uppercase tracking-wide"
+                                    value={current.defaultHomepageButtons[0]?.ctaActiveBgColor || ""}
+                                    onChange={(e) =>
+                                      setHomepageButtonsColorConfig({ ctaActiveBgColor: e.target.value })
+                                    }
+                                    placeholder="#f0cd72"
+                                  />
+                                </div>
+                              </label>
+                              <label className="space-y-1.5 rounded-lg border border-zinc-200 bg-white p-2">
+                                <span className="block text-[11px] font-semibold text-zinc-700">CTA Active text color</span>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="color"
+                                    className="h-8 w-8 rounded-md border border-zinc-300 bg-white p-0 shadow-sm"
+                                    value={current.defaultHomepageButtons[0]?.ctaActiveTextColor || "#111827"}
+                                    onChange={(e) =>
+                                      setHomepageButtonsColorConfig({ ctaActiveTextColor: e.target.value })
+                                    }
+                                  />
+                                  <input
+                                    className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1 font-mono text-xs uppercase tracking-wide"
+                                    value={current.defaultHomepageButtons[0]?.ctaActiveTextColor || ""}
+                                    onChange={(e) =>
+                                      setHomepageButtonsColorConfig({ ctaActiveTextColor: e.target.value })
+                                    }
+                                    placeholder="#111827"
+                                  />
+                                </div>
+                              </label>
+                              </div>
+                            </div>
+                          )}
                         {(isEditing
                           ? current.defaultHomepageButtons
                           : d.defaultHomepageButtons
@@ -1126,34 +1257,6 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                                       <option value="_self">Open same tab</option>
                                       <option value="_blank">Open new tab</option>
                                     </select>
-                                    <div className="inline-flex items-center rounded-md border border-zinc-300 bg-white p-0.5">
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          updateDraftHomepageButton(idx, { styleMode: "light" })
-                                        }
-                                        className={`rounded px-2 py-1 text-xs font-medium transition ${
-                                          btn.styleMode !== "dark"
-                                            ? "bg-zinc-900 text-white"
-                                            : "text-zinc-600 hover:bg-zinc-100"
-                                        }`}
-                                      >
-                                        Light
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          updateDraftHomepageButton(idx, { styleMode: "dark" })
-                                        }
-                                        className={`rounded px-2 py-1 text-xs font-medium transition ${
-                                          btn.styleMode === "dark"
-                                            ? "bg-zinc-900 text-white"
-                                            : "text-zinc-600 hover:bg-zinc-100"
-                                        }`}
-                                      >
-                                        Dark
-                                      </button>
-                                    </div>
                                     <button
                                       type="button"
                                       onClick={() => removeDraftHomepageButton(idx)}
@@ -1173,86 +1276,86 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
 
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <label className="block text-[14px] font-medium text-zinc-700">
-                            Notify email
-                          </label>
-                          {isEditing ? (
-                            <input
-                              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
-                              value={current.notifyEmail}
-                              onChange={(e) =>
-                                updateDraft({ notifyEmail: e.target.value })
-                              }
-                              placeholder="you@example.com"
-                            />
-                          ) : (
-                            <p className="text-md text-zinc-800">
-                              {d.notifyEmail}
-                            </p>
-                          )}
+                      <label className="block text-[14px] font-medium text-zinc-700">
+                        Notify email
+                      </label>
+                      {isEditing ? (
+                        <input
+                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
+                          value={current.notifyEmail}
+                          onChange={(e) =>
+                            updateDraft({ notifyEmail: e.target.value })
+                          }
+                          placeholder="you@example.com"
+                        />
+                      ) : (
+                        <p className="text-md text-zinc-800">
+                          {d.notifyEmail}
+                        </p>
+                      )}
                         </div>
                         <div className="space-y-2">
-                          <label className="block text-[14px] font-medium text-zinc-700">
-                            Notify SMS
-                          </label>
-                          {isEditing ? (
-                            <input
-                              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
-                              value={current.notifySms ?? ""}
-                              onChange={(e) =>
-                                updateDraft({
-                                  notifySms: e.target.value || null,
-                                })
-                              }
-                              placeholder="+15551234567"
-                            />
-                          ) : (
-                            <p className="text-md text-zinc-800">
-                              {d.notifySms || "—"}
-                            </p>
-                          )}
+                      <label className="block text-[14px] font-medium text-zinc-700">
+                        Notify SMS
+                      </label>
+                      {isEditing ? (
+                        <input
+                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
+                          value={current.notifySms ?? ""}
+                          onChange={(e) =>
+                            updateDraft({
+                              notifySms: e.target.value || null,
+                            })
+                          }
+                          placeholder="+15551234567"
+                        />
+                      ) : (
+                        <p className="text-md text-zinc-800">
+                          {d.notifySms || "—"}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-[14px] font-medium text-zinc-700">
+                        GA4 ID
+                      </label>
+                      {isEditing ? (
+                        <input
+                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
+                          value={current.ga4Id ?? ""}
+                          onChange={(e) =>
+                            updateDraft({
+                              ga4Id: e.target.value || null,
+                            })
+                          }
+                          placeholder="G-XXXXXXX"
+                        />
+                      ) : (
+                        <p className="text-md text-zinc-800">
+                          {d.ga4Id || "—"}
+                        </p>
+                      )}
                         </div>
                         <div className="space-y-2">
-                          <label className="block text-[14px] font-medium text-zinc-700">
-                            GA4 ID
-                          </label>
-                          {isEditing ? (
-                            <input
-                              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
-                              value={current.ga4Id ?? ""}
-                              onChange={(e) =>
-                                updateDraft({
-                                  ga4Id: e.target.value || null,
-                                })
-                              }
-                              placeholder="G-XXXXXXX"
-                            />
-                          ) : (
-                            <p className="text-md text-zinc-800">
-                              {d.ga4Id || "—"}
-                            </p>
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <label className="block text-[14px] font-medium text-zinc-700">
-                            Meta Pixel ID
-                          </label>
-                          {isEditing ? (
-                            <input
-                              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
-                              value={current.metaPixelId ?? ""}
-                              onChange={(e) =>
-                                updateDraft({
-                                  metaPixelId: e.target.value || null,
-                                })
-                              }
-                              placeholder="123456789012345"
-                            />
-                          ) : (
-                            <p className="text-md text-zinc-800">
-                              {d.metaPixelId || "—"}
-                            </p>
-                          )}
+                      <label className="block text-[14px] font-medium text-zinc-700">
+                        Meta Pixel ID
+                      </label>
+                      {isEditing ? (
+                        <input
+                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
+                          value={current.metaPixelId ?? ""}
+                          onChange={(e) =>
+                            updateDraft({
+                              metaPixelId: e.target.value || null,
+                            })
+                          }
+                          placeholder="123456789012345"
+                        />
+                      ) : (
+                        <p className="text-md text-zinc-800">
+                          {d.metaPixelId || "—"}
+                        </p>
+                      )}
                         </div>
                       </div>
                     </div>
