@@ -103,6 +103,7 @@ export type DefaultHomepageButtonItem = {
   heroImageUrl: string | null;
   href?: string | null;
   target?: "_self" | "_blank";
+  styleMode?: "light" | "dark";
   isFeatured?: boolean;
 };
 
@@ -168,6 +169,7 @@ export async function getDefaultHomepageButtons(
     label?: string;
     href?: string;
     target?: string;
+    styleMode?: string;
     isActive?: boolean;
     isFeatured?: boolean;
     linkedPageId?: string;
@@ -212,6 +214,7 @@ export async function getDefaultHomepageButtons(
         slug ||
         `Button ${index + 1}`;
       const target = button.target === "_blank" ? "_blank" : "_self";
+      const styleMode = button.styleMode === "dark" ? "dark" : "light";
 
       return {
         id: button.id?.trim() || `custom-${index + 1}`,
@@ -220,6 +223,7 @@ export async function getDefaultHomepageButtons(
         heroImageUrl: linked?.heroImageUrl ?? null,
         href: href || (slug ? `/${slug}` : null),
         target,
+        styleMode,
         isFeatured: button.isFeatured === true,
       };
     });
@@ -232,6 +236,7 @@ export async function getDefaultHomepageButtons(
     heroImageUrl: row.heroImageUrl ?? null,
     href: `/${row.slug}`,
     target: "_self",
+    styleMode: "light",
     isFeatured: false,
   }));
 }
