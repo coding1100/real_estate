@@ -18,6 +18,8 @@ interface PageRowActionsProps {
   pageId: string;
   slug: string;
   isMaster: boolean;
+  isDeleted?: boolean;
+  archivedView?: boolean;
   isFixedDefaultHomepage?: boolean;
   /** Row layout: master chip + ⋮ menu align horizontally and center with adjacent badges (e.g. Landing Pages V2). */
   inline?: boolean;
@@ -29,6 +31,8 @@ export function PageRowActions({
   pageId,
   slug,
   isMaster,
+  isDeleted = false,
+  archivedView = false,
   isFixedDefaultHomepage = false,
   inline = false,
   showMasterBadge = true,
@@ -148,100 +152,113 @@ export function PageRowActions({
                 width: panelPos.width,
               }}
             >
-            <a
-              href={`/${slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50"
-            >
-              <Eye className="h-3.5 w-3.5" />
-              <span>View page</span>
-            </a>
-            <Link
-              href={`/admin/pages/${pageId}/edit`}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              <span>Edit</span>
-            </Link>
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => {
-                startTransition(async () => {
-                  try {
-                    const res = await fetch("/api/admin/pages/duplicate", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ pageId }),
+            {!archivedView ? (
+              <>
+                <a
+                  href={`/${slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  <span>View page</span>
+                </a>
+                <Link
+                  href={`/admin/pages/${pageId}/edit`}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  <span>Edit</span>
+                </Link>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => {
+                    startTransition(async () => {
+                      try {
+                        const res = await fetch("/api/admin/pages/duplicate", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ pageId }),
+                        });
+                        const data = await res.json().catch(() => null);
+                        if (!res.ok) {
+                          const msg =
+                            (data && typeof data.error === "string" && data.error) ||
+                            "Failed to duplicate page.";
+                          error(msg);
+                          return;
+                        }
+                        setOpen(false);
+                        router.refresh();
+                        success("Page duplicated successfully.");
+                      } catch (err) {
+                        console.error(err);
+                        error("Failed to duplicate page.");
+                      }
                     });
-                    const data = await res.json().catch(() => null);
-                    if (!res.ok) {
-                      const msg =
-                        (data && typeof data.error === "string" && data.error) ||
-                        "Failed to duplicate page.";
-                      error(msg);
-                      return;
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  <span>Duplicate</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={async () => {
+                    try {
+                      const origin =
+                        typeof window !== "undefined" ? window.location.origin : "";
+                      const url = `${origin}/${slug}`.replace(/\/+/g, "/");
+
+                      if (
+                        typeof navigator !== "undefined" &&
+                        navigator.clipboard?.writeText
+                      ) {
+                        await navigator.clipboard.writeText(url);
+                      } else {
+                        const temp = document.createElement("textarea");
+                        temp.value = url;
+                        temp.style.position = "fixed";
+                        temp.style.left = "-9999px";
+                        temp.style.top = "-9999px";
+                        document.body.appendChild(temp);
+                        temp.focus();
+                        temp.select();
+                        document.execCommand("copy");
+                        document.body.removeChild(temp);
+                      }
+
+                      setOpen(false);
+                      success("Link copied to clipboard.");
+                    } catch {
+                      error("Failed to copy link.");
                     }
-                    setOpen(false);
-                    router.refresh();
-                    success("Page duplicated successfully.");
-                  } catch (err) {
-                    console.error(err);
-                    error("Failed to duplicate page.");
-                  }
-                });
-              }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
-            >
-              <Copy className="h-3.5 w-3.5" />
-              <span>Duplicate</span>
-            </button>
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={async () => {
-                try {
-                  const origin =
-                    typeof window !== "undefined" ? window.location.origin : "";
-                  const url = `${origin}/${slug}`.replace(/\/+/g, "/");
-
-                  if (
-                    typeof navigator !== "undefined" &&
-                    navigator.clipboard?.writeText
-                  ) {
-                    await navigator.clipboard.writeText(url);
-                  } else {
-                    const temp = document.createElement("textarea");
-                    temp.value = url;
-                    temp.style.position = "fixed";
-                    temp.style.left = "-9999px";
-                    temp.style.top = "-9999px";
-                    document.body.appendChild(temp);
-                    temp.focus();
-                    temp.select();
-                    document.execCommand("copy");
-                    document.body.removeChild(temp);
-                  }
-
-                  setOpen(false);
-                  success("Link copied to clipboard.");
-                } catch {
-                  error("Failed to copy link.");
-                }
-              }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
-            >
-              <LinkIcon className="h-3.5 w-3.5" />
-              <span>Copy link</span>
-            </button>
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+                >
+                  <LinkIcon className="h-3.5 w-3.5" />
+                  <span>Copy link</span>
+                </button>
+              </>
+            ) : null}
             <div className="mt-1 border-t border-zinc-100 pt-1">
+              {isDeleted && archivedView ? (
+                <DeletePageButton
+                  pageId={pageId}
+                  slug={slug}
+                  mode="permanent-delete"
+                  variant="menu"
+                />
+              ) : null}
               <DeletePageButton
                 pageId={pageId}
                 slug={slug}
+                mode={isDeleted ? "restore" : "archive"}
                 variant="menu"
-                disabled={isFixedDefaultHomepage}
-                disabledReason="This domain default homepage is fixed and cannot be deleted."
+                disabled={!isDeleted && isFixedDefaultHomepage}
+                disabledReason="This domain default homepage is fixed and cannot be archived."
               />
             </div>
           </div>,

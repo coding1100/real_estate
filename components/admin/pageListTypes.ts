@@ -14,4 +14,5 @@ export interface PageListItem {
   bookmarked?: boolean;
   adminListOrder: number;
   isFixedDefaultHomepage?: boolean;
+  deletedAt?: string | null;
 }

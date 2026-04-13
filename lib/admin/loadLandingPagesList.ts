@@ -119,13 +119,15 @@ export async function loadLandingPagesList(): Promise<LandingPagesListData> {
     templates = [];
   }
 
-  const pageOptions: PageOption[] = pages.map((p) => ({
-    id: p.id,
-    slug: p.slug,
-    type: p.type,
-    domainHostname: p.domain.hostname,
-    domainId: p.domainId,
-  }));
+  const pageOptions: PageOption[] = pages
+    .filter((p) => p.deletedAt == null)
+    .map((p) => ({
+      id: p.id,
+      slug: p.slug,
+      type: p.type,
+      domainHostname: p.domain.hostname,
+      domainId: p.domainId,
+    }));
 
   const tablePages: PageListItem[] = pages.map((p) => ({
     id: p.id,
@@ -153,6 +155,7 @@ export async function loadLandingPagesList(): Promise<LandingPagesListData> {
     bookmarked: bookmarkedById.get(p.id) ?? false,
     adminListOrder: adminOrderById.get(p.id) ?? 0,
     isFixedDefaultHomepage: fixedHomepageIds.has(p.id),
+    deletedAt: p.deletedAt ? p.deletedAt.toISOString() : null,
   }));
 
   return { tablePages, pageOptions, domains, templates };

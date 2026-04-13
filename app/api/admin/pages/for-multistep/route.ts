@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
       where: {
         domainId,
         status: "published",
+        deletedAt: null,
       },
       select: {
         id: true,
