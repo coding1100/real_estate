@@ -1082,9 +1082,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                                       <input
                                         className="w-full rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-xs read-only"
                                         value={btn.href}
-                                        onChange={(e) =>
-                                          updateDraftHomepageButton(idx, { href: e.target.value })
-                                        }
+                                        readOnly
                                         placeholder="/target-slug or https://example.com"
                                       />
                                     </>
@@ -1108,18 +1106,6 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                                         }
                                       />
                                       Active
-                                    </label>
-                                    <label className="inline-flex items-center gap-1">
-                                      <input
-                                        type="checkbox"
-                                        checked={btn.isFeatured}
-                                        onChange={(e) =>
-                                          updateDraftHomepageButton(idx, {
-                                            isFeatured: e.target.checked,
-                                          })
-                                        }
-                                      />
-                                      Featured (yellow)
                                     </label>
                                     <select
                                       className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs"
@@ -1153,85 +1139,90 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                         </div>
                       </div>
 
-                      <label className="block text-[14px] font-medium text-zinc-700">
-                        Notify email
-                      </label>
-                      {isEditing ? (
-                        <input
-                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
-                          value={current.notifyEmail}
-                          onChange={(e) =>
-                            updateDraft({ notifyEmail: e.target.value })
-                          }
-                          placeholder="you@example.com"
-                        />
-                      ) : (
-                        <p className="text-md text-zinc-800">
-                          {d.notifyEmail}
-                        </p>
-                      )}
-
-                      <label className="block text-[14px] font-medium text-zinc-700">
-                        Notify SMS
-                      </label>
-                      {isEditing ? (
-                        <input
-                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
-                          value={current.notifySms ?? ""}
-                          onChange={(e) =>
-                            updateDraft({
-                              notifySms: e.target.value || null,
-                            })
-                          }
-                          placeholder="+15551234567"
-                        />
-                      ) : (
-                        <p className="text-md text-zinc-800">
-                          {d.notifySms || "—"}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="block text-[14px] font-medium text-zinc-700">
-                        GA4 ID
-                      </label>
-                      {isEditing ? (
-                        <input
-                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
-                          value={current.ga4Id ?? ""}
-                          onChange={(e) =>
-                            updateDraft({
-                              ga4Id: e.target.value || null,
-                            })
-                          }
-                          placeholder="G-XXXXXXX"
-                        />
-                      ) : (
-                        <p className="text-md text-zinc-800">
-                          {d.ga4Id || "—"}
-                        </p>
-                      )}
-
-                      <label className="block text-[14px] font-medium text-zinc-700">
-                        Meta Pixel ID
-                      </label>
-                      {isEditing ? (
-                        <input
-                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
-                          value={current.metaPixelId ?? ""}
-                          onChange={(e) =>
-                            updateDraft({
-                              metaPixelId: e.target.value || null,
-                            })
-                          }
-                          placeholder="123456789012345"
-                        />
-                      ) : (
-                        <p className="text-md text-zinc-800">
-                          {d.metaPixelId || "—"}
-                        </p>
-                      )}
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <label className="block text-[14px] font-medium text-zinc-700">
+                            Notify email
+                          </label>
+                          {isEditing ? (
+                            <input
+                              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
+                              value={current.notifyEmail}
+                              onChange={(e) =>
+                                updateDraft({ notifyEmail: e.target.value })
+                              }
+                              placeholder="you@example.com"
+                            />
+                          ) : (
+                            <p className="text-md text-zinc-800">
+                              {d.notifyEmail}
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <label className="block text-[14px] font-medium text-zinc-700">
+                            Notify SMS
+                          </label>
+                          {isEditing ? (
+                            <input
+                              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
+                              value={current.notifySms ?? ""}
+                              onChange={(e) =>
+                                updateDraft({
+                                  notifySms: e.target.value || null,
+                                })
+                              }
+                              placeholder="+15551234567"
+                            />
+                          ) : (
+                            <p className="text-md text-zinc-800">
+                              {d.notifySms || "—"}
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <label className="block text-[14px] font-medium text-zinc-700">
+                            GA4 ID
+                          </label>
+                          {isEditing ? (
+                            <input
+                              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
+                              value={current.ga4Id ?? ""}
+                              onChange={(e) =>
+                                updateDraft({
+                                  ga4Id: e.target.value || null,
+                                })
+                              }
+                              placeholder="G-XXXXXXX"
+                            />
+                          ) : (
+                            <p className="text-md text-zinc-800">
+                              {d.ga4Id || "—"}
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <label className="block text-[14px] font-medium text-zinc-700">
+                            Meta Pixel ID
+                          </label>
+                          {isEditing ? (
+                            <input
+                              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-md"
+                              value={current.metaPixelId ?? ""}
+                              onChange={(e) =>
+                                updateDraft({
+                                  metaPixelId: e.target.value || null,
+                                })
+                              }
+                              placeholder="123456789012345"
+                            />
+                          ) : (
+                            <p className="text-md text-zinc-800">
+                              {d.metaPixelId || "—"}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                      
                   </div>
