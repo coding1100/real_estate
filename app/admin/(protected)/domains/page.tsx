@@ -89,11 +89,14 @@ export default async function DomainsPage() {
         const obj = item as Record<string, unknown>;
         const target: "_self" | "_blank" =
           obj.target === "_blank" ? "_blank" : "_self";
+        const styleMode: "light" | "dark" =
+          obj.styleMode === "dark" ? "dark" : "light";
         return {
           id: String(obj.id ?? `btn-${index + 1}`),
           label: String(obj.label ?? ""),
           href: String(obj.href ?? ""),
           target,
+          styleMode,
           isActive: obj.isActive !== false,
           isFeatured: obj.isFeatured === true,
           linkedPageId:
