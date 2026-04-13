@@ -123,7 +123,7 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
     [page.defaultHomepageButtons],
   );
   const initialButton = useMemo(
-    () => buttons.find((button) => button.isFeatured) ?? buttons[0],
+    () => buttons[0],
     [buttons],
   );
   const [selectedSlug, setSelectedSlug] = useState<string>(
@@ -309,6 +309,8 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {buttons.map((item) => {
                 const itemSlug = item.slug || deriveSlugFromHref(item.href);
+                const isDarkStyle = item.styleMode === "dark";
+                const isSelected = selectedPreviewSlug === itemSlug;
                 return (
                   <button
                   key={item.id}
@@ -330,12 +332,12 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
                       );
                     }
                   }}
-                  className={`!rounded-[10px] border px-3 py-2 text-left text-sm ${
-                    selectedPreviewSlug === itemSlug
-                      ? "border-[#f0cd72] bg-[#f0cd72] text-zinc-900"
-                      : item.isFeatured
-                        ? "border-[#f0cd72]/70 bg-[#f0cd72]/20 text-white"
-                        : "border-white/25 bg-white/10 text-white"
+                  className={`!rounded-[10px] px-3 py-2 text-left text-sm font-medium transition-colors ${
+                    isSelected
+                      ? "bg-[#f0cd72] text-zinc-900"
+                      : isDarkStyle
+                        ? "bg-zinc-900/85 text-white hover:bg-zinc-900"
+                        : "bg-white/95 text-zinc-900 hover:bg-white"
                   }`}
                 >
                   {item.title}

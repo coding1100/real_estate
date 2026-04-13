@@ -36,6 +36,7 @@ interface DomainRow {
     label: string;
     href: string;
     target: "_self" | "_blank";
+    styleMode: "light" | "dark";
     isActive: boolean;
     isFeatured: boolean;
     linkedPageId: string | null;
@@ -127,6 +128,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
             label: `Button ${nextIndex}`,
             href: "",
             target: "_self",
+            styleMode: "light",
             isActive: true,
             isFeatured: false,
             linkedPageId: null,
@@ -377,6 +379,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                 label: String(item?.label ?? ""),
                 href: String(item?.href ?? ""),
                 target: item?.target === "_blank" ? "_blank" : "_self",
+                styleMode: item?.styleMode === "dark" ? "dark" : "light",
                 isActive: item?.isActive !== false,
                 isFeatured: item?.isFeatured === true,
                 linkedPageId:
@@ -584,6 +587,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                 label: String(item?.label ?? ""),
                 href: String(item?.href ?? ""),
                 target: item?.target === "_blank" ? "_blank" : "_self",
+                styleMode: item?.styleMode === "dark" ? "dark" : "light",
                 isActive: item?.isActive !== false,
                 isFeatured: item?.isFeatured === true,
                 linkedPageId:
@@ -1122,6 +1126,34 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                                       <option value="_self">Open same tab</option>
                                       <option value="_blank">Open new tab</option>
                                     </select>
+                                    <div className="inline-flex items-center rounded-md border border-zinc-300 bg-white p-0.5">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          updateDraftHomepageButton(idx, { styleMode: "light" })
+                                        }
+                                        className={`rounded px-2 py-1 text-xs font-medium transition ${
+                                          btn.styleMode !== "dark"
+                                            ? "bg-zinc-900 text-white"
+                                            : "text-zinc-600 hover:bg-zinc-100"
+                                        }`}
+                                      >
+                                        Light
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          updateDraftHomepageButton(idx, { styleMode: "dark" })
+                                        }
+                                        className={`rounded px-2 py-1 text-xs font-medium transition ${
+                                          btn.styleMode === "dark"
+                                            ? "bg-zinc-900 text-white"
+                                            : "text-zinc-600 hover:bg-zinc-100"
+                                        }`}
+                                      >
+                                        Dark
+                                      </button>
+                                    </div>
                                     <button
                                       type="button"
                                       onClick={() => removeDraftHomepageButton(idx)}

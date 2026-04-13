@@ -91,6 +91,7 @@ export interface LandingPageContent {
     heroImageUrl?: string | null;
     href?: string | null;
     target?: "_self" | "_blank";
+    styleMode?: "light" | "dark";
     isFeatured?: boolean;
   }[];
   // Optional per-page social icon overrides; falls back to domain settings when undefined
