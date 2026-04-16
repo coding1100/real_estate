@@ -2,6 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
 
+function normalizeSlugCandidate(input: string): string {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function resolveDuplicateBaseSlug(original: { slug: string; canonicalUrl: string | null }): string {
+  const canonical = String(original.canonicalUrl ?? "").trim();
+  if (canonical) {
+    try {
+      const parsed =
+        canonical.startsWith("http://") || canonical.startsWith("https://")
+          ? new URL(canonical)
+          : new URL(canonical, "https://placeholder.local");
+      const pathname = (parsed.pathname || "").trim().replace(/^\/+|\/+$/g, "");
+      const lastSegment = pathname.split("/").filter(Boolean).pop() ?? "";
+      const normalizedFromCanonical = normalizeSlugCandidate(lastSegment);
+      if (normalizedFromCanonical) return normalizedFromCanonical;
+    } catch {
+      const path = canonical.split("?")[0]?.split("#")[0] ?? "";
+      const lastSegment = path.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean).pop() ?? "";
+      const normalizedFromCanonical = normalizeSlugCandidate(lastSegment);
+      if (normalizedFromCanonical) return normalizedFromCanonical;
+    }
+  }
+  return normalizeSlugCandidate(original.slug) || original.slug.toLowerCase();
+}
+
 export async function POST(req: NextRequest) {
   const session = await getServerAuthSession();
   if (!session) {
@@ -111,7 +142,11 @@ export async function POST(req: NextRequest) {
   } else {
     // Path 2: quick duplicate from the 3-dot menu with no slug supplied.
     // Auto-generate a unique slug by appending -copy, -copy-2, etc.
-    const baseSlug = `${original.slug}-copy`;
+    const duplicateBase = resolveDuplicateBaseSlug({
+      slug: original.slug,
+      canonicalUrl: original.canonicalUrl,
+    });
+    const baseSlug = `${duplicateBase}-copy`;
     let candidate = baseSlug.toLowerCase();
 
     for (let i = 1; i <= 50; i++) {
@@ -157,6 +192,9 @@ export async function POST(req: NextRequest) {
       schemaMarkup: schemaMarkup as any,
       customHeadTags: customHeadTags as any,
       slug: slugToUse,
+      // Reset canonical on duplicates so admin list and SEO do not
+      // keep pointing at the original page URL.
+      canonicalUrl: null,
       status: "draft",
       domainId: domainIdToUse,
     },

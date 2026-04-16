@@ -9,6 +9,7 @@ import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { MetaPixel } from "@/components/analytics/MetaPixel";
 import { getAdminUiSettings } from "@/lib/uiSettings";
 import { UnpublishedPageNotice } from "@/components/landing/UnpublishedPageNotice";
+import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
 import {
   getRequestHostnameFromHeaders,
   isPreviewHostname,
@@ -60,6 +61,19 @@ async function getHostContextFromHeaders() {
     isPreviewHost: isPreviewHostname(rawHostname),
     isPlatformHost: isPlatformHostname(rawHostname),
   };
+}
+
+function readPageCtaForwardingRules(rawSections: unknown): CtaForwardingRule[] {
+  if (!Array.isArray(rawSections)) return [];
+  const hero = rawSections.find(
+    (section) =>
+      section &&
+      typeof section === "object" &&
+      (section as { kind?: unknown }).kind === "hero",
+  ) as { props?: unknown } | undefined;
+  if (!hero || !hero.props || typeof hero.props !== "object") return [];
+  const rules = (hero.props as { ctaForwardingRules?: unknown }).ctaForwardingRules;
+  return Array.isArray(rules) ? (rules as CtaForwardingRule[]) : [];
 }
 
 export async function generateMetadata({
@@ -188,19 +202,26 @@ export default async function LandingPage({ params, searchParams }: RouteParams)
     throw e;
   }
   const { settings } = await getAdminUiSettings();
+  const pageCtaForwardingRules = readPageCtaForwardingRules(
+    (page as { sections?: unknown }).sections,
+  );
+  const resolvedCtaForwardingRules =
+    pageCtaForwardingRules.length > 0
+      ? pageCtaForwardingRules
+      : (settings.ctaForwardingRules ?? []);
 
   const content =
     page.type === "seller" ? (
       <SellerTemplate
         page={page}
         utm={utm}
-        ctaForwardingRules={settings.ctaForwardingRules ?? []}
+        ctaForwardingRules={resolvedCtaForwardingRules}
       />
     ) : (
       <BuyerTemplate
         page={page}
         utm={utm}
-        ctaForwardingRules={settings.ctaForwardingRules ?? []}
+        ctaForwardingRules={resolvedCtaForwardingRules}
       />
     );
 

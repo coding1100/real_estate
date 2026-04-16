@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Dialog } from "@/components/ui/Dialog";
-import { Pencil, Check, X, Trash2, Plus } from "lucide-react";
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Pencil, Check, X, Trash2, Plus, GripVertical, Search } from "lucide-react";
 import { useAdminToast } from "@/components/admin/useAdminToast";
 
 interface DomainRow {
@@ -30,7 +33,7 @@ interface DomainRow {
   zillowVisible: boolean;
   defaultHomepagePageId: string | null;
   defaultHomepageButtonLimit: number;
-  defaultHomepageOptions: { id: string; slug: string; label: string }[];
+  defaultHomepageOptions: { id: string; slug: string; label: string; path: string }[];
   defaultHomepageButtons: {
     id: string;
     label: string;
@@ -51,6 +54,8 @@ interface DomainsManagerProps {
   initialDomains: DomainRow[];
 }
 
+type HomepageOption = { id: string; slug: string; label: string; path: string };
+
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
@@ -62,6 +67,141 @@ function isValidUsPhone(value: string): boolean {
   if (trimmed.includes("+") && !trimmed.startsWith("+")) return false;
   const digits = trimmed.replace(/\D/g, "");
   return digits.length === 10 || (digits.length === 11 && digits.startsWith("1"));
+}
+
+function SortableHomepageButtonItem({
+  id,
+  isEditing,
+  children,
+}: {
+  id: string;
+  isEditing: boolean;
+  children: ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-3">
+      {isEditing ? (
+        <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          <button
+            type="button"
+            className="inline-flex h-7 w-7 cursor-grab items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-500 hover:bg-zinc-50 active:cursor-grabbing"
+            aria-label="Drag button to reorder"
+            title="Drag to reorder"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-3.5 w-3.5" />
+          </button>
+          Drag to reorder
+        </div>
+      ) : null}
+      {children}
+    </div>
+  );
+}
+
+function SearchableHomepageOptionSelector({
+  options,
+  value,
+  onSelect,
+}: {
+  options: HomepageOption[];
+  value: string | null;
+  onSelect: (nextId: string | null) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const selected = useMemo(
+    () => options.find((option) => option.id === value) ?? null,
+    [options, value],
+  );
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return options;
+    return options.filter((option) =>
+      `${option.label} ${option.slug} ${option.path}`.toLowerCase().includes(needle),
+    );
+  }, [options, query]);
+
+  useEffect(() => {
+    function onMouseDown(event: MouseEvent) {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (containerRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, []);
+  useEffect(() => {
+    if (open) return;
+    setQuery(selected ? `${selected.label} (${selected.path || `/${selected.slug}`})` : "");
+  }, [selected, open]);
+
+  return (
+    <div ref={containerRef} className="relative w-full md:col-span-2">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-2 top-[10px] h-3.5 w-3.5 text-zinc-400" />
+        <input
+          type="text"
+          className="w-full rounded-md border border-zinc-300 bg-white py-2 pl-7 pr-2 text-xs"
+          value={query}
+          placeholder="Attach page (optional)"
+          onFocus={() => {
+            setOpen(true);
+            setQuery("");
+          }}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+        />
+      </div>
+      {open && (
+        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border border-zinc-200 bg-white shadow-lg">
+          <button
+            type="button"
+            className="block w-full border-b border-zinc-100 px-2 py-2 text-left text-xs text-zinc-500 hover:bg-zinc-50"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onSelect(null);
+              setQuery("");
+              setOpen(false);
+            }}
+          >
+            No attached page
+          </button>
+          {filtered.length === 0 ? (
+            <p className="px-2 py-2 text-xs text-zinc-500">No pages found.</p>
+          ) : (
+            filtered.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                className="block w-full border-b border-zinc-100 px-2 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-50 last:border-b-0"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onSelect(option.id);
+                  setQuery("");
+                  setOpen(false);
+                }}
+              >
+                {option.label} ({option.path || `/${option.slug}`})
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function DomainsManager({ initialDomains }: DomainsManagerProps) {
@@ -102,6 +242,9 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
     defaultHomepageButtons: [],
   });
   const { success: toastSuccess, error: toastError } = useAdminToast();
+  const homepageButtonsSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
 
   function startEdit(domain: DomainRow) {
     setEditingId(domain.id);
@@ -192,6 +335,26 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
     });
   }
 
+  function reorderDraftHomepageButtons(activeId: string, overId: string) {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const oldIndex = prev.defaultHomepageButtons.findIndex((item) => item.id === activeId);
+      const newIndex = prev.defaultHomepageButtons.findIndex((item) => item.id === overId);
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return prev;
+      return {
+        ...prev,
+        defaultHomepageButtons: arrayMove(prev.defaultHomepageButtons, oldIndex, newIndex),
+      };
+    });
+  }
+
+  function onHomepageButtonsDragEnd(event: DragEndEvent) {
+    const activeId = String(event.active.id);
+    const overId = event.over ? String(event.over.id) : "";
+    if (!overId || activeId === overId) return;
+    reorderDraftHomepageButtons(activeId, overId);
+  }
+
   async function createDedicatedDefaultHomepage(domain: DomainRow) {
     setSavingId(domain.id);
     setError(null);
@@ -221,6 +384,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                 id: page.id,
                 slug: page.slug,
                 label: (page.title ?? "").trim() || page.headline || page.slug,
+                path: `/${page.slug}`,
               });
             }
             return {
@@ -239,7 +403,12 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
               (page?.title ?? "").trim() || page?.headline || page?.slug || "";
             const nextOptions = [...prev.defaultHomepageOptions];
             if (page && !nextOptions.some((opt) => opt.id === page.id)) {
-              nextOptions.unshift({ id: page.id, slug: page.slug, label: pageLabel });
+              nextOptions.unshift({
+                id: page.id,
+                slug: page.slug,
+                label: pageLabel,
+                path: `/${page.slug}`,
+              });
             }
             return {
               ...prev,
@@ -656,7 +825,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
             type="button"
             onClick={backfillDefaultHomepageForAllDomains}
             disabled={isBackfillingDefaults || isPending}
-            className="inline-flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 !hidden rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isBackfillingDefaults ? "Creating default homes..." : "Backfill default homes"}
           </button>
@@ -992,7 +1161,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                                 <option value="">No fixed homepage</option>
                                 {current.defaultHomepageOptions.map((opt) => (
                                   <option key={opt.id} value={opt.id}>
-                                    {opt.label} (/{opt.slug})
+                                    {opt.label} ({opt.path || `/${opt.slug}`})
                                   </option>
                                 ))}
                               </select>
@@ -1168,13 +1337,26 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                           </div>
                         ) : (
                           <div className="space-y-3">
-                            {(isEditing
-                              ? current.defaultHomepageButtons
-                              : d.defaultHomepageButtons
-                            ).map((btn, idx) => (
-                              <div
+                            <DndContext
+                              sensors={homepageButtonsSensors}
+                              collisionDetection={closestCenter}
+                              onDragEnd={onHomepageButtonsDragEnd}
+                            >
+                              <SortableContext
+                                items={(isEditing
+                                  ? current.defaultHomepageButtons
+                                  : d.defaultHomepageButtons
+                                ).map((btn) => btn.id)}
+                                strategy={verticalListSortingStrategy}
+                              >
+                                {(isEditing
+                                  ? current.defaultHomepageButtons
+                                  : d.defaultHomepageButtons
+                                ).map((btn, idx) => (
+                              <SortableHomepageButtonItem
                                 key={`${btn.id}-${idx}`}
-                                className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-3"
+                                id={btn.id}
+                                isEditing={isEditing}
                               >
                                 <div className="grid gap-2 md:grid-cols-4">
                                   {isEditing ? (
@@ -1188,32 +1370,24 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                                         placeholder="Button text"
                                       />
                                       
-                                      <select
-                                        className="w-full rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-xs md:col-span-2"
-                                        value={btn.linkedPageId ?? ""}
-                                        onChange={(e) => {
-                                          const nextPageId = e.target.value || null;
+                                      <SearchableHomepageOptionSelector
+                                        options={current.defaultHomepageOptions}
+                                        value={btn.linkedPageId}
+                                        onSelect={(nextPageId) => {
                                           const selectedPage = current.defaultHomepageOptions.find(
                                             (option) => option.id === nextPageId,
                                           );
                                           updateDraftHomepageButton(idx, {
                                             linkedPageId: nextPageId,
                                             href: selectedPage
-                                              ? `/${selectedPage.slug}`
+                                              ? (selectedPage.path || `/${selectedPage.slug}`)
                                               : btn.href,
                                             label: selectedPage
                                               ? btn.label || selectedPage.label
                                               : btn.label,
                                           });
                                         }}
-                                      >
-                                        <option value="">Attach page (optional)</option>
-                                        {current.defaultHomepageOptions.map((option) => (
-                                          <option key={option.id} value={option.id}>
-                                            {option.label} (/{option.slug})
-                                          </option>
-                                        ))}
-                                      </select>
+                                      />
                                       <input
                                         className="w-full rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-xs read-only"
                                         value={btn.href}
@@ -1267,8 +1441,10 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                                     </button>
                                   </div>
                                 )}
-                              </div>
+                              </SortableHomepageButtonItem>
                             ))}
+                              </SortableContext>
+                            </DndContext>
                           </div>
                         )}
                         </div>

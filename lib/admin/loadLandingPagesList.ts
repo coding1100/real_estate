@@ -137,6 +137,8 @@ export async function loadLandingPagesList(): Promise<LandingPagesListData> {
     updatedAt: p.updatedAt.toISOString(),
     headline: p.headline ?? null,
     title: ((p as { title?: string | null }).title as string | null) ?? null,
+    canonicalUrl:
+      ((p as { canonicalUrl?: string | null }).canonicalUrl as string | null) ?? null,
     domainHostname: p.domain.hostname,
     domainId: p.domainId,
     multistepStepSlugs:

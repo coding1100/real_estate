@@ -206,7 +206,7 @@ export function SellerTemplate({
       </main>
       {showFooter && (
         <footer
-          className="mt-10 border-t relative z-50"
+          className="mt-10 relative z-50"
           style={{
             backgroundColor: footerBgColor,
           }}
