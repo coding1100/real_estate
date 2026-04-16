@@ -12,6 +12,7 @@ import { ImageUploader } from "@/components/admin/ImageUploader";
 import { FormEditor } from "@/components/admin/FormEditor";
 import { SeoEditor } from "@/components/admin/SeoEditor";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { CtaForwardingSettingsForm } from "@/components/admin/CtaForwardingSettingsForm";
 import { PageBlockLayoutEditor } from "@/components/admin/craft/PageBlockLayoutEditor";
 import { DragDropPageLayoutEditor } from "@/components/admin/DragDropPageLayoutEditor";
 import { MultistepPageSelector } from "@/components/admin/MultistepPageSelector";
@@ -30,6 +31,7 @@ import {
   X,
 } from "lucide-react";
 import { useAdminToast } from "@/components/admin/useAdminToast";
+import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
 
 interface PageEditorProps {
   initialPage: LandingPageContent & {
@@ -41,9 +43,10 @@ interface PageEditorProps {
     domainPages?: DomainPageOption[];
   };
   editorFonts?: { label: string; cssFamily: string }[];
+  initialCtaForwardingRules?: CtaForwardingRule[];
 }
 
-type Tab = "content" | "form" | "seo" | "layout";
+type Tab = "content" | "form" | "seo" | "layout" | "cta";
 type DomainPageOption = {
   id: string;
   slug: string;
@@ -147,7 +150,11 @@ function deriveSlugFromCanonicalUrl(canonicalUrl: string): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
-export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
+export function PageEditor({
+  initialPage,
+  editorFonts,
+  initialCtaForwardingRules = [],
+}: PageEditorProps) {
   const [tab, setTab] = useState<Tab>("content");
   const [page, setPage] = useState(initialPage);
   const [status, setStatus] = useState<string>(initialPage.status ?? "draft");
@@ -166,7 +173,13 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
   const [socialOverrides, setSocialOverrides] = useState<
     LandingPageContent["socialOverrides"]
   >((initialPage as any).socialOverrides ?? null);
+  const [ctaForwardingRules, setCtaForwardingRules] = useState<CtaForwardingRule[]>(
+    initialCtaForwardingRules,
+  );
   const [saving, startSaving] = useTransition();
+  const [activeSaveAction, setActiveSaveAction] = useState<
+    "save-draft" | "unpublish" | "publish" | null
+  >(null);
   const isFixedDefaultHomepage = initialPage.isFixedDefaultHomepage === true;
   const effectivePageMode: "single" | "multistep" = isFixedDefaultHomepage
     ? "single"
@@ -314,151 +327,154 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
     });
   }
 
-  async function save(nextStatus?: "draft" | "published") {
+  async function save(
+    nextStatus?: "draft" | "published",
+    action: "save-draft" | "unpublish" | "publish" = "save-draft",
+  ) {
+    if (saving) return;
     setMessage(null);
+    setActiveSaveAction(action);
     startSaving(async () => {
-      const normalizedTitle = titleDraft.trim();
-      const effectiveTitle =
-        normalizedTitle.length > 0
-          ? normalizedTitle
-          : ((page as any).title ?? page.headline ?? "").trim();
-      let sections = page.sections;
-      const blocks =
-        tab === "layout" && layoutGetBlocksRef.current
-          ? layoutGetBlocksRef.current()
-          : page.blocks;
-      if (tab === "layout" && layoutGetBlocksRef.current) {
-        setPage((prev) => ({ ...prev, blocks }));
-      }
-      if (tab === "layout" && layoutGetHeroElementsRef.current) {
-        const heroElements = layoutGetHeroElementsRef.current();
-        if (heroElements && Array.isArray(sections)) {
-          sections = sections.map((s) =>
-            s.kind === "hero"
-              ? {
-                ...s,
-                props: {
-                  ...(s.props || {}),
-                  heroElements,
-                },
-              }
-              : s,
-          );
+      try {
+        const normalizedTitle = titleDraft.trim();
+        const effectiveTitle =
+          normalizedTitle.length > 0
+            ? normalizedTitle
+            : ((page as any).title ?? page.headline ?? "").trim();
+        let sections = page.sections;
+        const blocks =
+          tab === "layout" && layoutGetBlocksRef.current
+            ? layoutGetBlocksRef.current()
+            : page.blocks;
+        if (tab === "layout" && layoutGetBlocksRef.current) {
+          setPage((prev) => ({ ...prev, blocks }));
         }
-      }
-      const body: any = {
-        title: effectiveTitle.length > 0 ? effectiveTitle : null,
-        headline: effectiveTitle.length > 0 ? effectiveTitle : page.headline,
-        subheadline: page.subheadline,
-        heroImageUrl: page.heroImageUrl,
-        ctaText: page.ctaText,
-        successMessage: page.successMessage,
-        footerHtml: (page as any).footerHtml ?? null,
-        sections,
-        blocks,
-        formSchema,
-        socialOverrides,
-        seoTitle: page.seo.title,
-        seoDescription: page.seo.description,
-        canonicalUrl: page.seo.canonicalUrl,
-        noIndex: page.seo.noIndex,
-      };
-      body.multistepStepSlugs =
-        effectivePageMode === "multistep" && multistepStepSlugs.length > 0
-          ? multistepStepSlugs
-          : null;
-
-      const getLayout = layoutGetLayoutRef.current;
-      if (!isFixedDefaultHomepage && getLayout) {
-        const raw = getLayout();
-        if (Array.isArray(raw) && raw.length > 0) {
-          body.layoutData = raw.map((item: { i: string; x: number; y: number; w: number; h: number; minW?: number; minH?: number; static?: boolean; hidden?: boolean }) => ({
-            i: item.i,
-            x: item.x,
-            y: item.y,
-            w: item.w,
-            h: item.h,
-            ...(item.minW != null && { minW: item.minW }),
-            ...(item.minH != null && { minH: item.minH }),
-            ...(item.static != null && { static: item.static }),
-            ...(item.hidden === true && { hidden: true }),
-          }));
-        }
-      }
-      if (nextStatus) {
-        body.status = nextStatus;
-      }
-      const res = await fetch(`/api/admin/pages/${initialPage.dbId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as
-          | { error?: string }
-          | null;
-        const errorMessage =
-          (data && typeof data.error === "string" && data.error) ||
-          "Failed to save";
-        setMessage(errorMessage);
-        errorToast(
-          nextStatus === "published"
-            ? "Failed to publish page. Please try again."
-            : nextStatus === "draft"
-              ? "Failed to unpublish page. Please try again."
-              : "Failed to save draft. Please try again.",
-        );
-        return;
-      }
-      // Keep local page state in sync with what we just saved so
-      // switching tabs does not resurrect older data.
-      setPage((prev) => ({
-        ...prev,
-        title: body.title,
-        headline: body.headline,
-        sections,
-        blocks,
-        formSchema,
-        socialOverrides,
-        ...(body.layoutData
-          ? {
-            pageLayout: {
-              ...(prev.pageLayout ?? {}),
-              layoutData: body.layoutData,
-            } as any,
+        if (tab === "layout" && layoutGetHeroElementsRef.current) {
+          const heroElements = layoutGetHeroElementsRef.current();
+          if (heroElements && Array.isArray(sections)) {
+            sections = sections.map((s) =>
+              s.kind === "hero"
+                ? {
+                    ...s,
+                    props: {
+                      ...(s.props || {}),
+                      heroElements,
+                    },
+                  }
+                : s,
+            );
           }
-          : {}),
-      }));
-      // Save buttons also commit pending title edits (without requiring check icon).
-      setIsEditingTitle(false);
-      setTitleDraft(body.title ?? body.headline ?? "");
-      const isPublishing = nextStatus === "published";
-      const isUnpublishing = nextStatus === "draft";
-      if (nextStatus) {
-        setStatus(nextStatus);
-      }
-      setMessage(
-        isPublishing ? "Published" : isUnpublishing ? "Unpublished" : "Saved",
-      );
-      successToast(
-        isPublishing
-          ? "Page published."
-          : isUnpublishing
-            ? "Page moved to draft."
-            : "Draft saved.",
-        isPublishing ? "Published" : isUnpublishing ? "Unpublished" : "Saved",
-      );
-
-      // Refresh preview iframe so changes are visible - with cache busting
-      setTimeout(() => {
-        const iframe = document.getElementById(
-          "page-preview",
-        ) as HTMLIFrameElement | null;
-        if (iframe) {
-          // Add timestamp to force fresh fetch
-          iframe.src = `/${encodeURIComponent(page.slug)}?preview=1&domain=${encodeURIComponent(page.domain.hostname)}&t=${Date.now()}`;
         }
-      }, 100);
+        const body: any = {
+          title: effectiveTitle.length > 0 ? effectiveTitle : null,
+          headline: effectiveTitle.length > 0 ? effectiveTitle : page.headline,
+          subheadline: page.subheadline,
+          heroImageUrl: page.heroImageUrl,
+          ctaText: page.ctaText,
+          successMessage: page.successMessage,
+          footerHtml: (page as any).footerHtml ?? null,
+          sections,
+          blocks,
+          formSchema,
+          socialOverrides,
+          seoTitle: page.seo.title,
+          seoDescription: page.seo.description,
+          canonicalUrl: page.seo.canonicalUrl,
+          noIndex: page.seo.noIndex,
+        };
+        body.multistepStepSlugs =
+          effectivePageMode === "multistep" && multistepStepSlugs.length > 0
+            ? multistepStepSlugs
+            : null;
+
+        const getLayout = layoutGetLayoutRef.current;
+        if (!isFixedDefaultHomepage && getLayout) {
+          const raw = getLayout();
+          if (Array.isArray(raw) && raw.length > 0) {
+            body.layoutData = raw.map((item: { i: string; x: number; y: number; w: number; h: number; minW?: number; minH?: number; static?: boolean; hidden?: boolean }) => ({
+              i: item.i,
+              x: item.x,
+              y: item.y,
+              w: item.w,
+              h: item.h,
+              ...(item.minW != null && { minW: item.minW }),
+              ...(item.minH != null && { minH: item.minH }),
+              ...(item.static != null && { static: item.static }),
+              ...(item.hidden === true && { hidden: true }),
+            }));
+          }
+        }
+        if (nextStatus) {
+          body.status = nextStatus;
+        }
+        const res = await fetch(`/api/admin/pages/${initialPage.dbId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => null)) as
+            | { error?: string }
+            | null;
+          const errorMessage =
+            (data && typeof data.error === "string" && data.error) ||
+            "Failed to save";
+          setMessage(errorMessage);
+          errorToast(errorMessage, "Unable to save page");
+          return;
+        }
+        // Keep local page state in sync with what we just saved so
+        // switching tabs does not resurrect older data.
+        setPage((prev) => ({
+          ...prev,
+          title: body.title,
+          headline: body.headline,
+          sections,
+          blocks,
+          formSchema,
+          socialOverrides,
+          ...(body.layoutData
+            ? {
+                pageLayout: {
+                  ...(prev.pageLayout ?? {}),
+                  layoutData: body.layoutData,
+                } as any,
+              }
+            : {}),
+        }));
+        // Save buttons also commit pending title edits (without requiring check icon).
+        setIsEditingTitle(false);
+        setTitleDraft(body.title ?? body.headline ?? "");
+        const isPublishing = nextStatus === "published";
+        const isUnpublishing = nextStatus === "draft";
+        if (nextStatus) {
+          setStatus(nextStatus);
+        }
+        setMessage(
+          isPublishing ? "Published" : isUnpublishing ? "Unpublished" : "Saved",
+        );
+        successToast(
+          isPublishing
+            ? "Page published."
+            : isUnpublishing
+              ? "Page moved to draft."
+              : "Draft saved.",
+          isPublishing ? "Published" : isUnpublishing ? "Unpublished" : "Saved",
+        );
+
+        // Refresh preview iframe so changes are visible - with cache busting
+        setTimeout(() => {
+          const iframe = document.getElementById(
+            "page-preview",
+          ) as HTMLIFrameElement | null;
+          if (iframe) {
+            // Add timestamp to force fresh fetch
+            iframe.src = `/${encodeURIComponent(page.slug)}?preview=1&domain=${encodeURIComponent(page.domain.hostname)}&t=${Date.now()}`;
+          }
+        }, 100);
+      } finally {
+        setActiveSaveAction(null);
+      }
     });
   }
 
@@ -586,17 +602,17 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
             </button>
             <button
               type="button"
-              onClick={() => save()}
-              disabled={saving}
+              onClick={() => save(undefined, "save-draft")}
+              disabled={saving && activeSaveAction === "save-draft"}
               className="inline-flex items-center gap-1.5 !rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:opacity-60"
             >
               <Save className="h-3.5 w-3.5" />
-              {saving ? "Saving..." : "Save draft"}
+              {saving && activeSaveAction === "save-draft" ? "Saving..." : "Save draft"}
             </button>
             <button
               type="button"
-              onClick={() => save("draft")}
-              disabled={saving || status !== "published" || isFixedDefaultHomepage}
+              onClick={() => save("draft", "unpublish")}
+              disabled={(saving && activeSaveAction === "unpublish") || status !== "published" || isFixedDefaultHomepage}
               title={
                 isFixedDefaultHomepage
                   ? "This fixed default homepage cannot be unpublished."
@@ -607,25 +623,25 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
               className="inline-flex items-center gap-1.5 !rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-900 shadow-sm hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <EyeOff className="h-3.5 w-3.5" />
-              {saving && status === "published" ? "Unpublishing..." : "Unpublish"}
+              {saving && activeSaveAction === "unpublish" ? "Unpublishing..." : "Unpublish"}
             </button>
             <button
               type="button"
-              onClick={() => save("published")}
-              disabled={saving}
+              onClick={() => save("published", "publish")}
+              disabled={saving && activeSaveAction === "publish"}
               className="inline-flex items-center gap-1.5 !rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60"
             >
               <Globe2 className="h-3.5 w-3.5" />
-              {saving ? "Publishing..." : "Publish"}
+              {saving && activeSaveAction === "publish" ? "Publishing..." : "Publish"}
             </button>
           </div>
         </div>
       </div>
-      {message && (
+      {/* {message && (
         <p className="text-sm text-emerald-700">
           {message}
         </p>
-      )}
+      )} */}
       {!isFixedDefaultHomepage && (
       <div className="rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600 default-homepage">
@@ -678,10 +694,10 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
       <div className="border-b border-zinc-200 max-[768px]:overflow-x-auto max-[768px]:pb-1">
         <nav className="flex gap-4 text-sm font-medium text-zinc-600">
           {(isFixedDefaultHomepage
-            ? (["content", "seo"] as Tab[])
+            ? (["content", "cta", "seo"] as Tab[])
             : hideLayoutTab
-              ? (["content", "form", "seo"] as Tab[])
-              : (["content", "form", "seo", "layout"] as Tab[])
+              ? (["content", "cta", "form", "seo"] as Tab[])
+              : (["content", "cta", "form", "seo", "layout"] as Tab[])
           ).map((t) => {
             const isActive = tab === t;
             const Icon =
@@ -691,6 +707,8 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                   ? ListChecks
                   : t === "seo"
                     ? Search
+                  : t === "cta"
+                    ? ExternalLink
                     : LayoutDashboard;
             const label =
               t === "content"
@@ -699,9 +717,11 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                   ? "Form"
                   : t === "seo"
                     ? "SEO"
+                    : t === "cta"
+                      ? "CTA Management"
                     : "Layout";
             const disabledInMultistep =
-              effectivePageMode === "multistep" && t !== "content";
+              effectivePageMode === "multistep" && t !== "content" && t !== "cta";
             return (
               <button
                 key={t}
@@ -1454,7 +1474,7 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                       </div>
                       <div className="space-y-3">
                         <RichTextEditor
-                          label="Success message (rich text)"
+                          label="Toast Success message (rich text)"
                           value={page.successMessage ?? ""}
                           onChange={(html) =>
                             update("successMessage", html as any)
@@ -1938,6 +1958,29 @@ export function PageEditor({ initialPage, editorFonts }: PageEditorProps) {
                 }
               />
             )
+          )}
+          {tab === "cta" && (
+            <CtaForwardingSettingsForm
+              initialRules={ctaForwardingRules}
+              saveButtonLabel="Save page CTA rules"
+              onSaveRules={async (rules) => {
+                const res = await fetch(`/api/admin/pages/${initialPage.dbId}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ ctaForwardingRules: rules }),
+                });
+                const data = (await res.json().catch(() => null)) as
+                  | { error?: string }
+                  | null;
+                if (!res.ok) {
+                  throw new Error(
+                    (data && typeof data.error === "string" && data.error) ||
+                      "Failed to save CTA forwarding rules.",
+                  );
+                }
+                setCtaForwardingRules(rules);
+              }}
+            />
           )}
         </div>
         <div className="h-[588px] overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm md:h-[784px] adj01 mb-[50px]">

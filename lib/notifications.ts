@@ -492,10 +492,46 @@ function findCtaRule(
     if (key) keys.add(key);
   }
   for (const key of keys) {
-    const match = rules.find((r) => normalizeCtaTitleKey(r.ctaTitle) === key);
-    if (match) return match;
+    const matches = rules.filter(
+      (rule) => normalizeCtaTitleKey(rule.ctaTitle) === key,
+    );
+    if (matches.length === 0) continue;
+
+    // Prefer the most recently configured matching rule that has active
+    // notification recipients, then active docs, otherwise fall back to last.
+    for (let i = matches.length - 1; i >= 0; i -= 1) {
+      const rule = matches[i];
+      const hasActiveNotify = (rule.notifyEmails ?? []).some(
+        (entry) =>
+          (entry.enabled ?? true) &&
+          typeof entry.email === "string" &&
+          entry.email.includes("@"),
+      );
+      if (hasActiveNotify) return rule;
+    }
+    for (let i = matches.length - 1; i >= 0; i -= 1) {
+      const rule = matches[i];
+      const hasAutoDocs = (rule.documents ?? []).some(
+        (doc) => !!doc.url && doc.autoSend !== false,
+      );
+      if (hasAutoDocs) return rule;
+    }
+    return matches[matches.length - 1];
   }
   return undefined;
+}
+
+function readPageCtaForwardingRules(rawSections: unknown): CtaForwardingRule[] {
+  if (!Array.isArray(rawSections)) return [];
+  const hero = rawSections.find(
+    (section) =>
+      section &&
+      typeof section === "object" &&
+      (section as { kind?: unknown }).kind === "hero",
+  ) as { props?: unknown } | undefined;
+  if (!hero || !hero.props || typeof hero.props !== "object") return [];
+  const rules = (hero.props as { ctaForwardingRules?: unknown }).ctaForwardingRules;
+  return Array.isArray(rules) ? (rules as CtaForwardingRule[]) : [];
 }
 
 export async function sendLeadNotifications(leadId: string) {
@@ -553,7 +589,13 @@ export async function sendLeadNotifications(leadId: string) {
       }
 
       const { settings } = await getAdminUiSettings();
-      const rules = (settings.ctaForwardingRules ?? []) as CtaForwardingRule[];
+      const pageRules = readPageCtaForwardingRules(
+        (lead.page as { sections?: unknown }).sections,
+      );
+      const rules =
+        pageRules.length > 0
+          ? pageRules
+          : ((settings.ctaForwardingRules ?? []) as CtaForwardingRule[]);
       const formData = (lead.formData as Record<string, unknown>) ?? {};
       const rule = findCtaRule(rules, page.ctaText, formData);
       if (!rule) {
@@ -643,6 +685,7 @@ export async function sendLeadNotifications(leadId: string) {
               const templatePayload: Parameters<typeof resend.emails.send>[0] = {
                 from: resolveFromAddress(domain.notifyEmail),
                 to: routing.to,
+                subject: `Your requested documents from ${domain.displayName ?? domain.hostname}`,
                 ...(routing.cc.length > 0 ? { cc: routing.cc } : {}),
                 ...(routing.bcc.length > 0 ? { bcc: routing.bcc } : {}),
                 // keep docs delivery behavior consistent with existing flow
@@ -664,12 +707,18 @@ export async function sendLeadNotifications(leadId: string) {
               } as any;
               await resend.emails.send(templatePayload);
             } catch (templateErr) {
+              const resendTemplateError =
+                templateErr &&
+                typeof templateErr === "object" &&
+                "message" in templateErr
+                  ? (templateErr as { message?: unknown }).message
+                  : null;
               console.error(
                 "[notifications] Resend template send failed, falling back to React Email html/text",
                 {
                   leadId: lead.id,
                   templateId: resendTemplateId,
-                  error: templateErr,
+                  error: resendTemplateError ?? templateErr,
                 },
               );
               await resend.emails.send(payload);

@@ -33,7 +33,14 @@ export async function PATCH(req: NextRequest) {
     toastErrorBody: string;
     toastAlertTitle: string;
     toastAlertBody: string;
-    toastPosition: "top-right" | "top-left" | "bottom-right" | "bottom-left";
+    toastPosition:
+      | "top-right"
+      | "top-left"
+      | "bottom-right"
+      | "bottom-left"
+      | "top-center"
+      | "bottom-center";
+    toastDurationMs: number;
     editorFonts: EditorFontOption[];
     ctaForwardingRules: CtaForwardingRule[];
   }>;
@@ -99,9 +106,19 @@ export async function PATCH(req: NextRequest) {
     body.toastPosition === "top-right" ||
     body.toastPosition === "top-left" ||
     body.toastPosition === "bottom-right" ||
-    body.toastPosition === "bottom-left"
+    body.toastPosition === "bottom-left" ||
+    body.toastPosition === "top-center" ||
+    body.toastPosition === "bottom-center"
   ) {
     allowed.toastPosition = body.toastPosition;
+  }
+
+  if (
+    typeof body.toastDurationMs === "number" &&
+    body.toastDurationMs >= 1000 &&
+    body.toastDurationMs <= 30000
+  ) {
+    allowed.toastDurationMs = Math.floor(body.toastDurationMs);
   }
 
   if (Array.isArray(body.editorFonts)) {
