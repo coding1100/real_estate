@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as ToastPrimitives from "@radix-ui/react-toast";
 import { CheckCircle2, AlertTriangle, Info } from "lucide-react";
-import { Toast, ToastViewport } from "@/components/ui/toast";
+import { Toast, ToastClose, ToastViewport } from "@/components/ui/toast";
 import type { ToastTheme } from "@/lib/uiSettings";
 
 type ToastVariant = "default" | "destructive" | "alert" | "info";
@@ -42,6 +42,7 @@ export function ToastProvider({
 
   const FALLBACK_THEME: ToastTheme = {
     position: "top-right",
+    durationMs: 5000,
     successBg: "#ecfdf3",
     successText: "#166534",
     errorBg: "#fef2f2",
@@ -61,6 +62,7 @@ export function ToastProvider({
 
   const mergedTheme: ToastTheme = {
     position: theme?.position ?? FALLBACK_THEME.position,
+    durationMs: theme?.durationMs ?? FALLBACK_THEME.durationMs,
     successBg: theme?.successBg ?? FALLBACK_THEME.successBg,
     successText: theme?.successText ?? FALLBACK_THEME.successText,
     errorBg: theme?.errorBg ?? FALLBACK_THEME.errorBg,
@@ -89,7 +91,10 @@ export function ToastProvider({
 
   return (
     <ToastContext.Provider value={{ toasts, toast, dismiss, theme: mergedTheme }}>
-      <ToastPrimitives.Provider swipeDirection="right">
+      <ToastPrimitives.Provider
+        swipeDirection="right"
+        duration={mergedTheme.durationMs}
+      >
         {children}
         {toasts.map((t) => {
           const isError = t.variant === "destructive";
@@ -127,11 +132,14 @@ export function ToastProvider({
             <Toast
               key={t.id}
               variant={t.variant ?? "default"}
+              durationMs={t.duration ?? mergedTheme.durationMs}
+              duration={t.duration ?? mergedTheme.durationMs}
               style={style}
               onOpenChange={(open: boolean) => {
                 if (!open) dismiss(t.id);
               }}
             >
+              <ToastClose aria-label="Close toast" />
               <div className="flex items-start gap-3">
                 <Icon
                   className="mt-0.5"
@@ -167,11 +175,15 @@ export function ToastProvider({
           className={
             mergedTheme.position === "top-left"
               ? "left-4 right-auto top-4 sm:left-6 sm:top-6"
-              : mergedTheme.position === "bottom-right"
-                ? "bottom-4 top-auto sm:bottom-6 sm:top-auto"
-                : mergedTheme.position === "bottom-left"
-                  ? "bottom-4 left-4 right-auto top-auto sm:bottom-6 sm:left-6 sm:top-auto"
-                  : undefined
+              : mergedTheme.position === "top-center"
+                ? "left-1/2 top-4 -translate-x-1/2 sm:top-6"
+                : mergedTheme.position === "bottom-right"
+                  ? "bottom-4 top-auto sm:bottom-6 sm:top-auto"
+                  : mergedTheme.position === "bottom-left"
+                    ? "bottom-4 left-4 right-auto top-auto sm:bottom-6 sm:left-6 sm:top-auto"
+                    : mergedTheme.position === "bottom-center"
+                      ? "bottom-4 left-1/2 top-auto -translate-x-1/2 sm:bottom-6"
+                      : undefined
           }
         />
       </ToastPrimitives.Provider>

@@ -257,8 +257,8 @@ export function HeroSection({
                     )}
                     {!teamFallbackForwardUrl && (
                       <p className="text-xs text-[#ff3c3cee]">
-                        Configure a CTA forwarding rule in Settings to make this
-                        CTA redirect.
+                        Configure a CTA forwarding rule in CTA Management for this
+                        page to make this CTA redirect.
                       </p>
                     )}
                      

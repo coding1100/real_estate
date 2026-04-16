@@ -5,7 +5,6 @@ import {
   useRef,
   useEffect,
   useLayoutEffect,
-  useTransition,
 } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
@@ -17,6 +16,7 @@ import { useAdminToast } from "@/components/admin/useAdminToast";
 interface PageRowActionsProps {
   pageId: string;
   slug: string;
+  status?: string;
   domainHostname?: string;
   isMaster: boolean;
   isDeleted?: boolean;
@@ -31,6 +31,7 @@ interface PageRowActionsProps {
 export function PageRowActions({
   pageId,
   slug,
+  status,
   domainHostname,
   isMaster,
   isDeleted = false,
@@ -50,11 +51,18 @@ export function PageRowActions({
     openUp: boolean;
   } | null>(null);
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [busyAction, setBusyAction] = useState<
+    null | "duplicate" | "toggle-status" | "copy-link"
+  >(null);
   const { success, error } = useAdminToast();
   const draftPreviewHref = `/${encodeURIComponent(slug)}?preview=1${
     domainHostname ? `&domain=${encodeURIComponent(domainHostname)}` : ""
   }`;
+  const isPublished = (status ?? "").toLowerCase() === "published";
+  const viewHref =
+    archivedView || !isPublished ? draftPreviewHref : `/${encodeURIComponent(slug)}`;
+  const viewLabel =
+    archivedView || !isPublished ? "View draft page" : "View live page";
 
   const MENU_WIDTH = 176;
 
@@ -172,24 +180,24 @@ export function PageRowActions({
             >
             {archivedView ? (
               <a
-                href={draftPreviewHref}
+                href={viewHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50"
               >
                 <Eye className="h-3.5 w-3.5" />
-                <span>View draft page</span>
+                <span>{viewLabel}</span>
               </a>
             ) : (
               <>
                 <a
-                  href={`/${slug}`}
+                  href={viewHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50"
                 >
                   <Eye className="h-3.5 w-3.5" />
-                  <span>View page</span>
+                  <span>{viewLabel}</span>
                 </a>
                 <Link
                   href={`/admin/pages/${pageId}/edit`}
@@ -200,10 +208,61 @@ export function PageRowActions({
                 </Link>
                 <button
                   type="button"
-                  disabled={isPending}
+                  disabled={busyAction !== null}
                   onClick={() => {
-                    startTransition(async () => {
+                    const nextStatus = isPublished ? "draft" : "published";
+                    void (async () => {
                       try {
+                        setBusyAction("toggle-status");
+                        setOpen(false);
+                        const res = await fetch(`/api/admin/pages/${pageId}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ status: nextStatus }),
+                        });
+                        const data = await res.json().catch(() => null);
+                        if (!res.ok) {
+                          const msg =
+                            (data && typeof data.error === "string" && data.error) ||
+                            `Failed to ${isPublished ? "unpublish" : "publish"} page.`;
+                          error(msg);
+                          return;
+                        }
+                        router.refresh();
+                        success(
+                          isPublished
+                            ? "Page unpublished successfully."
+                            : "Page published successfully.",
+                        );
+                      } catch (err) {
+                        console.error(err);
+                        error(
+                          isPublished
+                            ? "Failed to unpublish page."
+                            : "Failed to publish page.",
+                        );
+                      } finally {
+                        setBusyAction(null);
+                      }
+                    })();
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+                >
+                  <span
+                    className={`inline-block h-2 w-2 rounded-full ${
+                      isPublished ? "bg-amber-500" : "bg-emerald-600"
+                    }`}
+                  />
+                  <span>{isPublished ? "Unpublish" : "Publish"}</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={busyAction !== null}
+                  onClick={() => {
+                    void (async () => {
+                      try {
+                        setBusyAction("duplicate");
+                        setOpen(false);
                         const res = await fetch("/api/admin/pages/duplicate", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
@@ -217,14 +276,15 @@ export function PageRowActions({
                           error(msg);
                           return;
                         }
-                        setOpen(false);
                         router.refresh();
                         success("Page duplicated successfully.");
                       } catch (err) {
                         console.error(err);
                         error("Failed to duplicate page.");
+                      } finally {
+                        setBusyAction(null);
                       }
-                    });
+                    })();
                   }}
                   className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
                 >
@@ -233,9 +293,11 @@ export function PageRowActions({
                 </button>
                 <button
                   type="button"
-                  disabled={isPending}
+                  disabled={busyAction !== null}
                   onClick={async () => {
                     try {
+                      setBusyAction("copy-link");
+                      setOpen(false);
                       const origin =
                         typeof window !== "undefined" ? window.location.origin : "";
                       const url = `${origin}/${slug}`.replace(/\/+/g, "/");
@@ -258,10 +320,11 @@ export function PageRowActions({
                         document.body.removeChild(temp);
                       }
 
-                      setOpen(false);
                       success("Link copied to clipboard.");
                     } catch {
                       error("Failed to copy link.");
+                    } finally {
+                      setBusyAction(null);
                     }
                   }}
                   className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"

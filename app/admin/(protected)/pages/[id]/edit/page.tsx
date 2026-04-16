@@ -6,6 +6,7 @@ import {
   getEnabledEditorFonts,
 } from "@/lib/uiSettings";
 import { isFixedDefaultHomepagePage } from "@/lib/defaultHomepage";
+import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
 
 type EditPageProps = {
   params: Promise<{
@@ -14,6 +15,19 @@ type EditPageProps = {
 };
 
 export default async function EditPage({ params }: EditPageProps) {
+  function readPageCtaForwardingRules(rawSections: unknown): CtaForwardingRule[] {
+    if (!Array.isArray(rawSections)) return [];
+    const hero = rawSections.find(
+      (section) =>
+        section &&
+        typeof section === "object" &&
+        (section as { kind?: unknown }).kind === "hero",
+    ) as { props?: unknown } | undefined;
+    if (!hero || !hero.props || typeof hero.props !== "object") return [];
+    const rules = (hero.props as { ctaForwardingRules?: unknown }).ctaForwardingRules;
+    return Array.isArray(rules) ? (rules as CtaForwardingRule[]) : [];
+  }
+
   const { id } = await params;
 
   let page;
@@ -117,6 +131,7 @@ export default async function EditPage({ params }: EditPageProps) {
       customHeadTags: (page.customHeadTags as any) ?? null,
     },
   };
+  const initialCtaForwardingRules = readPageCtaForwardingRules(sections);
 
   const { editorFonts } = await getAdminUiSettings();
 
@@ -124,6 +139,7 @@ export default async function EditPage({ params }: EditPageProps) {
     <PageEditor
       initialPage={pageContent}
       editorFonts={getEnabledEditorFonts(editorFonts)}
+      initialCtaForwardingRules={initialCtaForwardingRules}
     />
   );
 }

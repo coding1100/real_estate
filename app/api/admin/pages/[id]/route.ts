@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
 import { isFixedDefaultHomepagePage } from "@/lib/defaultHomepage";
+import { sanitizeCtaTitle, type CtaForwardingRule } from "@/lib/types/ctaForwarding";
 
 type RouteContext = {
   params: Promise<{
@@ -43,6 +44,113 @@ function normalizeSlug(input: string): string {
     .replace(/[^a-z0-9\-]+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+function normalizePageCtaForwardingRules(input: unknown): CtaForwardingRule[] {
+  if (!Array.isArray(input)) return [];
+  const normalized: CtaForwardingRule[] = [];
+  for (const item of input) {
+    if (!item || typeof item !== "object") continue;
+    const ctaTitle = sanitizeCtaTitle(
+      typeof (item as { ctaTitle?: unknown }).ctaTitle === "string"
+        ? ((item as { ctaTitle: string }).ctaTitle)
+        : "",
+    );
+    if (!ctaTitle) continue;
+    const forwardUrl =
+      typeof (item as { forwardUrl?: unknown }).forwardUrl === "string"
+        ? (item as { forwardUrl: string }).forwardUrl.trim()
+        : "";
+    const forwardEnabled =
+      typeof (item as { forwardEnabled?: unknown }).forwardEnabled === "boolean"
+        ? (item as { forwardEnabled: boolean }).forwardEnabled
+        : !!forwardUrl;
+    const resendTemplateId =
+      typeof (item as { resendTemplateId?: unknown }).resendTemplateId === "string"
+        ? (item as { resendTemplateId: string }).resendTemplateId.trim()
+        : "";
+    const resendTemplateName =
+      typeof (item as { resendTemplateName?: unknown }).resendTemplateName === "string"
+        ? (item as { resendTemplateName: string }).resendTemplateName.trim()
+        : "";
+    if (forwardUrl && !/^https?:\/\//i.test(forwardUrl)) continue;
+    normalized.push({
+      ctaTitle,
+      ...(forwardUrl ? { forwardUrl } : {}),
+      ...(forwardEnabled ? { forwardEnabled: true } : { forwardEnabled: false }),
+      ...(resendTemplateId ? { resendTemplateId } : {}),
+      ...(resendTemplateName ? { resendTemplateName } : {}),
+      documents: Array.isArray((item as { documents?: unknown }).documents)
+        ? ((item as { documents: unknown[] }).documents
+            .filter((doc) => doc && typeof doc === "object")
+            .map((doc) => {
+              const name =
+                typeof (doc as { name?: unknown }).name === "string"
+                  ? (doc as { name: string }).name.trim()
+                  : "";
+              const url =
+                typeof (doc as { url?: unknown }).url === "string"
+                  ? (doc as { url: string }).url.trim()
+                  : "";
+              if (!name || !url || !/^https?:\/\//i.test(url)) return null;
+              return {
+                name,
+                url,
+                ...(typeof (doc as { autoSend?: unknown }).autoSend === "boolean"
+                  ? { autoSend: (doc as { autoSend: boolean }).autoSend }
+                  : {}),
+                ...(typeof (doc as { mimeType?: unknown }).mimeType === "string" &&
+                (doc as { mimeType: string }).mimeType.trim()
+                  ? { mimeType: (doc as { mimeType: string }).mimeType.trim() }
+                  : {}),
+                ...(typeof (doc as { publicId?: unknown }).publicId === "string" &&
+                (doc as { publicId: string }).publicId.trim()
+                  ? { publicId: (doc as { publicId: string }).publicId.trim() }
+                  : {}),
+                ...(typeof (doc as { format?: unknown }).format === "string" &&
+                (doc as { format: string }).format.trim()
+                  ? { format: (doc as { format: string }).format.trim() }
+                  : {}),
+              };
+            })
+            .filter(
+              (
+                doc,
+              ): doc is NonNullable<CtaForwardingRule["documents"]>[number] =>
+                doc !== null,
+            ))
+        : [],
+      notifyEmails: Array.isArray((item as { notifyEmails?: unknown }).notifyEmails)
+        ? ((item as { notifyEmails: unknown[] }).notifyEmails
+            .filter((email) => email && typeof email === "object")
+            .map((email) => {
+              const address =
+                typeof (email as { email?: unknown }).email === "string"
+                  ? (email as { email: string }).email.trim()
+                  : "";
+              if (!address) return null;
+              return {
+                email: address,
+                ...(typeof (email as { enabled?: unknown }).enabled === "boolean"
+                  ? { enabled: (email as { enabled: boolean }).enabled }
+                  : {}),
+                ...(typeof (email as { kind?: unknown }).kind === "string" &&
+                ((email as { kind: string }).kind === "cc" ||
+                  (email as { kind: string }).kind === "bcc")
+                  ? { kind: (email as { kind: "cc" | "bcc" }).kind }
+                  : {}),
+              };
+            })
+            .filter(
+              (
+                entry,
+              ): entry is NonNullable<CtaForwardingRule["notifyEmails"]>[number] =>
+                entry !== null,
+            ))
+        : [],
+    });
+  }
+  return normalized;
 }
 
 export async function PATCH(req: NextRequest, ctx: RouteContext) {
@@ -268,7 +376,7 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
         AND "deletedAt" IS NULL
       LIMIT 1
     `;
-    if (existing) {
+    if (existing.length > 0) {
       return NextResponse.json(
         {
           error:
@@ -366,6 +474,49 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
         // ignore failures; fall back to saving without social overrides
       }
       delete body.socialOverrides;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "ctaForwardingRules")) {
+      const normalizedCtaRules = normalizePageCtaForwardingRules(body.ctaForwardingRules);
+      const existing = await prisma.landingPage.findUnique({
+        where: { id },
+        select: { sections: true },
+      });
+      const rawSections = body.sections ?? existing?.sections;
+      const sections: unknown[] = Array.isArray(rawSections) ? [...rawSections] : [];
+      const heroIdx = sections.findIndex(
+        (section) =>
+          section &&
+          typeof section === "object" &&
+          (section as { kind?: unknown }).kind === "hero",
+      );
+      if (heroIdx !== -1) {
+        const heroSection = sections[heroIdx] as {
+          id?: unknown;
+          kind?: unknown;
+          props?: unknown;
+          [key: string]: unknown;
+        };
+        const heroProps =
+          heroSection.props && typeof heroSection.props === "object"
+            ? (heroSection.props as Record<string, unknown>)
+            : {};
+        sections[heroIdx] = {
+          ...heroSection,
+          props: {
+            ...heroProps,
+            ctaForwardingRules: normalizedCtaRules,
+          },
+        };
+      } else {
+        sections.push({
+          id: "hero",
+          kind: "hero",
+          props: { ctaForwardingRules: normalizedCtaRules },
+        });
+      }
+      body.sections = sections;
+      delete body.ctaForwardingRules;
     }
 
     console.log("[PATCH] Updating page:", id);

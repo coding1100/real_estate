@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   type CtaForwardingDocument,
   type CtaForwardingNotifyEmail,
@@ -8,9 +8,12 @@ import {
   sanitizeCtaTitle,
 } from "@/lib/types/ctaForwarding";
 import { useAdminToast } from "@/components/admin/useAdminToast";
+import { Search } from "lucide-react";
 
 interface CtaForwardingSettingsFormProps {
   initialRules: CtaForwardingRule[];
+  onSaveRules?: (rules: CtaForwardingRule[]) => Promise<void>;
+  saveButtonLabel?: string;
 }
 
 interface CtaForwardingRow extends CtaForwardingRule {
@@ -30,6 +33,105 @@ type TemplatesFetchReason =
   | "resend_api_error"
   | "no_templates"
   | null;
+
+function SearchableTemplateSelector({
+  templates,
+  value,
+  loading,
+  onSelect,
+}: {
+  templates: ResendTemplateOption[];
+  value: string;
+  loading: boolean;
+  onSelect: (nextTemplateId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const selectedTemplate = useMemo(
+    () => templates.find((tpl) => tpl.id === value) ?? null,
+    [templates, value],
+  );
+
+  const filteredTemplates = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return templates;
+    return templates.filter((tpl) =>
+      `${tpl.name} ${tpl.id}`.toLowerCase().includes(needle),
+    );
+  }, [templates, query]);
+
+  useEffect(() => {
+    function onMouseDown(event: MouseEvent) {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (containerRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, []);
+  const displayValue = open
+    ? query
+    : (selectedTemplate ? selectedTemplate.name || selectedTemplate.id : "");
+
+  return (
+    <div ref={containerRef} className="relative">
+      <Search className="pointer-events-none absolute left-2 top-[10px] z-10 h-3.5 w-3.5 text-zinc-400" />
+      <input
+        type="text"
+        className="h-9 w-full rounded-md border border-zinc-300 bg-white py-1.5 pl-7 pr-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+        value={displayValue}
+        placeholder={loading ? "Loading templates..." : "Use default template logic"}
+        onFocus={() => {
+          setOpen(true);
+          setQuery("");
+        }}
+        onChange={(e) => {
+          setOpen(true);
+          setQuery(e.target.value);
+        }}
+      />
+      {open && (
+        <div className="absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-md border border-zinc-200 bg-white shadow-lg">
+          <button
+            type="button"
+            className="block w-full border-b border-zinc-100 px-2 py-2 text-left text-xs text-zinc-500 hover:bg-zinc-50"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onSelect("");
+              setQuery("");
+              setOpen(false);
+            }}
+          >
+            Use default template logic
+          </button>
+          {loading ? (
+            <p className="px-2 py-2 text-xs text-zinc-500">Loading templates...</p>
+          ) : filteredTemplates.length === 0 ? (
+            <p className="px-2 py-2 text-xs text-zinc-500">No matching templates.</p>
+          ) : (
+            filteredTemplates.map((tpl) => (
+              <button
+                key={tpl.id}
+                type="button"
+                className="block w-full border-b border-zinc-100 px-2 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-50 last:border-b-0"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onSelect(tpl.id);
+                  setQuery("");
+                  setOpen(false);
+                }}
+              >
+                {tpl.name || tpl.id}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function createRow(id: string, rule?: Partial<CtaForwardingRule>): CtaForwardingRow {
   const forwardUrl = rule?.forwardUrl?.trim() ?? "";
@@ -68,6 +170,8 @@ function isAllowedDocumentFile(file: File) {
 
 export function CtaForwardingSettingsForm({
   initialRules,
+  onSaveRules,
+  saveButtonLabel = "Save changes",
 }: CtaForwardingSettingsFormProps) {
   const [rows, setRows] = useState<CtaForwardingRow[]>(
     initialRules.map((rule, index) => createRow(`rule-${index}`, rule)),
@@ -254,13 +358,17 @@ export function CtaForwardingSettingsForm({
     });
     startTransition(async () => {
       try {
-        const res = await fetch("/api/admin/ui-settings", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ctaForwardingRules: payload }),
-        });
-        if (!res.ok) {
-          throw new Error("Failed to update CTA forwarding settings");
+        if (onSaveRules) {
+          await onSaveRules(payload);
+        } else {
+          const res = await fetch("/api/admin/ui-settings", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ctaForwardingRules: payload }),
+          });
+          if (!res.ok) {
+            throw new Error("Failed to update CTA forwarding settings");
+          }
         }
         success("CTA forwarding rules saved.");
       } catch {
@@ -403,33 +511,25 @@ export function CtaForwardingSettingsForm({
                 <label className="mb-1 block min-h-5 text-xs font-medium text-zinc-600">
                   Resend template (for this CTA document email)
                 </label>
-                <select
+                <SearchableTemplateSelector
+                  templates={templates}
                   value={row.resendTemplateId ?? ""}
-                  onChange={(e) =>
+                  loading={templatesLoading}
+                  onSelect={(nextTemplateId) =>
                     setRows((prev) =>
                       prev.map((item) =>
                         item.id === row.id
                           ? {
                               ...item,
-                              resendTemplateId: e.target.value,
+                              resendTemplateId: nextTemplateId,
                               resendTemplateName:
-                                templates.find((t) => t.id === e.target.value)?.name ?? "",
+                                templates.find((t) => t.id === nextTemplateId)?.name ?? "",
                             }
                           : item,
                       ),
                     )
                   }
-                  className="h-9 w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
-                >
-                  <option value="">
-                    {templatesLoading ? "Loading templates..." : "Use default template logic"}
-                  </option>
-                  {templates.map((tpl) => (
-                    <option key={tpl.id} value={tpl.id}>
-                      {tpl.name || tpl.id}
-                    </option>
-                  ))}
-                </select>
+                />
                 {row.resendTemplateId ? (
                   <p className="mt-1 min-h-8 text-[11px] text-zinc-500">
                     Selected template ID:{" "}
@@ -602,10 +702,10 @@ export function CtaForwardingSettingsForm({
                                                   file.type || d.mimeType,
                                                 publicId:
                                                   uploaded.public_id ||
-                                                  (d as any).publicId,
+                                                  d.publicId,
                                                 format:
                                                   uploaded.format ||
-                                                  (d as any).format,
+                                                  d.format,
                                                 autoSend:
                                                   d.autoSend !== false,
                                               }
@@ -829,7 +929,7 @@ export function CtaForwardingSettingsForm({
           disabled={isPending}
           className="inline-flex items-center rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
         >
-          {isPending ? "Saving..." : "Save changes"}
+          {isPending ? "Saving..." : saveButtonLabel}
         </button>
       </div>
     </form>

@@ -72,12 +72,22 @@ function formatLastModified(value: string) {
   return `Last modified: ${formatted}`;
 }
 
-function truncateWords(input: string, wordLimit: number): string {
-  const normalized = input.trim().replace(/\s+/g, " ");
-  if (!normalized) return "";
-  const words = normalized.split(" ");
-  if (words.length <= wordLimit) return normalized;
-  return `${words.slice(0, wordLimit).join(" ")}...`;
+function resolveAdminDisplaySlug(page: PageListItem): string {
+  const canonical = String(page.canonicalUrl ?? "").trim();
+  if (!canonical) return `/${page.slug}`;
+  try {
+    const url = canonical.startsWith("http://") || canonical.startsWith("https://")
+      ? new URL(canonical)
+      : new URL(canonical, "https://placeholder.local");
+    const canonicalPath = (url.pathname || "").trim();
+    if (canonicalPath && canonicalPath !== "/") return canonicalPath;
+  } catch {
+    if (canonical.startsWith("/")) {
+      const path = canonical.split("?")[0]?.split("#")[0] ?? "";
+      if (path.trim()) return path.trim();
+    }
+  }
+  return `/${page.slug}`;
 }
 
 type SortableLandingPageRowProps = {
@@ -143,6 +153,7 @@ function SortableLandingPageRow({
     transition,
     ...(isDragging ? { position: "relative" as const, zIndex: 2 } : {}),
   };
+  const displaySlug = resolveAdminDisplaySlug(page);
 
   return (
     <li
@@ -216,7 +227,7 @@ function SortableLandingPageRow({
                     </span>
                   )}
                 </div>
-                <p className="mt-1 font-mono text-sm leading-none text-[#6C757D]">/{page.slug}</p>
+                <p className="mt-1 font-mono text-sm leading-none text-[#6C757D]">{displaySlug}</p>
                 <p className="mt-1 text-xs font-medium text-[#868E96]">
                   {formatLastModified(page.updatedAt)}
                 </p>
@@ -227,11 +238,9 @@ function SortableLandingPageRow({
           <div className="col-span-3">
             <div className="sm:w-[260px] sm:border-x sm:border-[#E9ECEF] sm:px-5 sm:py-1 !w-full">
               <p className="text-[12px] font-medium text-[#ADB5BD]">Notes</p>
-              <div className="mt-1 flex items-center justify-between gap-2">
-                <p className="min-w-0 flex-1 line-clamp-3 whitespace-normal break-words text-[14px] font-semibold leading-5 text-[#343A40]">
-                  {page.notes?.trim()
-                    ? truncateWords(page.notes, 40)
-                    : "No notes added yet."}
+              <div className="mt-1 flex items-start justify-between gap-2">
+                <p className="min-w-0 flex-1 max-h-24 overflow-y-auto whitespace-pre-wrap break-words !text-[13px] leading-5 text-[#343A40]">
+                  {page.notes?.trim() ? page.notes : "No notes added yet."}
                 </p>
                 <button
                   type="button"
@@ -344,6 +353,7 @@ function SortableLandingPageRow({
                 <PageRowActions
                   pageId={page.id}
                   slug={page.slug}
+                  status={page.status}
                   domainHostname={page.domainHostname}
                   isMaster={isMaster}
                   isDeleted={isDeleted}
@@ -468,6 +478,12 @@ export function LandingPagesV2Client({
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      const isShortcut =
+        (e.metaKey || e.ctrlKey) &&
+        !e.altKey &&
+        !e.shiftKey &&
+        (e.key.toLowerCase() === "k" || e.code === "KeyK");
+      if (!isShortcut) return;
       const t = e.target as HTMLElement | null;
       if (
         t &&
@@ -478,13 +494,13 @@ export function LandingPagesV2Client({
       ) {
         return;
       }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
+      e.preventDefault();
+      e.stopPropagation();
+      searchRef.current?.focus();
+      searchRef.current?.select();
     }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
   }, []);
 
   useEffect(() => {
@@ -725,7 +741,7 @@ export function LandingPagesV2Client({
               placeholder="Search pages, slugs, or keywords…"
               className="w-full rounded-xl border border-[#fff] bg-[#fff] py-2.5 !border-0 pl-10 pr-24 text-sm text-[#212529] placeholder:text-[#ADB5BD] focus:border-[#fff] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#fff]"
             />
-            <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-[#E9ECEF] bg-white px-1.5 py-0.5 font-mono text-[10px] font-medium text-[#868E96] sm:inline-block">
+            <kbd className="pointer-events-none !hidden absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-[#E9ECEF] bg-white px-1.5 py-0.5 font-mono text-[10px] font-medium text-[#868E96] sm:inline-block">
               ⌘K
             </kbd>
           </div>
