@@ -292,7 +292,7 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
                             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
                               {column.title ?? "Column"}
                             </p>
-                            <ul className="mt-2.5 space-y-1.5 !list-none !my-[5px]">
+                            <ul className="mt-[10px] space-y-1.5 !list-none !my-[5px] !ml-[0px]">
                               {safeArray<NavLink>(column.links).map((item, itemIdx) => (
                                 <li key={`${idx}-mega-item-${colIdx}-${itemIdx}`}>
                                   <a

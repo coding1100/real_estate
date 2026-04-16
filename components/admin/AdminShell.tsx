@@ -126,7 +126,7 @@ export function AdminShell({
                   href={item.href}
                   title={item.label}
                   aria-label={item.label}
-                  className={`flex items-center gap-2 rounded-lg px-2 py-2 text-md font-medium transition-colors min-h-[40px] ${
+                  className={`flex items-center gap-2 !rounded-lg px-2 py-2 text-md font-medium transition-colors min-h-[40px] ${
                     isActive
                       ? "bg-zinc-900 text-zinc-50 shadow-sm"
                       : "text-zinc-700 hover:bg-zinc-100"

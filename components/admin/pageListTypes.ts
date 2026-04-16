@@ -6,6 +6,7 @@ export interface PageListItem {
   updatedAt: string;
   headline: string | null;
   title: string | null;
+  canonicalUrl?: string | null;
   domainHostname: string;
   domainId: string;
   multistepStepSlugs: string[] | null;

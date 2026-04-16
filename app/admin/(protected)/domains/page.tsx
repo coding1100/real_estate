@@ -2,6 +2,23 @@ import { prisma } from "@/lib/prisma";
 import { DomainsManager } from "@/components/admin/DomainsManager";
 
 export default async function DomainsPage() {
+  const resolveDisplayPath = (slug: string, canonicalUrl: string | null): string => {
+    const canonical = String(canonicalUrl ?? "").trim();
+    if (!canonical) return `/${slug}`;
+    try {
+      const url = canonical.startsWith("http://") || canonical.startsWith("https://")
+        ? new URL(canonical)
+        : new URL(canonical, "https://placeholder.local");
+      const path = (url.pathname || "").trim();
+      if (path && path !== "/") return path;
+    } catch {
+      if (canonical.startsWith("/")) {
+        const path = canonical.split("?")[0]?.split("#")[0] ?? "";
+        if (path.trim()) return path.trim();
+      }
+    }
+    return `/${slug}`;
+  };
   const domains = await prisma.domain.findMany({
     orderBy: { hostname: "asc" },
   });
@@ -61,6 +78,7 @@ export default async function DomainsPage() {
     select: {
       id: true,
       slug: true,
+      canonicalUrl: true,
       title: true,
       headline: true,
       domainId: true,
@@ -69,7 +87,7 @@ export default async function DomainsPage() {
   });
   const pageOptionsByDomain = new Map<
     string,
-    { id: string; slug: string; label: string }[]
+    { id: string; slug: string; label: string; path: string }[]
   >();
   for (const page of publishedPages) {
     const current = pageOptionsByDomain.get(page.domainId) ?? [];
@@ -77,6 +95,7 @@ export default async function DomainsPage() {
       id: page.id,
       slug: page.slug,
       label: (page.title ?? "").trim() || page.headline || page.slug,
+      path: resolveDisplayPath(page.slug, page.canonicalUrl),
     });
     pageOptionsByDomain.set(page.domainId, current);
   }

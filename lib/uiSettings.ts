@@ -12,7 +12,14 @@ import {
 const SINGLETON_ID = "singleton";
 
 export interface ToastTheme {
-  position: "top-right" | "top-left" | "bottom-right" | "bottom-left";
+  position:
+    | "top-right"
+    | "top-left"
+    | "bottom-right"
+    | "bottom-left"
+    | "top-center"
+    | "bottom-center";
+  durationMs: number;
   successBg: string;
   successText: string;
   errorBg: string;
@@ -47,7 +54,8 @@ export interface AdminUiSettings {
   toastErrorBody: string;
   toastAlertTitle: string;
   toastAlertBody: string;
-  toastPosition?: "top-right" | "top-left" | "bottom-right" | "bottom-left";
+  toastPosition?: ToastTheme["position"];
+  toastDurationMs?: number;
   editorFonts?: EditorFontOption[] | null;
   ctaForwardingRules?: CtaForwardingRule[] | null;
 }
@@ -63,6 +71,7 @@ export {
 
 export const DEFAULT_THEME: ToastTheme = {
   position: "top-right",
+  durationMs: 5000,
   successBg: "#ecfdf3",
   successText: "#166534",
   errorBg: "#fef2f2",
@@ -215,6 +224,7 @@ async function ensureToastPositionColumn() {
 
 let ensureToastPositionColumnPromise: Promise<void> | null = null;
 let ensureCtaForwardingColumnPromise: Promise<void> | null = null;
+let ensureToastDurationColumnPromise: Promise<void> | null = null;
 
 async function ensureToastPositionColumnOnce() {
   if (!ensureToastPositionColumnPromise) {
@@ -236,19 +246,37 @@ async function ensureCtaForwardingColumnOnce() {
   await ensureCtaForwardingColumnPromise;
 }
 
-function normalizeToastPosition(
-  value: unknown,
-): "top-right" | "top-left" | "bottom-right" | "bottom-left" {
+async function ensureToastDurationColumn() {
+  await withPrismaRetry(() =>
+    prisma.$executeRawUnsafe(
+      'ALTER TABLE "AdminUiSettings" ADD COLUMN IF NOT EXISTS "toastDurationMs" INTEGER',
+    ),
+  );
+}
+
+async function ensureToastDurationColumnOnce() {
+  if (!ensureToastDurationColumnPromise) {
+    ensureToastDurationColumnPromise = ensureToastDurationColumn().catch(
+      (err) => {
+        ensureToastDurationColumnPromise = null;
+        throw err;
+      },
+    );
+  }
+  await ensureToastDurationColumnPromise;
+}
+
+function normalizeToastPosition(value: unknown): ToastTheme["position"] {
   return value === "top-left" ||
     value === "bottom-right" ||
-    value === "bottom-left"
-    ? value
+    value === "bottom-left" ||
+    value === "top-center" ||
+    value === "bottom-center"
+    ? (value as ToastTheme["position"])
     : "top-right";
 }
 
-async function readToastPosition(): Promise<
-  "top-right" | "top-left" | "bottom-right" | "bottom-left"
-> {
+async function readToastPosition(): Promise<ToastTheme["position"]> {
   try {
     await ensureToastPositionColumnOnce();
     const rows = await withPrismaRetry(() =>
@@ -260,6 +288,29 @@ async function readToastPosition(): Promise<
     return normalizeToastPosition(rows?.[0]?.toastPosition);
   } catch {
     return DEFAULT_THEME.position;
+  }
+}
+
+async function readToastDurationMs(): Promise<number> {
+  try {
+    await ensureToastDurationColumnOnce();
+    const rows = await withPrismaRetry(() =>
+      prisma.$queryRawUnsafe<Array<{ toastDurationMs: unknown }>>(
+        'SELECT "toastDurationMs" FROM "AdminUiSettings" WHERE "id" = $1 LIMIT 1',
+        SINGLETON_ID,
+      ),
+    );
+    const raw = rows?.[0]?.toastDurationMs;
+    const n =
+      typeof raw === "number"
+        ? raw
+        : typeof raw === "string"
+          ? Number(raw)
+          : Number.NaN;
+    if (!Number.isFinite(n)) return DEFAULT_THEME.durationMs;
+    return Math.min(30000, Math.max(1000, Math.floor(n)));
+  } catch {
+    return DEFAULT_THEME.durationMs;
   }
 }
 
@@ -309,8 +360,10 @@ export async function getAdminUiSettings(): Promise<{
     }));
 
     const toastPosition = await readToastPosition();
+    const toastDurationMs = await readToastDurationMs();
     const theme: ToastTheme = {
       position: toastPosition,
+      durationMs: toastDurationMs,
       successBg: settings.toastSuccessBg || DEFAULT_THEME.successBg,
       successText: settings.toastSuccessText || DEFAULT_THEME.successText,
       errorBg: settings.toastErrorBg || DEFAULT_THEME.errorBg,
@@ -414,6 +467,7 @@ export async function updateAdminUiSettings(
     | "toastAlertTitle"
     | "toastAlertBody"
     | "toastPosition"
+    | "toastDurationMs"
     | "editorFonts"
     | "ctaForwardingRules"
   >>,
@@ -505,6 +559,21 @@ export async function updateAdminUiSettings(
       ));
     }
 
+    if (patch.toastDurationMs != null) {
+      const clamped = Math.min(
+        30000,
+        Math.max(1000, Math.floor(patch.toastDurationMs)),
+      );
+      await ensureToastDurationColumnOnce();
+      await withPrismaRetry(() =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "AdminUiSettings" SET "toastDurationMs" = $1 WHERE "id" = $2',
+          clamped,
+          SINGLETON_ID,
+        ),
+      );
+    }
+
     if (patch.ctaForwardingRules != null) {
       await ensureCtaForwardingColumnOnce();
       await withPrismaRetry(() => prisma.$executeRawUnsafe(
@@ -515,8 +584,10 @@ export async function updateAdminUiSettings(
     }
 
     const toastPosition = await readToastPosition();
+    const toastDurationMs = await readToastDurationMs();
     const theme: ToastTheme = {
       position: toastPosition,
+      durationMs: toastDurationMs,
       successBg: settings.toastSuccessBg || DEFAULT_THEME.successBg,
       successText: settings.toastSuccessText || DEFAULT_THEME.successText,
       errorBg: settings.toastErrorBg || DEFAULT_THEME.errorBg,
@@ -567,6 +638,13 @@ export async function updateAdminUiSettings(
           patch.toastPosition != null
             ? normalizeToastPosition(patch.toastPosition)
             : DEFAULT_THEME.position,
+        toastDurationMs:
+          patch.toastDurationMs != null
+            ? Math.min(
+                30000,
+                Math.max(1000, Math.floor(patch.toastDurationMs)),
+              )
+            : DEFAULT_THEME.durationMs,
         ctaForwardingRules: normalizeCtaForwardingRules(
           patch.ctaForwardingRules,
         ),
