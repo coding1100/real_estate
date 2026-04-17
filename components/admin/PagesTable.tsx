@@ -383,6 +383,7 @@ function PagesTableRowBody({
       <PageRowActions
         pageId={page.id}
         slug={page.slug}
+        canonicalUrl={page.canonicalUrl}
         status={page.status}
         domainHostname={page.domainHostname}
         isMaster={isMaster}

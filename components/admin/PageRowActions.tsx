@@ -16,6 +16,7 @@ import { useAdminToast } from "@/components/admin/useAdminToast";
 interface PageRowActionsProps {
   pageId: string;
   slug: string;
+  canonicalUrl?: string | null;
   status?: string;
   domainHostname?: string;
   isMaster: boolean;
@@ -31,6 +32,7 @@ interface PageRowActionsProps {
 export function PageRowActions({
   pageId,
   slug,
+  canonicalUrl,
   status,
   domainHostname,
   isMaster,
@@ -59,8 +61,28 @@ export function PageRowActions({
     domainHostname ? `&domain=${encodeURIComponent(domainHostname)}` : ""
   }`;
   const isPublished = (status ?? "").toLowerCase() === "published";
+  const canonicalPath = (() => {
+    const value = String(canonicalUrl ?? "").trim();
+    if (!value) return null;
+    try {
+      const parsed =
+        value.startsWith("http://") || value.startsWith("https://")
+          ? new URL(value)
+          : new URL(value, "https://placeholder.local");
+      const path = (parsed.pathname || "").trim();
+      return path && path !== "/" ? path : null;
+    } catch {
+      if (!value.startsWith("/")) return null;
+      const path = value.split("?")[0]?.split("#")[0]?.trim() ?? "";
+      return path && path !== "/" ? path : null;
+    }
+  })();
+  const livePath = canonicalPath ?? `/${encodeURIComponent(slug)}`;
+  const liveHref = domainHostname
+    ? `https://${domainHostname}${livePath}`
+    : livePath;
   const viewHref =
-    archivedView || !isPublished ? draftPreviewHref : `/${encodeURIComponent(slug)}`;
+    archivedView || !isPublished ? draftPreviewHref : liveHref;
   const viewLabel =
     archivedView || !isPublished ? "View draft page" : "View live page";
 
