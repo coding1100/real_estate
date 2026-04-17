@@ -8,6 +8,10 @@ export default async function MasterTemplatesLayout({
   children: ReactNode;
 }) {
   const { theme } = await getAdminUiSettings();
-  return <ToastProvider theme={theme}>{children}</ToastProvider>;
+  const frontendToastTheme = {
+    ...theme,
+    durationMs: theme.frontendDurationMs ?? theme.durationMs,
+  };
+  return <ToastProvider theme={frontendToastTheme}>{children}</ToastProvider>;
 }
 

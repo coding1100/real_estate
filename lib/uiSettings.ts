@@ -20,6 +20,8 @@ export interface ToastTheme {
     | "top-center"
     | "bottom-center";
   durationMs: number;
+  adminDurationMs: number;
+  frontendDurationMs: number;
   successBg: string;
   successText: string;
   errorBg: string;
@@ -56,6 +58,8 @@ export interface AdminUiSettings {
   toastAlertBody: string;
   toastPosition?: ToastTheme["position"];
   toastDurationMs?: number;
+  toastAdminDurationMs?: number;
+  toastFrontendDurationMs?: number;
   editorFonts?: EditorFontOption[] | null;
   ctaForwardingRules?: CtaForwardingRule[] | null;
 }
@@ -72,6 +76,8 @@ export {
 export const DEFAULT_THEME: ToastTheme = {
   position: "top-right",
   durationMs: 5000,
+  adminDurationMs: 5000,
+  frontendDurationMs: 5000,
   successBg: "#ecfdf3",
   successText: "#166534",
   errorBg: "#fef2f2",
@@ -225,6 +231,8 @@ async function ensureToastPositionColumn() {
 let ensureToastPositionColumnPromise: Promise<void> | null = null;
 let ensureCtaForwardingColumnPromise: Promise<void> | null = null;
 let ensureToastDurationColumnPromise: Promise<void> | null = null;
+let ensureToastAdminDurationColumnPromise: Promise<void> | null = null;
+let ensureToastFrontendDurationColumnPromise: Promise<void> | null = null;
 
 async function ensureToastPositionColumnOnce() {
   if (!ensureToastPositionColumnPromise) {
@@ -254,6 +262,22 @@ async function ensureToastDurationColumn() {
   );
 }
 
+async function ensureToastAdminDurationColumn() {
+  await withPrismaRetry(() =>
+    prisma.$executeRawUnsafe(
+      'ALTER TABLE "AdminUiSettings" ADD COLUMN IF NOT EXISTS "toastAdminDurationMs" INTEGER',
+    ),
+  );
+}
+
+async function ensureToastFrontendDurationColumn() {
+  await withPrismaRetry(() =>
+    prisma.$executeRawUnsafe(
+      'ALTER TABLE "AdminUiSettings" ADD COLUMN IF NOT EXISTS "toastFrontendDurationMs" INTEGER',
+    ),
+  );
+}
+
 async function ensureToastDurationColumnOnce() {
   if (!ensureToastDurationColumnPromise) {
     ensureToastDurationColumnPromise = ensureToastDurationColumn().catch(
@@ -264,6 +288,29 @@ async function ensureToastDurationColumnOnce() {
     );
   }
   await ensureToastDurationColumnPromise;
+}
+
+async function ensureToastAdminDurationColumnOnce() {
+  if (!ensureToastAdminDurationColumnPromise) {
+    ensureToastAdminDurationColumnPromise = ensureToastAdminDurationColumn().catch(
+      (err) => {
+        ensureToastAdminDurationColumnPromise = null;
+        throw err;
+      },
+    );
+  }
+  await ensureToastAdminDurationColumnPromise;
+}
+
+async function ensureToastFrontendDurationColumnOnce() {
+  if (!ensureToastFrontendDurationColumnPromise) {
+    ensureToastFrontendDurationColumnPromise =
+      ensureToastFrontendDurationColumn().catch((err) => {
+        ensureToastFrontendDurationColumnPromise = null;
+        throw err;
+      });
+  }
+  await ensureToastFrontendDurationColumnPromise;
 }
 
 function normalizeToastPosition(value: unknown): ToastTheme["position"] {
@@ -314,6 +361,56 @@ async function readToastDurationMs(): Promise<number> {
   }
 }
 
+async function readToastAdminDurationMs(
+  fallback: number,
+): Promise<number> {
+  try {
+    await ensureToastAdminDurationColumnOnce();
+    const rows = await withPrismaRetry(() =>
+      prisma.$queryRawUnsafe<Array<{ toastAdminDurationMs: unknown }>>(
+        'SELECT "toastAdminDurationMs" FROM "AdminUiSettings" WHERE "id" = $1 LIMIT 1',
+        SINGLETON_ID,
+      ),
+    );
+    const raw = rows?.[0]?.toastAdminDurationMs;
+    const n =
+      typeof raw === "number"
+        ? raw
+        : typeof raw === "string"
+          ? Number(raw)
+          : Number.NaN;
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(30000, Math.max(1000, Math.floor(n)));
+  } catch {
+    return fallback;
+  }
+}
+
+async function readToastFrontendDurationMs(
+  fallback: number,
+): Promise<number> {
+  try {
+    await ensureToastFrontendDurationColumnOnce();
+    const rows = await withPrismaRetry(() =>
+      prisma.$queryRawUnsafe<Array<{ toastFrontendDurationMs: unknown }>>(
+        'SELECT "toastFrontendDurationMs" FROM "AdminUiSettings" WHERE "id" = $1 LIMIT 1',
+        SINGLETON_ID,
+      ),
+    );
+    const raw = rows?.[0]?.toastFrontendDurationMs;
+    const n =
+      typeof raw === "number"
+        ? raw
+        : typeof raw === "string"
+          ? Number(raw)
+          : Number.NaN;
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(30000, Math.max(1000, Math.floor(n)));
+  } catch {
+    return fallback;
+  }
+}
+
 async function readCtaForwardingRules(): Promise<CtaForwardingRule[]> {
   try {
     await ensureCtaForwardingColumnOnce();
@@ -361,9 +458,14 @@ export async function getAdminUiSettings(): Promise<{
 
     const toastPosition = await readToastPosition();
     const toastDurationMs = await readToastDurationMs();
+    const toastAdminDurationMs = await readToastAdminDurationMs(toastDurationMs);
+    const toastFrontendDurationMs =
+      await readToastFrontendDurationMs(toastDurationMs);
     const theme: ToastTheme = {
       position: toastPosition,
       durationMs: toastDurationMs,
+      adminDurationMs: toastAdminDurationMs,
+      frontendDurationMs: toastFrontendDurationMs,
       successBg: settings.toastSuccessBg || DEFAULT_THEME.successBg,
       successText: settings.toastSuccessText || DEFAULT_THEME.successText,
       errorBg: settings.toastErrorBg || DEFAULT_THEME.errorBg,
@@ -468,6 +570,8 @@ export async function updateAdminUiSettings(
     | "toastAlertBody"
     | "toastPosition"
     | "toastDurationMs"
+    | "toastAdminDurationMs"
+    | "toastFrontendDurationMs"
     | "editorFonts"
     | "ctaForwardingRules"
   >>,
@@ -574,6 +678,36 @@ export async function updateAdminUiSettings(
       );
     }
 
+    if (patch.toastAdminDurationMs != null) {
+      const clamped = Math.min(
+        30000,
+        Math.max(1000, Math.floor(patch.toastAdminDurationMs)),
+      );
+      await ensureToastAdminDurationColumnOnce();
+      await withPrismaRetry(() =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "AdminUiSettings" SET "toastAdminDurationMs" = $1 WHERE "id" = $2',
+          clamped,
+          SINGLETON_ID,
+        ),
+      );
+    }
+
+    if (patch.toastFrontendDurationMs != null) {
+      const clamped = Math.min(
+        30000,
+        Math.max(1000, Math.floor(patch.toastFrontendDurationMs)),
+      );
+      await ensureToastFrontendDurationColumnOnce();
+      await withPrismaRetry(() =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "AdminUiSettings" SET "toastFrontendDurationMs" = $1 WHERE "id" = $2',
+          clamped,
+          SINGLETON_ID,
+        ),
+      );
+    }
+
     if (patch.ctaForwardingRules != null) {
       await ensureCtaForwardingColumnOnce();
       await withPrismaRetry(() => prisma.$executeRawUnsafe(
@@ -585,9 +719,14 @@ export async function updateAdminUiSettings(
 
     const toastPosition = await readToastPosition();
     const toastDurationMs = await readToastDurationMs();
+    const toastAdminDurationMs = await readToastAdminDurationMs(toastDurationMs);
+    const toastFrontendDurationMs =
+      await readToastFrontendDurationMs(toastDurationMs);
     const theme: ToastTheme = {
       position: toastPosition,
       durationMs: toastDurationMs,
+      adminDurationMs: toastAdminDurationMs,
+      frontendDurationMs: toastFrontendDurationMs,
       successBg: settings.toastSuccessBg || DEFAULT_THEME.successBg,
       successText: settings.toastSuccessText || DEFAULT_THEME.successText,
       errorBg: settings.toastErrorBg || DEFAULT_THEME.errorBg,
@@ -645,6 +784,20 @@ export async function updateAdminUiSettings(
                 Math.max(1000, Math.floor(patch.toastDurationMs)),
               )
             : DEFAULT_THEME.durationMs,
+        toastAdminDurationMs:
+          patch.toastAdminDurationMs != null
+            ? Math.min(
+                30000,
+                Math.max(1000, Math.floor(patch.toastAdminDurationMs)),
+              )
+            : DEFAULT_THEME.adminDurationMs,
+        toastFrontendDurationMs:
+          patch.toastFrontendDurationMs != null
+            ? Math.min(
+                30000,
+                Math.max(1000, Math.floor(patch.toastFrontendDurationMs)),
+              )
+            : DEFAULT_THEME.frontendDurationMs,
         ctaForwardingRules: normalizeCtaForwardingRules(
           patch.ctaForwardingRules,
         ),

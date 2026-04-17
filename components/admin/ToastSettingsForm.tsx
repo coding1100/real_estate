@@ -43,6 +43,8 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
             toastAlertBody: theme.alertBody,
             toastPosition: theme.position,
             toastDurationMs: theme.durationMs,
+            toastAdminDurationMs: theme.adminDurationMs,
+            toastFrontendDurationMs: theme.frontendDurationMs,
           }),
         });
         if (!res.ok) {
@@ -80,6 +82,8 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
       alertBody: "Please review this information.",
       position: "top-right",
       durationMs: 5000,
+      adminDurationMs: 5000,
+      frontendDurationMs: 5000,
     });
   }
 
@@ -123,22 +127,42 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-zinc-600">
-                    Visibility time (seconds)
+                    Admin visibility time (seconds)
                   </label>
                   <input
                     type="number"
                     min={1}
                     max={30}
-                    value={Math.round((theme.durationMs ?? 5000) / 1000)}
+                    value={Math.round((theme.adminDurationMs ?? 5000) / 1000)}
                     onChange={(e) => {
                       const seconds = Number(e.target.value) || 0;
                       const clamped = Math.min(30, Math.max(1, seconds));
-                      update("durationMs", clamped * 1000);
+                      update("adminDurationMs", clamped * 1000);
                     }}
                     className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                   <p className="mt-1 text-[11px] text-zinc-500">
-                    How long toasts stay visible before auto-hide.
+                    How long admin toasts stay visible before auto-hide.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-600">
+                    Frontend visibility time (seconds)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={Math.round((theme.frontendDurationMs ?? 5000) / 1000)}
+                    onChange={(e) => {
+                      const seconds = Number(e.target.value) || 0;
+                      const clamped = Math.min(30, Math.max(1, seconds));
+                      update("frontendDurationMs", clamped * 1000);
+                    }}
+                    className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  />
+                  <p className="mt-1 text-[11px] text-zinc-500">
+                    How long landing/frontend toasts stay visible before auto-hide.
                   </p>
                 </div>
               </div>
