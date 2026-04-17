@@ -28,8 +28,8 @@ export default async function AdminProtectedLayout({
   const { theme } = await getAdminUiSettings();
   const adminToastTheme = {
     ...theme,
-    position: theme.adminPosition,
-    durationMs: theme.adminDurationMs ?? theme.durationMs,
+    position: theme.position,
+    durationMs: theme.durationMs,
   };
   let archivedCount = 0;
   try {

@@ -115,6 +115,25 @@ export interface LandingPageContent {
     tiktokUrl?: string | null;
     tiktokVisible?: boolean | null;
   } | null;
+  toastThemeOverride?: {
+    position?: "top-right" | "top-left" | "top-center" | "bottom-right" | "bottom-left" | "bottom-center";
+    durationMs?: number;
+    successBg?: string;
+    successText?: string;
+    errorBg?: string;
+    errorText?: string;
+    alertBg?: string;
+    alertText?: string;
+    infoBg?: string;
+    infoText?: string;
+    iconSize?: number;
+    successTitle?: string;
+    successBody?: string;
+    errorTitle?: string;
+    errorBody?: string;
+    alertTitle?: string;
+    alertBody?: string;
+  } | null;
   seo: {
     title?: string | null;
     description?: string | null;
