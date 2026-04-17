@@ -81,6 +81,15 @@ export function MultistepHeroFlow({
   utmHiddenFields,
   ctaForwardingRules,
 }: MultistepHeroFlowProps) {
+  const readPageCtaRules = (page: LandingPageContent): CtaForwardingRule[] => {
+    const hero = Array.isArray(page.sections)
+      ? page.sections.find((section: { kind?: string }) => section?.kind === "hero")
+      : null;
+    const props = (hero?.props ?? null) as { ctaForwardingRules?: unknown } | null;
+    return Array.isArray(props?.ctaForwardingRules)
+      ? (props!.ctaForwardingRules as CtaForwardingRule[])
+      : [];
+  };
   const [currentStep, setCurrentStep] = useState(0);
   const [accumulatedData, setAccumulatedData] = useState<Record<string, Record<string, unknown>>>({});
   const [isSubmittingFinal, setIsSubmittingFinal] = useState(false);
@@ -181,6 +190,7 @@ export function MultistepHeroFlow({
         slug: mainPage.slug,
         type: mainPage.type,
         _ctaText: step.ctaText ?? mainPage.ctaText ?? "",
+        _stepSlug: step.slug ?? mainPage.slug,
         website: "",
       };
       if (Object.keys(accumulatedData).length > 0) {
@@ -232,6 +242,7 @@ export function MultistepHeroFlow({
     domain: mainPage.domain.hostname,
     slug: mainPage.slug,
     type: mainPage.type,
+    _stepSlug: step.slug ?? mainPage.slug,
   };
   if (Object.keys(accumulatedData).length > 0) {
     extraHiddenFieldsForSubmit._multistepData = JSON.stringify(accumulatedData);
@@ -247,6 +258,10 @@ export function MultistepHeroFlow({
       extraHiddenFieldsForSubmit.utm_campaign = utmHiddenFields.utm_campaign;
     }
   }
+  const stepCtaForwardingRules = (() => {
+    const stepRules = readPageCtaRules(step);
+    return stepRules.length > 0 ? stepRules : (ctaForwardingRules ?? []);
+  })();
 
   if (isPropertyFinding) {
     const propertyLayout = {
@@ -312,7 +327,7 @@ export function MultistepHeroFlow({
                     }
                     onNextStep={isLastStep ? undefined : handleNextStep}
                     ctaForwardingRules={
-                      isLastStep ? ctaForwardingRules : undefined
+                      isLastStep ? stepCtaForwardingRules : undefined
                     }
                   />
                 ) : !isLastStep ? (
@@ -672,7 +687,7 @@ export function MultistepHeroFlow({
                           }
                           onNextStep={isLastStep ? undefined : handleNextStep}
                           ctaForwardingRules={
-                            isLastStep ? ctaForwardingRules : undefined
+                            isLastStep ? stepCtaForwardingRules : undefined
                           }
                         />
                         <SocialLinksBar
@@ -724,7 +739,7 @@ export function MultistepHeroFlow({
                       }
                       onNextStep={isLastStep ? undefined : handleNextStep}
                       ctaForwardingRules={
-                        isLastStep ? ctaForwardingRules : undefined
+                        isLastStep ? stepCtaForwardingRules : undefined
                       }
                     />
                     <SocialLinksBar

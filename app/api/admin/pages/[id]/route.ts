@@ -153,6 +153,77 @@ function normalizePageCtaForwardingRules(input: unknown): CtaForwardingRule[] {
   return normalized;
 }
 
+type ToastThemeOverridePayload = {
+  position?: "top-right" | "top-left" | "top-center" | "bottom-right" | "bottom-left" | "bottom-center";
+  durationMs?: number;
+  successBg?: string;
+  successText?: string;
+  errorBg?: string;
+  errorText?: string;
+  alertBg?: string;
+  alertText?: string;
+  infoBg?: string;
+  infoText?: string;
+  iconSize?: number;
+  successTitle?: string;
+  successBody?: string;
+  errorTitle?: string;
+  errorBody?: string;
+  alertTitle?: string;
+  alertBody?: string;
+};
+
+function normalizeToastThemeOverride(
+  input: unknown,
+): ToastThemeOverridePayload | null {
+  if (input == null) return null;
+  if (!input || typeof input !== "object") return null;
+  const source = input as Record<string, unknown>;
+  const normalized: ToastThemeOverridePayload = {};
+  const position = source.position;
+  if (
+    position === "top-right" ||
+    position === "top-left" ||
+    position === "top-center" ||
+    position === "bottom-right" ||
+    position === "bottom-left" ||
+    position === "bottom-center"
+  ) {
+    normalized.position = position;
+  }
+  const durationMsRaw = source.durationMs;
+  if (typeof durationMsRaw === "number" && Number.isFinite(durationMsRaw)) {
+    normalized.durationMs = Math.min(30000, Math.max(1000, Math.floor(durationMsRaw)));
+  }
+  const iconSizeRaw = source.iconSize;
+  if (typeof iconSizeRaw === "number" && Number.isFinite(iconSizeRaw)) {
+    normalized.iconSize = Math.min(40, Math.max(14, Math.floor(iconSizeRaw)));
+  }
+  const stringKeys: Array<keyof ToastThemeOverridePayload> = [
+    "successBg",
+    "successText",
+    "errorBg",
+    "errorText",
+    "alertBg",
+    "alertText",
+    "infoBg",
+    "infoText",
+    "successTitle",
+    "successBody",
+    "errorTitle",
+    "errorBody",
+    "alertTitle",
+    "alertBody",
+  ];
+  for (const key of stringKeys) {
+    const value = source[key];
+    if (typeof value === "string") {
+      (normalized as Record<string, unknown>)[key] = value.trim();
+    }
+  }
+  return Object.keys(normalized).length > 0 ? normalized : null;
+}
+
 export async function PATCH(req: NextRequest, ctx: RouteContext) {
   const session = await getServerAuthSession();
   if (!session) {
@@ -517,6 +588,54 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
       }
       body.sections = sections;
       delete body.ctaForwardingRules;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "toastThemeOverride")) {
+      const normalizedToastThemeOverride = normalizeToastThemeOverride(
+        body.toastThemeOverride,
+      );
+      const existing = await prisma.landingPage.findUnique({
+        where: { id },
+        select: { sections: true },
+      });
+      const rawSections = body.sections ?? existing?.sections;
+      const sections: unknown[] = Array.isArray(rawSections) ? [...rawSections] : [];
+      const heroIdx = sections.findIndex(
+        (section) =>
+          section &&
+          typeof section === "object" &&
+          (section as { kind?: unknown }).kind === "hero",
+      );
+      if (heroIdx !== -1) {
+        const heroSection = sections[heroIdx] as {
+          id?: unknown;
+          kind?: unknown;
+          props?: unknown;
+          [key: string]: unknown;
+        };
+        const heroProps =
+          heroSection.props && typeof heroSection.props === "object"
+            ? (heroSection.props as Record<string, unknown>)
+            : {};
+        const nextProps = { ...heroProps };
+        if (normalizedToastThemeOverride) {
+          nextProps.toastThemeOverride = normalizedToastThemeOverride;
+        } else {
+          delete nextProps.toastThemeOverride;
+        }
+        sections[heroIdx] = {
+          ...heroSection,
+          props: nextProps,
+        };
+      } else if (normalizedToastThemeOverride) {
+        sections.push({
+          id: "hero",
+          kind: "hero",
+          props: { toastThemeOverride: normalizedToastThemeOverride },
+        });
+      }
+      body.sections = sections;
+      delete body.toastThemeOverride;
     }
 
     console.log("[PATCH] Updating page:", id);
