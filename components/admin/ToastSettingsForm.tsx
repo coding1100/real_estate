@@ -41,7 +41,8 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
             toastErrorBody: theme.errorBody,
             toastAlertTitle: theme.alertTitle,
             toastAlertBody: theme.alertBody,
-            toastPosition: theme.position,
+            toastAdminPosition: theme.adminPosition,
+            toastFrontendPosition: theme.frontendPosition,
             toastDurationMs: theme.durationMs,
             toastAdminDurationMs: theme.adminDurationMs,
             toastFrontendDurationMs: theme.frontendDurationMs,
@@ -81,6 +82,8 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
       alertTitle: "Attention",
       alertBody: "Please review this information.",
       position: "top-right",
+      adminPosition: "top-right",
+      frontendPosition: "top-right",
       durationMs: 5000,
       adminDurationMs: 5000,
       frontendDurationMs: 5000,
@@ -107,14 +110,14 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
           <div className="space-y-2 md:col-span-2">
             <h3 className="text-sm font-medium text-zinc-800">Toast position</h3>
             <div className="rounded-md bg-zinc-50 p-3">
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-2">
                 <div>
                   <label className="block text-xs font-medium text-zinc-600">
-                    Screen placement
+                    Screen placement for Admin
                   </label>
                   <select
-                    value={theme.position}
-                    onChange={(e) => update("position", e.target.value)}
+                    value={theme.adminPosition}
+                    onChange={(e) => update("adminPosition", e.target.value)}
                     className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   >
                     <option value="top-right">Top right</option>
@@ -144,6 +147,23 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                   <p className="mt-1 text-[11px] text-zinc-500">
                     How long admin toasts stay visible before auto-hide.
                   </p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-600">
+                    Screen placement for Frontend
+                  </label>
+                  <select
+                    value={theme.frontendPosition}
+                    onChange={(e) => update("frontendPosition", e.target.value)}
+                    className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  >
+                    <option value="top-right">Top right</option>
+                    <option value="top-left">Top left</option>
+                    <option value="top-center">Top center</option>
+                    <option value="bottom-right">Bottom right</option>
+                    <option value="bottom-left">Bottom left</option>
+                    <option value="bottom-center">Bottom center</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-zinc-600">
