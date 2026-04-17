@@ -29,6 +29,31 @@ type PageRow = Awaited<
   ReturnType<typeof prisma.landingPage.findFirst<{ include: { domain: true } }>>
 >;
 
+function getCanonicalPathFromUrl(value: string | null | undefined): string | null {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  try {
+    const parsed =
+      raw.startsWith("http://") || raw.startsWith("https://")
+        ? new URL(raw)
+        : new URL(raw, "https://placeholder.local");
+    const path = (parsed.pathname || "").trim();
+    if (!path || path === "/") return null;
+    return path.replace(/^\/+|\/+$/g, "");
+  } catch {
+    if (!raw.startsWith("/")) return null;
+    const path = raw.split("?")[0]?.split("#")[0]?.trim() ?? "";
+    if (!path || path === "/") return null;
+    return path.replace(/^\/+|\/+$/g, "");
+  }
+}
+
+function matchesCanonicalPath(canonicalUrl: string | null | undefined, slug: string): boolean {
+  const canonicalPath = getCanonicalPathFromUrl(canonicalUrl);
+  if (!canonicalPath) return false;
+  return canonicalPath.toLowerCase() === slug.trim().toLowerCase();
+}
+
 function pageToContent(
   page: NonNullable<PageRow>,
   pageLayout: { layoutData: unknown } | null,
@@ -240,6 +265,35 @@ export async function getLandingPage(
     } catch (err) {
       console.error("[getLandingPage] Fallback query failed", err);
       page = null;
+    }
+  }
+
+  if (!page) {
+    try {
+      const canonicalCandidates = await withPrismaRetry(() =>
+        prisma.landingPage.findMany({
+          where: {
+            ...(includeArchived ? {} : { deletedAt: null }),
+            ...(includeDraft ? {} : { status: "published" }),
+            domain: {
+              ...(options?.allowFallbackToAnyDomain
+                ? { isActive: true }
+                : { hostname, isActive: true }),
+            },
+            NOT: { canonicalUrl: null },
+          },
+          include: { domain: true },
+        }),
+      );
+      page =
+        canonicalCandidates.find((candidate) =>
+          matchesCanonicalPath(
+            (candidate as { canonicalUrl?: string | null }).canonicalUrl,
+            fetchSlug,
+          ),
+        ) ?? null;
+    } catch (err) {
+      console.error("[getLandingPage] Canonical-path fallback failed", err);
     }
   }
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import {
   getLandingPage,
   asUnpublishedLandingPageError,
@@ -74,6 +75,25 @@ function readPageCtaForwardingRules(rawSections: unknown): CtaForwardingRule[] {
   if (!hero || !hero.props || typeof hero.props !== "object") return [];
   const rules = (hero.props as { ctaForwardingRules?: unknown }).ctaForwardingRules;
   return Array.isArray(rules) ? (rules as CtaForwardingRule[]) : [];
+}
+
+function canonicalPathFromUrl(value: string | null | undefined): string | null {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  try {
+    const parsed =
+      raw.startsWith("http://") || raw.startsWith("https://")
+        ? new URL(raw)
+        : new URL(raw, "https://placeholder.local");
+    const path = (parsed.pathname || "").trim();
+    if (!path || path === "/") return null;
+    return `/${path.replace(/^\/+|\/+$/g, "")}`;
+  } catch {
+    if (!raw.startsWith("/")) return null;
+    const path = raw.split("?")[0]?.split("#")[0]?.trim() ?? "";
+    if (!path || path === "/") return null;
+    return `/${path.replace(/^\/+|\/+$/g, "")}`;
+  }
 }
 
 export async function generateMetadata({
@@ -200,6 +220,16 @@ export default async function LandingPage({ params, searchParams }: RouteParams)
       );
     }
     throw e;
+  }
+  if (!includeDraft) {
+    const canonicalPath = canonicalPathFromUrl(page.seo?.canonicalUrl ?? null);
+    const requestedPath = `/${String(slug ?? "").trim().replace(/^\/+|\/+$/g, "")}`;
+    if (
+      canonicalPath &&
+      canonicalPath.toLowerCase() !== requestedPath.toLowerCase()
+    ) {
+      redirect(canonicalPath);
+    }
   }
   const { settings } = await getAdminUiSettings();
   const pageCtaForwardingRules = readPageCtaForwardingRules(
