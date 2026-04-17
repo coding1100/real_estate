@@ -107,7 +107,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
           <div className="space-y-2 md:col-span-2">
             <h3 className="text-sm font-medium text-zinc-800">Toast position</h3>
             <div className="rounded-md bg-zinc-50 p-3">
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-3">
                 <div>
                   <label className="block text-xs font-medium text-zinc-600">
                     Screen placement
