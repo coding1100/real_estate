@@ -42,6 +42,8 @@ export function ToastProvider({
 
   const FALLBACK_THEME: ToastTheme = {
     position: "top-right",
+    adminPosition: "top-right",
+    frontendPosition: "top-right",
     durationMs: 5000,
     adminDurationMs: 5000,
     frontendDurationMs: 5000,
@@ -64,6 +66,9 @@ export function ToastProvider({
 
   const mergedTheme: ToastTheme = {
     position: theme?.position ?? FALLBACK_THEME.position,
+    adminPosition: theme?.adminPosition ?? FALLBACK_THEME.adminPosition,
+    frontendPosition:
+      theme?.frontendPosition ?? FALLBACK_THEME.frontendPosition,
     durationMs: theme?.durationMs ?? FALLBACK_THEME.durationMs,
     adminDurationMs: theme?.adminDurationMs ?? FALLBACK_THEME.adminDurationMs,
     frontendDurationMs:
@@ -181,14 +186,14 @@ export function ToastProvider({
             mergedTheme.position === "top-left"
               ? "left-4 right-auto top-4 sm:left-6 sm:top-6"
               : mergedTheme.position === "top-center"
-                ? "left-1/2 top-4 -translate-x-1/2 sm:top-6"
+                ? "left-1/2 right-auto top-4 -translate-x-1/2 sm:top-6"
                 : mergedTheme.position === "bottom-right"
-                  ? "bottom-4 top-auto sm:bottom-6 sm:top-auto"
+                  ? "bottom-4 left-auto right-4 top-auto sm:bottom-6 sm:right-6 sm:top-auto"
                   : mergedTheme.position === "bottom-left"
                     ? "bottom-4 left-4 right-auto top-auto sm:bottom-6 sm:left-6 sm:top-auto"
                     : mergedTheme.position === "bottom-center"
-                      ? "bottom-4 left-1/2 top-auto -translate-x-1/2 sm:bottom-6"
-                      : undefined
+                      ? "bottom-4 left-1/2 right-auto top-auto -translate-x-1/2 sm:bottom-6"
+                      : "right-4 top-4 sm:right-6 sm:top-6"
           }
         />
       </ToastPrimitives.Provider>

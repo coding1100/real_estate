@@ -19,6 +19,20 @@ export interface ToastTheme {
     | "bottom-left"
     | "top-center"
     | "bottom-center";
+  adminPosition:
+    | "top-right"
+    | "top-left"
+    | "bottom-right"
+    | "bottom-left"
+    | "top-center"
+    | "bottom-center";
+  frontendPosition:
+    | "top-right"
+    | "top-left"
+    | "bottom-right"
+    | "bottom-left"
+    | "top-center"
+    | "bottom-center";
   durationMs: number;
   adminDurationMs: number;
   frontendDurationMs: number;
@@ -57,6 +71,8 @@ export interface AdminUiSettings {
   toastAlertTitle: string;
   toastAlertBody: string;
   toastPosition?: ToastTheme["position"];
+  toastAdminPosition?: ToastTheme["position"];
+  toastFrontendPosition?: ToastTheme["position"];
   toastDurationMs?: number;
   toastAdminDurationMs?: number;
   toastFrontendDurationMs?: number;
@@ -75,6 +91,8 @@ export {
 
 export const DEFAULT_THEME: ToastTheme = {
   position: "top-right",
+  adminPosition: "top-right",
+  frontendPosition: "top-right",
   durationMs: 5000,
   adminDurationMs: 5000,
   frontendDurationMs: 5000,
@@ -229,6 +247,8 @@ async function ensureToastPositionColumn() {
 }
 
 let ensureToastPositionColumnPromise: Promise<void> | null = null;
+let ensureToastAdminPositionColumnPromise: Promise<void> | null = null;
+let ensureToastFrontendPositionColumnPromise: Promise<void> | null = null;
 let ensureCtaForwardingColumnPromise: Promise<void> | null = null;
 let ensureToastDurationColumnPromise: Promise<void> | null = null;
 let ensureToastAdminDurationColumnPromise: Promise<void> | null = null;
@@ -242,6 +262,45 @@ async function ensureToastPositionColumnOnce() {
     });
   }
   await ensureToastPositionColumnPromise;
+}
+
+async function ensureToastAdminPositionColumn() {
+  await withPrismaRetry(() =>
+    prisma.$executeRawUnsafe(
+      'ALTER TABLE "AdminUiSettings" ADD COLUMN IF NOT EXISTS "toastAdminPosition" TEXT',
+    ),
+  );
+}
+
+async function ensureToastFrontendPositionColumn() {
+  await withPrismaRetry(() =>
+    prisma.$executeRawUnsafe(
+      'ALTER TABLE "AdminUiSettings" ADD COLUMN IF NOT EXISTS "toastFrontendPosition" TEXT',
+    ),
+  );
+}
+
+async function ensureToastAdminPositionColumnOnce() {
+  if (!ensureToastAdminPositionColumnPromise) {
+    ensureToastAdminPositionColumnPromise = ensureToastAdminPositionColumn().catch(
+      (err) => {
+        ensureToastAdminPositionColumnPromise = null;
+        throw err;
+      },
+    );
+  }
+  await ensureToastAdminPositionColumnPromise;
+}
+
+async function ensureToastFrontendPositionColumnOnce() {
+  if (!ensureToastFrontendPositionColumnPromise) {
+    ensureToastFrontendPositionColumnPromise =
+      ensureToastFrontendPositionColumn().catch((err) => {
+        ensureToastFrontendPositionColumnPromise = null;
+        throw err;
+      });
+  }
+  await ensureToastFrontendPositionColumnPromise;
 }
 
 async function ensureCtaForwardingColumnOnce() {
@@ -335,6 +394,44 @@ async function readToastPosition(): Promise<ToastTheme["position"]> {
     return normalizeToastPosition(rows?.[0]?.toastPosition);
   } catch {
     return DEFAULT_THEME.position;
+  }
+}
+
+async function readToastAdminPosition(
+  fallback: ToastTheme["position"],
+): Promise<ToastTheme["position"]> {
+  try {
+    await ensureToastAdminPositionColumnOnce();
+    const rows = await withPrismaRetry(() =>
+      prisma.$queryRawUnsafe<Array<{ toastAdminPosition: unknown }>>(
+        'SELECT "toastAdminPosition" FROM "AdminUiSettings" WHERE "id" = $1 LIMIT 1',
+        SINGLETON_ID,
+      ),
+    );
+    const raw = rows?.[0]?.toastAdminPosition;
+    if (raw == null) return fallback;
+    return normalizeToastPosition(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+async function readToastFrontendPosition(
+  fallback: ToastTheme["position"],
+): Promise<ToastTheme["position"]> {
+  try {
+    await ensureToastFrontendPositionColumnOnce();
+    const rows = await withPrismaRetry(() =>
+      prisma.$queryRawUnsafe<Array<{ toastFrontendPosition: unknown }>>(
+        'SELECT "toastFrontendPosition" FROM "AdminUiSettings" WHERE "id" = $1 LIMIT 1',
+        SINGLETON_ID,
+      ),
+    );
+    const raw = rows?.[0]?.toastFrontendPosition;
+    if (raw == null) return fallback;
+    return normalizeToastPosition(raw);
+  } catch {
+    return fallback;
   }
 }
 
@@ -457,12 +554,20 @@ export async function getAdminUiSettings(): Promise<{
     }));
 
     const toastPosition = await readToastPosition();
+    const toastAdminPosition = await readToastAdminPosition(
+      DEFAULT_THEME.adminPosition,
+    );
+    const toastFrontendPosition = await readToastFrontendPosition(
+      DEFAULT_THEME.frontendPosition,
+    );
     const toastDurationMs = await readToastDurationMs();
     const toastAdminDurationMs = await readToastAdminDurationMs(toastDurationMs);
     const toastFrontendDurationMs =
       await readToastFrontendDurationMs(toastDurationMs);
     const theme: ToastTheme = {
       position: toastPosition,
+      adminPosition: toastAdminPosition,
+      frontendPosition: toastFrontendPosition,
       durationMs: toastDurationMs,
       adminDurationMs: toastAdminDurationMs,
       frontendDurationMs: toastFrontendDurationMs,
@@ -569,6 +674,8 @@ export async function updateAdminUiSettings(
     | "toastAlertTitle"
     | "toastAlertBody"
     | "toastPosition"
+    | "toastAdminPosition"
+    | "toastFrontendPosition"
     | "toastDurationMs"
     | "toastAdminDurationMs"
     | "toastFrontendDurationMs"
@@ -663,6 +770,28 @@ export async function updateAdminUiSettings(
       ));
     }
 
+    if (patch.toastAdminPosition != null) {
+      await ensureToastAdminPositionColumnOnce();
+      await withPrismaRetry(() =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "AdminUiSettings" SET "toastAdminPosition" = $1 WHERE "id" = $2',
+          normalizeToastPosition(patch.toastAdminPosition),
+          SINGLETON_ID,
+        ),
+      );
+    }
+
+    if (patch.toastFrontendPosition != null) {
+      await ensureToastFrontendPositionColumnOnce();
+      await withPrismaRetry(() =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "AdminUiSettings" SET "toastFrontendPosition" = $1 WHERE "id" = $2',
+          normalizeToastPosition(patch.toastFrontendPosition),
+          SINGLETON_ID,
+        ),
+      );
+    }
+
     if (patch.toastDurationMs != null) {
       const clamped = Math.min(
         30000,
@@ -718,12 +847,20 @@ export async function updateAdminUiSettings(
     }
 
     const toastPosition = await readToastPosition();
+    const toastAdminPosition = await readToastAdminPosition(
+      DEFAULT_THEME.adminPosition,
+    );
+    const toastFrontendPosition = await readToastFrontendPosition(
+      DEFAULT_THEME.frontendPosition,
+    );
     const toastDurationMs = await readToastDurationMs();
     const toastAdminDurationMs = await readToastAdminDurationMs(toastDurationMs);
     const toastFrontendDurationMs =
       await readToastFrontendDurationMs(toastDurationMs);
     const theme: ToastTheme = {
       position: toastPosition,
+      adminPosition: toastAdminPosition,
+      frontendPosition: toastFrontendPosition,
       durationMs: toastDurationMs,
       adminDurationMs: toastAdminDurationMs,
       frontendDurationMs: toastFrontendDurationMs,
@@ -777,6 +914,14 @@ export async function updateAdminUiSettings(
           patch.toastPosition != null
             ? normalizeToastPosition(patch.toastPosition)
             : DEFAULT_THEME.position,
+        toastAdminPosition:
+          patch.toastAdminPosition != null
+            ? normalizeToastPosition(patch.toastAdminPosition)
+            : DEFAULT_THEME.adminPosition,
+        toastFrontendPosition:
+          patch.toastFrontendPosition != null
+            ? normalizeToastPosition(patch.toastFrontendPosition)
+            : DEFAULT_THEME.frontendPosition,
         toastDurationMs:
           patch.toastDurationMs != null
             ? Math.min(

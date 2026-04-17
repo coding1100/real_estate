@@ -40,6 +40,20 @@ export async function PATCH(req: NextRequest) {
       | "bottom-left"
       | "top-center"
       | "bottom-center";
+    toastAdminPosition:
+      | "top-right"
+      | "top-left"
+      | "bottom-right"
+      | "bottom-left"
+      | "top-center"
+      | "bottom-center";
+    toastFrontendPosition:
+      | "top-right"
+      | "top-left"
+      | "bottom-right"
+      | "bottom-left"
+      | "top-center"
+      | "bottom-center";
     toastDurationMs: number;
     toastAdminDurationMs: number;
     toastFrontendDurationMs: number;
@@ -113,6 +127,26 @@ export async function PATCH(req: NextRequest) {
     body.toastPosition === "bottom-center"
   ) {
     allowed.toastPosition = body.toastPosition;
+  }
+  if (
+    body.toastAdminPosition === "top-right" ||
+    body.toastAdminPosition === "top-left" ||
+    body.toastAdminPosition === "bottom-right" ||
+    body.toastAdminPosition === "bottom-left" ||
+    body.toastAdminPosition === "top-center" ||
+    body.toastAdminPosition === "bottom-center"
+  ) {
+    allowed.toastAdminPosition = body.toastAdminPosition;
+  }
+  if (
+    body.toastFrontendPosition === "top-right" ||
+    body.toastFrontendPosition === "top-left" ||
+    body.toastFrontendPosition === "bottom-right" ||
+    body.toastFrontendPosition === "bottom-left" ||
+    body.toastFrontendPosition === "top-center" ||
+    body.toastFrontendPosition === "bottom-center"
+  ) {
+    allowed.toastFrontendPosition = body.toastFrontendPosition;
   }
 
   if (
