@@ -10,6 +10,7 @@ export default async function MasterTemplatesLayout({
   const { theme } = await getAdminUiSettings();
   const frontendToastTheme = {
     ...theme,
+    position: theme.frontendPosition,
     durationMs: theme.frontendDurationMs ?? theme.durationMs,
   };
   return <ToastProvider theme={frontendToastTheme}>{children}</ToastProvider>;
