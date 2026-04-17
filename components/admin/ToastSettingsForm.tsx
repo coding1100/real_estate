@@ -44,8 +44,6 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
             toastAdminPosition: theme.adminPosition,
             toastFrontendPosition: theme.frontendPosition,
             toastDurationMs: theme.durationMs,
-            toastAdminDurationMs: theme.adminDurationMs,
-            toastFrontendDurationMs: theme.frontendDurationMs,
           }),
         });
         if (!res.ok) {
@@ -113,11 +111,11 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
                   <label className="block text-xs font-medium text-zinc-600">
-                    Screen placement for Admin
+                    Screen placement
                   </label>
                   <select
-                    value={theme.adminPosition}
-                    onChange={(e) => update("adminPosition", e.target.value)}
+                    value={theme.position}
+                    onChange={(e) => update("position", e.target.value)}
                     className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   >
                     <option value="top-right">Top right</option>
@@ -130,59 +128,22 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-zinc-600">
-                    Admin visibility time (seconds)
+                    Visibility time (seconds)
                   </label>
                   <input
                     type="number"
                     min={1}
                     max={30}
-                    value={Math.round((theme.adminDurationMs ?? 5000) / 1000)}
+                    value={Math.round((theme.durationMs ?? 5000) / 1000)}
                     onChange={(e) => {
                       const seconds = Number(e.target.value) || 0;
                       const clamped = Math.min(30, Math.max(1, seconds));
-                      update("adminDurationMs", clamped * 1000);
+                      update("durationMs", clamped * 1000);
                     }}
                     className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                   <p className="mt-1 text-[11px] text-zinc-500">
-                    How long admin toasts stay visible before auto-hide.
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-zinc-600">
-                    Screen placement for Frontend
-                  </label>
-                  <select
-                    value={theme.frontendPosition}
-                    onChange={(e) => update("frontendPosition", e.target.value)}
-                    className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
-                  >
-                    <option value="top-right">Top right</option>
-                    <option value="top-left">Top left</option>
-                    <option value="top-center">Top center</option>
-                    <option value="bottom-right">Bottom right</option>
-                    <option value="bottom-left">Bottom left</option>
-                    <option value="bottom-center">Bottom center</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-zinc-600">
-                    Frontend visibility time (seconds)
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={30}
-                    value={Math.round((theme.frontendDurationMs ?? 5000) / 1000)}
-                    onChange={(e) => {
-                      const seconds = Number(e.target.value) || 0;
-                      const clamped = Math.min(30, Math.max(1, seconds));
-                      update("frontendDurationMs", clamped * 1000);
-                    }}
-                    className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
-                  />
-                  <p className="mt-1 text-[11px] text-zinc-500">
-                    How long landing/frontend toasts stay visible before auto-hide.
+                    How long toasts stay visible before auto-hide.
                   </p>
                 </div>
               </div>

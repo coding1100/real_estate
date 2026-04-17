@@ -398,6 +398,39 @@ function collectCtaCandidates(formData: Record<string, unknown>): string[] {
   return [...candidates];
 }
 
+function extractStepSlugFromFormData(formData: Record<string, unknown>): string | null {
+  const direct = formData._stepSlug;
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+
+  const visit = (node: unknown): string | null => {
+    if (!isPlainObject(node) && !Array.isArray(node)) return null;
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        const hit = visit(item);
+        if (hit) return hit;
+      }
+      return null;
+    }
+    for (const [key, value] of Object.entries(node)) {
+      const normalizedKey = key.trim().toLowerCase();
+      if (
+        typeof value === "string" &&
+        (normalizedKey === "_stepslug" || normalizedKey === "stepslug" || normalizedKey === "_step_slug")
+      ) {
+        const v = value.trim();
+        if (v) return v;
+      }
+      if (isPlainObject(value) || Array.isArray(value)) {
+        const hit = visit(value);
+        if (hit) return hit;
+      }
+    }
+    return null;
+  };
+
+  return visit(formData);
+}
+
 /** Split CTA notification emails into Resend to/cc/bcc. Default kind is cc. */
 function buildDocumentRecipients(
   leadEmail: string | null | undefined,
@@ -546,6 +579,20 @@ export async function sendLeadNotifications(leadId: string) {
   if (!lead) return;
 
   const { domain, page } = lead;
+  const formData = (lead.formData as Record<string, unknown>) ?? {};
+  let ruleSourcePage: typeof page = page;
+  const submittedStepSlug = extractStepSlugFromFormData(formData);
+  if (submittedStepSlug) {
+    const stepPage = await prisma.landingPage.findFirst({
+      where: {
+        domainId: domain.id,
+        slug: submittedStepSlug,
+      },
+    });
+    if (stepPage) {
+      ruleSourcePage = stepPage;
+    }
+  }
 
   // Email to agent via Resend
   if (resend && domain.notifyEmail) {
@@ -590,20 +637,19 @@ export async function sendLeadNotifications(leadId: string) {
 
       const { settings } = await getAdminUiSettings();
       const pageRules = readPageCtaForwardingRules(
-        (lead.page as { sections?: unknown }).sections,
+        (ruleSourcePage as { sections?: unknown }).sections,
       );
       const rules =
         pageRules.length > 0
           ? pageRules
           : ((settings.ctaForwardingRules ?? []) as CtaForwardingRule[]);
-      const formData = (lead.formData as Record<string, unknown>) ?? {};
-      const rule = findCtaRule(rules, page.ctaText, formData);
+      const rule = findCtaRule(rules, ruleSourcePage.ctaText, formData);
       if (!rule) {
         const ctaCandidates = collectCtaCandidates(formData);
         console.warn("[notifications] Document email skipped: CTA rule not found", {
           leadId: lead.id,
-          pageSlug: page.slug,
-          ctaText: page.ctaText,
+          pageSlug: ruleSourcePage.slug,
+          ctaText: ruleSourcePage.ctaText,
           ctaCandidates,
         });
       }
@@ -613,7 +659,7 @@ export async function sendLeadNotifications(leadId: string) {
       if (docs.length === 0) {
         console.warn("[notifications] Document email skipped: no auto-send docs", {
           leadId: lead.id,
-          pageSlug: page.slug,
+          pageSlug: ruleSourcePage.slug,
         });
       }
       if (docs.length > 0) {
@@ -638,7 +684,7 @@ export async function sendLeadNotifications(leadId: string) {
           const { html, text } = await renderDocumentDeliveryEmailHtml({
             siteName: domain.displayName?.trim() || domain.hostname,
             domainHostname: domain.hostname,
-            pageSlug: page.slug,
+            pageSlug: ruleSourcePage.slug,
             documentNames,
             logoUrl: domain.logoUrl ?? null,
           });
@@ -678,7 +724,7 @@ export async function sendLeadNotifications(leadId: string) {
                 formData,
               );
               const siteName = domain.displayName?.trim() || domain.hostname;
-              const pageValue = page.slug;
+              const pageValue = ruleSourcePage.slug;
               const websiteValue = domain.hostname;
               const docNamesArray = documentNames;
               const docNameValue = documentNames.join(", ");

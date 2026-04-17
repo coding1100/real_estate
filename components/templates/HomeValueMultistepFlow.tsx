@@ -409,6 +409,15 @@ export function HomeValueMultistepFlow({
   utmHiddenFields,
   ctaForwardingRules,
 }: HomeValueMultistepFlowProps) {
+  const readPageCtaRules = (page: LandingPageContent): CtaForwardingRule[] => {
+    const hero = Array.isArray(page.sections)
+      ? page.sections.find((section: { kind?: string }) => section?.kind === "hero")
+      : null;
+    const props = (hero?.props ?? null) as { ctaForwardingRules?: unknown } | null;
+    return Array.isArray(props?.ctaForwardingRules)
+      ? (props!.ctaForwardingRules as CtaForwardingRule[])
+      : [];
+  };
   // Normalize steps list and drop any step whose slug matches the entry page
   // slug. This prevents an extra \"copy\" of the entry page from appearing
   // as an in-between step after the entry.
@@ -532,6 +541,8 @@ export function HomeValueMultistepFlow({
         domain: mainPage.domain.hostname,
         slug: mainPage.slug,
         type: mainPage.type,
+        _ctaText: step?.ctaText ?? mainPage.ctaText ?? "",
+        _stepSlug: step?.slug ?? mainPage.slug,
         website: "",
       };
       if (Object.keys(accumulatedData).length > 0) {
@@ -635,6 +646,11 @@ export function HomeValueMultistepFlow({
   // when false, currentStep 0 maps to effectiveSteps[0] (no special entry step).
   const innerIndex = useHomeValueEntryLayout ? currentStep - 1 : currentStep;
   const step = effectiveSteps[innerIndex];
+  extraHiddenFieldsForSubmit._stepSlug = step?.slug ?? mainPage.slug;
+  const stepCtaForwardingRules = (() => {
+    const stepRules = step ? readPageCtaRules(step) : [];
+    return stepRules.length > 0 ? stepRules : (ctaForwardingRules ?? []);
+  })();
 
   const stepLayoutData =
     (step.pageLayout?.layoutData as LayoutItem[] | undefined) ||
@@ -978,7 +994,7 @@ export function HomeValueMultistepFlow({
                         onNextStep={isLastStep ? undefined : handleNextStep}
                         skipValidationForNextStep={false}
                         ctaForwardingRules={
-                          isLastStep ? ctaForwardingRules : undefined
+                          isLastStep ? stepCtaForwardingRules : undefined
                         }
                       />
                       <SocialLinksBar
@@ -1029,7 +1045,7 @@ export function HomeValueMultistepFlow({
                       onNextStep={isLastStep ? undefined : handleNextStep}
                       skipValidationForNextStep={false}
                       ctaForwardingRules={
-                        isLastStep ? ctaForwardingRules : undefined
+                        isLastStep ? stepCtaForwardingRules : undefined
                       }
                     />
                     <SocialLinksBar
