@@ -217,6 +217,7 @@ function isInternalFieldKey(key: string): boolean {
   if (normalized === "website") return true;
   if (normalized === "_multistepdata") return true;
   if (normalized === "_ctatext") return true;
+  if (normalized === "_stepslug") return true;
   if (normalized.includes("cta")) return true;
   return false;
 }
@@ -567,6 +568,15 @@ function readPageCtaForwardingRules(rawSections: unknown): CtaForwardingRule[] {
   return Array.isArray(rules) ? (rules as CtaForwardingRule[]) : [];
 }
 
+function getActiveNotifyEmails(
+  rule: CtaForwardingRule | undefined,
+): Array<{ email: string; kind?: "cc" | "bcc" }> {
+  if (!rule) return [];
+  return (rule.notifyEmails ?? []).filter(
+    (entry) => (entry.enabled ?? true) && entry.email && entry.email.includes("@"),
+  );
+}
+
 export async function sendLeadNotifications(leadId: string) {
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
@@ -594,10 +604,21 @@ export async function sendLeadNotifications(leadId: string) {
     }
   }
 
+  const { settings } = await getAdminUiSettings();
+  const pageRules = readPageCtaForwardingRules(
+    (ruleSourcePage as { sections?: unknown }).sections,
+  );
+  const rules =
+    pageRules.length > 0
+      ? pageRules
+      : ((settings.ctaForwardingRules ?? []) as CtaForwardingRule[]);
+  const resolvedRule = findCtaRule(rules, ruleSourcePage.ctaText, formData);
+  const resolvedNotifyEmails = getActiveNotifyEmails(resolvedRule);
+
   // Email to agent via Resend
-  if (resend && domain.notifyEmail) {
+  if (resend && (domain.notifyEmail || resolvedNotifyEmails.length > 0)) {
     try {
-      const subject = `[New ${lead.type} lead] ${domain.hostname} / ${page.slug}`;
+      const subject = `[New ${lead.type} lead] ${domain.hostname} / ${ruleSourcePage.slug}`;
       const data = (lead.formData as Record<string, unknown>) ?? {};
       const lines = flattenLeadFormDataForEmail(data);
       const fieldRows = formLinesToFieldRows(lines);
@@ -606,19 +627,34 @@ export async function sendLeadNotifications(leadId: string) {
       const { html, text } = await renderNewLeadEmailHtml({
         leadType: lead.type,
         domainHostname: domain.hostname,
-        pageSlug: page.slug,
+        pageSlug: ruleSourcePage.slug,
         brandName,
         logoUrl: domain.logoUrl ?? null,
         fieldRows,
       });
 
-      await resend.emails.send({
-        from: resolveFromAddress(domain.notifyEmail),
-        to: domain.notifyEmail,
-        subject,
-        html,
-        text,
-      });
+      const leadAlertRouting = buildDocumentRecipients(
+        domain.notifyEmail,
+        resolvedNotifyEmails,
+        domain.notifyEmail,
+      );
+      if (!leadAlertRouting || leadAlertRouting.to.length === 0) {
+        console.warn("[notifications] Lead email skipped: no recipients found", {
+          leadId: lead.id,
+          pageSlug: ruleSourcePage.slug,
+        });
+      } else {
+        const leadPayload: Parameters<typeof resend.emails.send>[0] = {
+          from: resolveFromAddress(domain.notifyEmail),
+          to: leadAlertRouting.to,
+          subject,
+          html,
+          text,
+        };
+        if (leadAlertRouting.cc.length > 0) leadPayload.cc = leadAlertRouting.cc;
+        if (leadAlertRouting.bcc.length > 0) leadPayload.bcc = leadAlertRouting.bcc;
+        await resend.emails.send(leadPayload);
+      }
     } catch (e) {
       console.error("[notifications] Failed to send email", e);
     }
@@ -635,15 +671,7 @@ export async function sendLeadNotifications(leadId: string) {
         });
       }
 
-      const { settings } = await getAdminUiSettings();
-      const pageRules = readPageCtaForwardingRules(
-        (ruleSourcePage as { sections?: unknown }).sections,
-      );
-      const rules =
-        pageRules.length > 0
-          ? pageRules
-          : ((settings.ctaForwardingRules ?? []) as CtaForwardingRule[]);
-      const rule = findCtaRule(rules, ruleSourcePage.ctaText, formData);
+      const rule = resolvedRule;
       if (!rule) {
         const ctaCandidates = collectCtaCandidates(formData);
         console.warn("[notifications] Document email skipped: CTA rule not found", {
@@ -663,9 +691,7 @@ export async function sendLeadNotifications(leadId: string) {
         });
       }
       if (docs.length > 0) {
-        const notify = (rule?.notifyEmails ?? []).filter(
-          (n) => (n.enabled ?? true) && n.email && n.email.includes("@"),
-        );
+        const notify = resolvedNotifyEmails;
 
         const routing = buildDocumentRecipients(
           leadEmail,
