@@ -41,6 +41,8 @@ export async function PATCH(req: NextRequest) {
       | "top-center"
       | "bottom-center";
     toastDurationMs: number;
+    toastAdminDurationMs: number;
+    toastFrontendDurationMs: number;
     editorFonts: EditorFontOption[];
     ctaForwardingRules: CtaForwardingRule[];
   }>;
@@ -119,6 +121,20 @@ export async function PATCH(req: NextRequest) {
     body.toastDurationMs <= 30000
   ) {
     allowed.toastDurationMs = Math.floor(body.toastDurationMs);
+  }
+  if (
+    typeof body.toastAdminDurationMs === "number" &&
+    body.toastAdminDurationMs >= 1000 &&
+    body.toastAdminDurationMs <= 30000
+  ) {
+    allowed.toastAdminDurationMs = Math.floor(body.toastAdminDurationMs);
+  }
+  if (
+    typeof body.toastFrontendDurationMs === "number" &&
+    body.toastFrontendDurationMs >= 1000 &&
+    body.toastFrontendDurationMs <= 30000
+  ) {
+    allowed.toastFrontendDurationMs = Math.floor(body.toastFrontendDurationMs);
   }
 
   if (Array.isArray(body.editorFonts)) {
