@@ -222,6 +222,15 @@ export async function POST(req: NextRequest) {
       mergedFormData = { ...parsed, [lastStepKey]: restForm };
     }
 
+    // Keep critical multistep routing keys at top-level for downstream
+    // notification/template/rule resolution.
+    if (typeof restForm._ctaText === "string" && restForm._ctaText.trim()) {
+      mergedFormData._ctaText = restForm._ctaText.trim();
+    }
+    if (typeof restForm._stepSlug === "string" && restForm._stepSlug.trim()) {
+      mergedFormData._stepSlug = restForm._stepSlug.trim();
+    }
+
     // Normalize core contact fields at the top-level so integrations (e.g. FUB)
     // can always identify the person, even if the form uses compact IDs or
     // nested step payloads.

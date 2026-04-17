@@ -86,10 +86,14 @@ function pageToContent(
 
   // Derive per-page social overrides from hero section props, if present
   let socialOverrides: any = null;
+  let toastThemeOverride: any = null;
   if (Array.isArray(sections)) {
     const hero = sections.find((s) => s && s.kind === "hero");
     if (hero && (hero as any).props && (hero as any).props.socialOverrides) {
       socialOverrides = (hero as any).props.socialOverrides;
+    }
+    if (hero && (hero as any).props && (hero as any).props.toastThemeOverride) {
+      toastThemeOverride = (hero as any).props.toastThemeOverride;
     }
   }
 
@@ -107,6 +111,7 @@ function pageToContent(
     sections,
     formSchema: (page.formSchema as any) ?? null,
     socialOverrides,
+    toastThemeOverride,
     domain: {
       hostname: page.domain.hostname,
       displayName: page.domain.displayName,

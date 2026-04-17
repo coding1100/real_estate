@@ -13,6 +13,10 @@ import { FormEditor } from "@/components/admin/FormEditor";
 import { SeoEditor } from "@/components/admin/SeoEditor";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { CtaForwardingSettingsForm } from "@/components/admin/CtaForwardingSettingsForm";
+import {
+  PageToastSettingsForm,
+  type PageToastThemeOverride,
+} from "@/components/admin/PageToastSettingsForm";
 import { PageBlockLayoutEditor } from "@/components/admin/craft/PageBlockLayoutEditor";
 import { DragDropPageLayoutEditor } from "@/components/admin/DragDropPageLayoutEditor";
 import { MultistepPageSelector } from "@/components/admin/MultistepPageSelector";
@@ -44,6 +48,7 @@ interface PageEditorProps {
   };
   editorFonts?: { label: string; cssFamily: string }[];
   initialCtaForwardingRules?: CtaForwardingRule[];
+  initialToastThemeOverride?: Record<string, unknown> | null;
 }
 
 type Tab = "content" | "form" | "seo" | "layout" | "cta";
@@ -154,6 +159,7 @@ export function PageEditor({
   initialPage,
   editorFonts,
   initialCtaForwardingRules = [],
+  initialToastThemeOverride = null,
 }: PageEditorProps) {
   const [tab, setTab] = useState<Tab>("content");
   const [page, setPage] = useState(initialPage);
@@ -1960,27 +1966,48 @@ export function PageEditor({
             )
           )}
           {tab === "cta" && (
-            <CtaForwardingSettingsForm
-              initialRules={ctaForwardingRules}
-              saveButtonLabel="Save page CTA rules"
-              onSaveRules={async (rules) => {
-                const res = await fetch(`/api/admin/pages/${initialPage.dbId}`, {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ ctaForwardingRules: rules }),
-                });
-                const data = (await res.json().catch(() => null)) as
-                  | { error?: string }
-                  | null;
-                if (!res.ok) {
-                  throw new Error(
-                    (data && typeof data.error === "string" && data.error) ||
-                      "Failed to save CTA forwarding rules.",
-                  );
-                }
-                setCtaForwardingRules(rules);
-              }}
-            />
+            <div className="space-y-4">
+              <CtaForwardingSettingsForm
+                initialRules={ctaForwardingRules}
+                saveButtonLabel="Save page CTA rules"
+                onSaveRules={async (rules) => {
+                  const res = await fetch(`/api/admin/pages/${initialPage.dbId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ctaForwardingRules: rules }),
+                  });
+                  const data = (await res.json().catch(() => null)) as
+                    | { error?: string }
+                    | null;
+                  if (!res.ok) {
+                    throw new Error(
+                      (data && typeof data.error === "string" && data.error) ||
+                        "Failed to save CTA forwarding rules.",
+                    );
+                  }
+                  setCtaForwardingRules(rules);
+                }}
+              />
+              <PageToastSettingsForm
+                initialValue={initialToastThemeOverride as PageToastThemeOverride | null}
+                onSave={async (toastThemeOverride) => {
+                  const res = await fetch(`/api/admin/pages/${initialPage.dbId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ toastThemeOverride }),
+                  });
+                  const data = (await res.json().catch(() => null)) as
+                    | { error?: string }
+                    | null;
+                  if (!res.ok) {
+                    throw new Error(
+                      (data && typeof data.error === "string" && data.error) ||
+                        "Failed to save local toast settings.",
+                    );
+                  }
+                }}
+              />
+            </div>
           )}
         </div>
         <div className="h-[588px] overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm md:h-[784px] adj01 mb-[50px]">

@@ -10,8 +10,8 @@ export default async function LandingLayout({
   const { theme } = await getAdminUiSettings();
   const frontendToastTheme = {
     ...theme,
-    position: theme.frontendPosition,
-    durationMs: theme.frontendDurationMs ?? theme.durationMs,
+    position: theme.position,
+    durationMs: theme.durationMs,
   };
 
   return <ToastProvider theme={frontendToastTheme}>{children}</ToastProvider>;

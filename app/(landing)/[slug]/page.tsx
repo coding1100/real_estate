@@ -9,6 +9,8 @@ import { SellerTemplate } from "@/components/templates/SellerTemplate";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { MetaPixel } from "@/components/analytics/MetaPixel";
 import { getAdminUiSettings } from "@/lib/uiSettings";
+import type { ToastTheme } from "@/lib/uiSettings";
+import { ToastProvider } from "@/components/ui/use-toast";
 import { UnpublishedPageNotice } from "@/components/landing/UnpublishedPageNotice";
 import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
 import {
@@ -75,6 +77,62 @@ function readPageCtaForwardingRules(rawSections: unknown): CtaForwardingRule[] {
   if (!hero || !hero.props || typeof hero.props !== "object") return [];
   const rules = (hero.props as { ctaForwardingRules?: unknown }).ctaForwardingRules;
   return Array.isArray(rules) ? (rules as CtaForwardingRule[]) : [];
+}
+
+function readPageToastThemeOverride(
+  rawSections: unknown,
+): Partial<ToastTheme> | null {
+  if (!Array.isArray(rawSections)) return null;
+  const hero = rawSections.find(
+    (section) =>
+      section &&
+      typeof section === "object" &&
+      (section as { kind?: unknown }).kind === "hero",
+  ) as { props?: unknown } | undefined;
+  if (!hero || !hero.props || typeof hero.props !== "object") return null;
+  const raw = (hero.props as { toastThemeOverride?: unknown }).toastThemeOverride;
+  if (!raw || typeof raw !== "object") return null;
+  const input = raw as Record<string, unknown>;
+  const normalized: Partial<ToastTheme> = {};
+  if (
+    input.position === "top-right" ||
+    input.position === "top-left" ||
+    input.position === "top-center" ||
+    input.position === "bottom-right" ||
+    input.position === "bottom-left" ||
+    input.position === "bottom-center"
+  ) {
+    normalized.position = input.position;
+  }
+  if (typeof input.durationMs === "number" && Number.isFinite(input.durationMs)) {
+    normalized.durationMs = Math.min(30000, Math.max(1000, Math.floor(input.durationMs)));
+  }
+  if (typeof input.iconSize === "number" && Number.isFinite(input.iconSize)) {
+    normalized.iconSize = Math.min(40, Math.max(14, Math.floor(input.iconSize)));
+  }
+  const keys: Array<keyof ToastTheme> = [
+    "successBg",
+    "successText",
+    "errorBg",
+    "errorText",
+    "alertBg",
+    "alertText",
+    "infoBg",
+    "infoText",
+    "successTitle",
+    "successBody",
+    "errorTitle",
+    "errorBody",
+    "alertTitle",
+    "alertBody",
+  ];
+  for (const key of keys) {
+    const v = input[key];
+    if (typeof v === "string") {
+      (normalized as Record<string, unknown>)[key] = v;
+    }
+  }
+  return Object.keys(normalized).length > 0 ? normalized : null;
 }
 
 function canonicalPathFromUrl(value: string | null | undefined): string | null {
@@ -231,10 +289,18 @@ export default async function LandingPage({ params, searchParams }: RouteParams)
       redirect(canonicalPath);
     }
   }
-  const { settings } = await getAdminUiSettings();
+  const { settings, theme } = await getAdminUiSettings();
   const pageCtaForwardingRules = readPageCtaForwardingRules(
     (page as { sections?: unknown }).sections,
   );
+  const pageToastThemeOverride =
+    ((page as { toastThemeOverride?: Partial<ToastTheme> | null }).toastThemeOverride ??
+      readPageToastThemeOverride((page as { sections?: unknown }).sections)) ??
+    null;
+  const resolvedToastTheme: ToastTheme = {
+    ...theme,
+    ...(pageToastThemeOverride ?? {}),
+  };
   const resolvedCtaForwardingRules =
     pageCtaForwardingRules.length > 0
       ? pageCtaForwardingRules
@@ -256,11 +322,11 @@ export default async function LandingPage({ params, searchParams }: RouteParams)
     );
 
   return (
-    <>
+    <ToastProvider theme={resolvedToastTheme}>
       <GoogleAnalytics measurementId={page.domain.ga4Id} />
       <MetaPixel pixelId={page.domain.metaPixelId} />
       {content}
-    </>
+    </ToastProvider>
   );
 }
 

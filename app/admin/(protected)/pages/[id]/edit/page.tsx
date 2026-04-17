@@ -27,6 +27,19 @@ export default async function EditPage({ params }: EditPageProps) {
     const rules = (hero.props as { ctaForwardingRules?: unknown }).ctaForwardingRules;
     return Array.isArray(rules) ? (rules as CtaForwardingRule[]) : [];
   }
+  function readPageToastThemeOverride(rawSections: unknown): Record<string, unknown> | null {
+    if (!Array.isArray(rawSections)) return null;
+    const hero = rawSections.find(
+      (section) =>
+        section &&
+        typeof section === "object" &&
+        (section as { kind?: unknown }).kind === "hero",
+    ) as { props?: unknown } | undefined;
+    if (!hero || !hero.props || typeof hero.props !== "object") return null;
+    const raw = (hero.props as { toastThemeOverride?: unknown }).toastThemeOverride;
+    if (!raw || typeof raw !== "object") return null;
+    return raw as Record<string, unknown>;
+  }
 
   const { id } = await params;
 
@@ -132,6 +145,7 @@ export default async function EditPage({ params }: EditPageProps) {
     },
   };
   const initialCtaForwardingRules = readPageCtaForwardingRules(sections);
+  const initialToastThemeOverride = readPageToastThemeOverride(sections);
 
   const { editorFonts } = await getAdminUiSettings();
 
@@ -140,6 +154,7 @@ export default async function EditPage({ params }: EditPageProps) {
       initialPage={pageContent}
       editorFonts={getEnabledEditorFonts(editorFonts)}
       initialCtaForwardingRules={initialCtaForwardingRules}
+      initialToastThemeOverride={initialToastThemeOverride}
     />
   );
 }
