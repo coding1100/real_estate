@@ -26,6 +26,10 @@ export default async function AdminProtectedLayout({
   }
 
   const { theme } = await getAdminUiSettings();
+  const adminToastTheme = {
+    ...theme,
+    durationMs: theme.adminDurationMs ?? theme.durationMs,
+  };
   let archivedCount = 0;
   try {
     const rows = await prisma.$queryRaw<Array<{ count: bigint | number }>>`
@@ -42,7 +46,7 @@ export default async function AdminProtectedLayout({
   return (
     <AdminShell
       userEmail={session.user?.email}
-      toastTheme={theme}
+      toastTheme={adminToastTheme}
       archivedWithLeadsCount={archivedCount}
     >
       {children}

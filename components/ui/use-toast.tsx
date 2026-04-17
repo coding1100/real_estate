@@ -43,6 +43,8 @@ export function ToastProvider({
   const FALLBACK_THEME: ToastTheme = {
     position: "top-right",
     durationMs: 5000,
+    adminDurationMs: 5000,
+    frontendDurationMs: 5000,
     successBg: "#ecfdf3",
     successText: "#166534",
     errorBg: "#fef2f2",
@@ -63,6 +65,9 @@ export function ToastProvider({
   const mergedTheme: ToastTheme = {
     position: theme?.position ?? FALLBACK_THEME.position,
     durationMs: theme?.durationMs ?? FALLBACK_THEME.durationMs,
+    adminDurationMs: theme?.adminDurationMs ?? FALLBACK_THEME.adminDurationMs,
+    frontendDurationMs:
+      theme?.frontendDurationMs ?? FALLBACK_THEME.frontendDurationMs,
     successBg: theme?.successBg ?? FALLBACK_THEME.successBg,
     successText: theme?.successText ?? FALLBACK_THEME.successText,
     errorBg: theme?.errorBg ?? FALLBACK_THEME.errorBg,
