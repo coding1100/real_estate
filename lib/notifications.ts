@@ -577,7 +577,11 @@ function getActiveNotifyEmails(
   );
 }
 
-export async function sendLeadNotifications(leadId: string) {
+export async function sendLeadNotifications(
+  leadId: string,
+  options?: { throwOnFailure?: boolean },
+) {
+  const throwOnFailure = options?.throwOnFailure === true;
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
     include: {
@@ -657,6 +661,7 @@ export async function sendLeadNotifications(leadId: string) {
       }
     } catch (e) {
       console.error("[notifications] Failed to send email", e);
+      if (throwOnFailure) throw e;
     }
   }
 
@@ -812,6 +817,7 @@ export async function sendLeadNotifications(leadId: string) {
       }
     } catch (e) {
       console.error("[notifications] Failed to send lead documents", e);
+      if (throwOnFailure) throw e;
     }
   }
 
@@ -825,6 +831,7 @@ export async function sendLeadNotifications(leadId: string) {
       });
     } catch (e) {
       console.error("[notifications] Failed to send SMS", e);
+      if (throwOnFailure) throw e;
     }
   }
 }
