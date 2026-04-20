@@ -568,6 +568,25 @@ function readPageCtaForwardingRules(rawSections: unknown): CtaForwardingRule[] {
   return Array.isArray(rules) ? (rules as CtaForwardingRule[]) : [];
 }
 
+function hasActionableRuleConfig(rule: CtaForwardingRule | undefined): boolean {
+  if (!rule) return false;
+  const hasNotify = (rule.notifyEmails ?? []).some(
+    (entry) =>
+      (entry.enabled ?? true) &&
+      typeof entry.email === "string" &&
+      entry.email.includes("@"),
+  );
+  const hasDocs = (rule.documents ?? []).some(
+    (doc) => !!doc.url && doc.autoSend !== false,
+  );
+  const hasTemplate = typeof rule.resendTemplateId === "string" && rule.resendTemplateId.trim().length > 0;
+  const hasForward =
+    rule.forwardEnabled !== false &&
+    typeof rule.forwardUrl === "string" &&
+    rule.forwardUrl.trim().length > 0;
+  return hasNotify || hasDocs || hasTemplate || hasForward;
+}
+
 function getActiveNotifyEmails(
   rule: CtaForwardingRule | undefined,
 ): Array<{ email: string; kind?: "cc" | "bcc" }> {
@@ -614,34 +633,79 @@ export async function sendLeadNotifications(
       : null) ||
     submittedStepSlug;
 
-  if (preferredStepSlug) {
-    const stepPage = await prisma.landingPage.findFirst({
-      where: {
-        domainId: domain.id,
-        slug: preferredStepSlug,
-      },
+  const candidateSlugs: string[] = [];
+  const pushUniqueSlug = (slugValue: string | null | undefined) => {
+    const s = String(slugValue ?? "").trim();
+    if (!s) return;
+    if (!candidateSlugs.includes(s)) candidateSlugs.push(s);
+  };
+  // Priority order: submitted step -> configured last step -> all configured steps (reverse) -> entry page.
+  pushUniqueSlug(submittedStepSlug);
+  pushUniqueSlug(preferredStepSlug);
+  [...multistepStepSlugs].reverse().forEach((slugValue) => pushUniqueSlug(slugValue));
+  pushUniqueSlug(page.slug);
+
+  const candidatePages = await prisma.landingPage.findMany({
+    where: {
+      domainId: domain.id,
+      slug: { in: candidateSlugs },
+    },
+  });
+  const pageBySlug = new Map(candidatePages.map((p) => [p.slug, p]));
+
+  if (preferredStepSlug && !pageBySlug.has(preferredStepSlug)) {
+    console.warn("[notifications] Preferred step page slug not found for CTA resolution", {
+      leadId: lead.id,
+      preferredStepSlug,
+      fallbackPageSlug: page.slug,
     });
-    if (stepPage) {
-      ruleSourcePage = stepPage;
-    } else {
-      console.warn("[notifications] Preferred step page slug not found for CTA resolution", {
-        leadId: lead.id,
-        preferredStepSlug,
-        fallbackPageSlug: page.slug,
-      });
-    }
   }
 
   const { settings } = await getAdminUiSettings();
-  const pageRules = readPageCtaForwardingRules(
-    (ruleSourcePage as { sections?: unknown }).sections,
-  );
-  const rules =
-    pageRules.length > 0
-      ? pageRules
-      : ((settings.ctaForwardingRules ?? []) as CtaForwardingRule[]);
-  const resolvedRule = findCtaRule(rules, ruleSourcePage.ctaText, formData);
-  const resolvedNotifyEmails = getActiveNotifyEmails(resolvedRule);
+  let resolvedRule: CtaForwardingRule | undefined;
+  let resolvedNotifyEmails: Array<{ email: string; kind?: "cc" | "bcc" }> = [];
+  let evaluatedCandidates = 0;
+
+  for (const slugCandidate of candidateSlugs) {
+    const candidatePage = pageBySlug.get(slugCandidate);
+    if (!candidatePage) continue;
+    evaluatedCandidates += 1;
+    const candidatePageRules = readPageCtaForwardingRules(
+      (candidatePage as { sections?: unknown }).sections,
+    );
+    const candidateRules =
+      candidatePageRules.length > 0
+        ? candidatePageRules
+        : ((settings.ctaForwardingRules ?? []) as CtaForwardingRule[]);
+    const candidateRule = findCtaRule(
+      candidateRules,
+      candidatePage.ctaText,
+      formData,
+    );
+    if (!candidateRule) continue;
+    const candidateNotify = getActiveNotifyEmails(candidateRule);
+    ruleSourcePage = candidatePage;
+    resolvedRule = candidateRule;
+    resolvedNotifyEmails = candidateNotify;
+    if (hasActionableRuleConfig(candidateRule)) break;
+  }
+
+  if (!resolvedRule) {
+    const fallbackPageRules = readPageCtaForwardingRules(
+      (page as { sections?: unknown }).sections,
+    );
+    const fallbackRules =
+      fallbackPageRules.length > 0
+        ? fallbackPageRules
+        : ((settings.ctaForwardingRules ?? []) as CtaForwardingRule[]);
+    const fallbackRule = findCtaRule(fallbackRules, page.ctaText, formData);
+    if (fallbackRule) {
+      ruleSourcePage = page;
+      resolvedRule = fallbackRule;
+      resolvedNotifyEmails = getActiveNotifyEmails(fallbackRule);
+    }
+  }
+
   console.log("[notifications] CTA resolution", {
     leadId: lead.id,
     entryPageSlug: page.slug,
@@ -650,6 +714,8 @@ export async function sendLeadNotifications(
     resolvedRuleSourceSlug: ruleSourcePage.slug,
     resolvedRuleCtaTitle: resolvedRule?.ctaTitle ?? null,
     multistepStepsCount: multistepStepSlugs.length,
+    candidateSlugs,
+    evaluatedCandidates,
   });
   console.log("[notifications] Rule + notify summary", {
     leadId: lead.id,
