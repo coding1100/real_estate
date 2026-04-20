@@ -112,6 +112,16 @@ export async function POST(req: NextRequest) {
   }
 
   const domainIdToUse = targetDomainId ?? original.domainId;
+  const targetDomain = await prisma.domain.findUnique({
+    where: { id: domainIdToUse },
+    select: { hostname: true },
+  });
+  if (!targetDomain || !targetDomain.hostname) {
+    return NextResponse.json(
+      { error: "Domain not found for duplication target." },
+      { status: 400 },
+    );
+  }
 
   const requestedSlugRaw =
     typeof targetSlug === "string" ? targetSlug.trim() : "";
@@ -192,7 +202,7 @@ export async function POST(req: NextRequest) {
       schemaMarkup: schemaMarkup as any,
       customHeadTags: customHeadTags as any,
       slug: slugToUse,
-      canonicalUrl: `/${slugToUse}`,
+      canonicalUrl: `https://${targetDomain.hostname}/${slugToUse}`,
       status: "draft",
       domainId: domainIdToUse,
     },
