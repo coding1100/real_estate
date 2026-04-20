@@ -651,6 +651,13 @@ export async function sendLeadNotifications(
     resolvedRuleCtaTitle: resolvedRule?.ctaTitle ?? null,
     multistepStepsCount: multistepStepSlugs.length,
   });
+  console.log("[notifications] Rule + notify summary", {
+    leadId: lead.id,
+    resolvedRuleFound: !!resolvedRule,
+    resolvedRuleCtaTitle: resolvedRule?.ctaTitle ?? null,
+    notifyRecipientsCount: resolvedNotifyEmails.length,
+    notifyKinds: resolvedNotifyEmails.map((entry) => entry.kind ?? "cc"),
+  });
 
   // Email to agent via Resend
   if (resend && (domain.notifyEmail || resolvedNotifyEmails.length > 0)) {
@@ -686,6 +693,13 @@ export async function sendLeadNotifications(
           );
         }
       } else {
+        console.log("[notifications] Sending lead alert email", {
+          leadId: lead.id,
+          toCount: leadAlertRouting.to.length,
+          ccCount: leadAlertRouting.cc.length,
+          bccCount: leadAlertRouting.bcc.length,
+          pageSlug: ruleSourcePage.slug,
+        });
         const leadPayload: Parameters<typeof resend.emails.send>[0] = {
           from: resolveFromAddress(domain.notifyEmail),
           to: leadAlertRouting.to,
@@ -754,6 +768,15 @@ export async function sendLeadNotifications(
             pageSlug: page.slug,
           });
         } else {
+          console.log("[notifications] Preparing document email", {
+            leadId: lead.id,
+            docsCount: docs.length,
+            toCount: routing.to.length,
+            ccCount: routing.cc.length,
+            bccCount: routing.bcc.length,
+            templateId: rule?.resendTemplateId ?? null,
+            pageSlug: ruleSourcePage.slug,
+          });
           const documentNames = docs.map((d) => d.name?.trim() || "Document");
 
           const { html, text } = await renderDocumentDeliveryEmailHtml({
