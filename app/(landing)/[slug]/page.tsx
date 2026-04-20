@@ -129,7 +129,9 @@ function readPageToastThemeOverride(
   for (const key of keys) {
     const v = input[key];
     if (typeof v === "string") {
-      (normalized as Record<string, unknown>)[key] = v;
+      const trimmed = v.trim();
+      if (!trimmed) continue;
+      (normalized as Record<string, unknown>)[key] = trimmed;
     }
   }
   return Object.keys(normalized).length > 0 ? normalized : null;
@@ -297,8 +299,13 @@ export default async function LandingPage({ params, searchParams }: RouteParams)
     ((page as { toastThemeOverride?: Partial<ToastTheme> | null }).toastThemeOverride ??
       readPageToastThemeOverride((page as { sections?: unknown }).sections)) ??
     null;
-  const resolvedToastTheme: ToastTheme = {
+  const frontendBaseToastTheme: ToastTheme = {
     ...theme,
+    position: theme.frontendPosition ?? theme.position,
+    durationMs: theme.frontendDurationMs ?? theme.durationMs,
+  };
+  const resolvedToastTheme: ToastTheme = {
+    ...frontendBaseToastTheme,
     ...(pageToastThemeOverride ?? {}),
   };
   const resolvedCtaForwardingRules =
