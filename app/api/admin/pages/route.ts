@@ -158,6 +158,7 @@ export async function POST(req: NextRequest) {
   // Enforce global slug uniqueness at the application level so the same slug
   // cannot be reused across domains or page types.
   const normalizedSlug = String(slug).trim().toLowerCase();
+  const canonicalPath = `/${normalizedSlug}`;
   const existingWithSlug = await prisma.landingPage.findFirst({
     where: {
       slug: normalizedSlug,
@@ -181,6 +182,7 @@ export async function POST(req: NextRequest) {
       data: {
         domainId: domainIdStr,
         slug: normalizedSlug,
+        canonicalUrl: canonicalPath,
         type: String(type),
         masterTemplateId: String(masterTemplateId),
         status: "draft",

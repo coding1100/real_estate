@@ -413,18 +413,21 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     }
   }
 
-  // Keep slug aligned with canonical URL only when canonical is actually changed.
-  if (
-    Object.prototype.hasOwnProperty.call(body, "canonicalUrl") &&
-    typeof body.canonicalUrl === "string"
-  ) {
-    const incomingCanonical = body.canonicalUrl.trim();
-    const existingCanonical = (existingPage.canonicalUrl ?? "").trim();
-    if (incomingCanonical !== existingCanonical) {
-      const derivedSlug = deriveSlugFromCanonicalUrl(body.canonicalUrl);
-      if (derivedSlug) {
-        body.slug = derivedSlug;
-      }
+  // Keep slug and canonical URL path in strict sync.
+  const hasCanonicalInBody = Object.prototype.hasOwnProperty.call(body, "canonicalUrl");
+  const hasSlugInBody = Object.prototype.hasOwnProperty.call(body, "slug");
+  if (hasCanonicalInBody && typeof body.canonicalUrl === "string") {
+    const derivedSlug = deriveSlugFromCanonicalUrl(body.canonicalUrl);
+    if (derivedSlug) {
+      body.slug = derivedSlug;
+      body.canonicalUrl = `/${derivedSlug}`;
+    }
+  } else if (hasCanonicalInBody && body.canonicalUrl == null && hasSlugInBody) {
+    const rawSlug = typeof body.slug === "string" ? body.slug : "";
+    const normalized = normalizeSlug(rawSlug);
+    if (normalized) {
+      body.slug = normalized;
+      body.canonicalUrl = `/${normalized}`;
     }
   }
 
@@ -458,6 +461,7 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     }
 
     body.slug = normalizedSlug;
+    body.canonicalUrl = `/${normalizedSlug}`;
   }
 
   try {
