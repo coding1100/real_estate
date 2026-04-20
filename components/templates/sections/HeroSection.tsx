@@ -164,14 +164,23 @@ export function HeroSection({
   const teamInfoHtml = layout?.teamInfoHtml;
   const teamTrustHtml = layout?.teamTrustHtml;
   const normalizedPageCtaKey = normalizeCtaTitleKey(page.ctaText ?? "");
-  const teamFallbackForwardUrl = (ctaForwardingRules ?? []).find((rule) => {
+  const matchingForwardRule = (ctaForwardingRules ?? []).find((rule) => {
     const normalizedRule = normalizeCtaTitleKey(rule.ctaTitle);
     return (
       normalizedRule.length > 0 &&
       normalizedRule === normalizedPageCtaKey &&
       rule.forwardEnabled !== false
     );
-  })?.forwardUrl;
+  });
+  const fallbackForwardRule =
+    matchingForwardRule ??
+    (ctaForwardingRules ?? []).find((rule) => {
+      if (rule.forwardEnabled === false) return false;
+      if (!rule.forwardUrl || !rule.forwardUrl.trim()) return false;
+      return true;
+    });
+  const teamFallbackForwardUrl = fallbackForwardRule?.forwardUrl;
+  const teamFallbackForwardRuleTitle = fallbackForwardRule?.ctaTitle ?? null;
   const teamHeroBrightness = normalizeBrightness(
     layout?.heroImageBrightness,
     0.58,
@@ -261,6 +270,13 @@ export function HeroSection({
                         page to make this CTA redirect.
                       </p>
                     )}
+                    {teamFallbackForwardUrl &&
+                      matchingForwardRule == null &&
+                      teamFallbackForwardRuleTitle && (
+                        <p className="text-xs text-zinc-600">
+                          Using CTA forwarding rule: {teamFallbackForwardRuleTitle}
+                        </p>
+                      )}
                      
                   </div>
                 )}
