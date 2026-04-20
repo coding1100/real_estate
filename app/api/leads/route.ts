@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyRecaptchaToken } from "@/lib/captcha";
 import { dispatchLeadToWebhooks } from "@/lib/webhooks";
-import { sendLeadNotifications } from "@/lib/notifications";
 import {
   enqueueLeadDispatchJobsTx,
   ensureLeadDispatchTableOnce,
@@ -272,10 +271,7 @@ export async function POST(req: NextRequest) {
 
     // Fire and forget non-critical integrations so submit response returns fast.
     // This preserves lead capture reliability while reducing user-facing latency.
-    void Promise.allSettled([
-      dispatchLeadToWebhooks(lead.id),
-      sendLeadNotifications(lead.id),
-    ]).catch((dispatchError) => {
+    void Promise.allSettled([dispatchLeadToWebhooks(lead.id)]).catch((dispatchError) => {
       console.error("[leads] Async dispatch failure", {
         leadId: lead.id,
         error: dispatchError,
@@ -285,7 +281,7 @@ export async function POST(req: NextRequest) {
     // Opportunistically run one queued dispatch immediately.
     // If the process exits early, the persisted queue guarantees retry.
     void processLeadDispatchQueue({
-      maxJobs: 1,
+      maxJobs: 2,
       workerId: `api-leads-${lead.id}`,
     }).catch((queueError) => {
       console.error("[leads] Immediate queue drain failure", {

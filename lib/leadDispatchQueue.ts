@@ -3,9 +3,10 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
 import { dispatchLeadToFollowUpBoss } from "@/lib/followupboss";
+import { sendLeadNotifications } from "@/lib/notifications";
 
 type JobStatus = "pending" | "processing" | "done" | "failed";
-type JobType = "followupboss";
+type JobType = "followupboss" | "notifications";
 
 type JobRow = {
   id: string;
@@ -18,6 +19,7 @@ type JobRow = {
 
 const TABLE_NAME = '"LeadDispatchJob"';
 const JOB_TYPE_FUB: JobType = "followupboss";
+const JOB_TYPE_NOTIFICATIONS: JobType = "notifications";
 const LOCK_STALE_MINUTES = 5;
 const BASE_RETRY_DELAY_MS = 5000;
 const MAX_RETRY_DELAY_MS = 5 * 60 * 1000;
@@ -76,8 +78,7 @@ export async function ensureLeadDispatchTableOnce() {
   await ensureTablePromise;
 }
 
-export async function enqueueLeadDispatchJobs(leadId: string) {
-  await ensureLeadDispatchTableOnce();
+async function enqueueJob(leadId: string, jobType: JobType) {
   const jobId = randomUUID();
   await withPrismaRetry(() =>
     prisma.$executeRawUnsafe(
@@ -86,23 +87,38 @@ export async function enqueueLeadDispatchJobs(leadId: string) {
        ON CONFLICT ("leadId", "jobType") DO NOTHING`,
       jobId,
       leadId,
-      JOB_TYPE_FUB,
+      jobType,
     ),
   );
+}
+
+export async function enqueueLeadDispatchJobs(leadId: string) {
+  await ensureLeadDispatchTableOnce();
+  await enqueueJob(leadId, JOB_TYPE_FUB);
+  await enqueueJob(leadId, JOB_TYPE_NOTIFICATIONS);
 }
 
 export async function enqueueLeadDispatchJobsTx(
   tx: Prisma.TransactionClient,
   leadId: string,
 ) {
-  const jobId = randomUUID();
+  const fubJobId = randomUUID();
+  const notificationsJobId = randomUUID();
   await tx.$executeRawUnsafe(
     `INSERT INTO ${TABLE_NAME} ("id", "leadId", "jobType", "status", "attemptCount", "maxAttempts", "nextRunAt", "createdAt", "updatedAt")
      VALUES ($1, $2, $3, 'pending', 0, 8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
      ON CONFLICT ("leadId", "jobType") DO NOTHING`,
-    jobId,
+    fubJobId,
     leadId,
     JOB_TYPE_FUB,
+  );
+  await tx.$executeRawUnsafe(
+    `INSERT INTO ${TABLE_NAME} ("id", "leadId", "jobType", "status", "attemptCount", "maxAttempts", "nextRunAt", "createdAt", "updatedAt")
+     VALUES ($1, $2, $3, 'pending', 0, 8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+     ON CONFLICT ("leadId", "jobType") DO NOTHING`,
+    notificationsJobId,
+    leadId,
+    JOB_TYPE_NOTIFICATIONS,
   );
 }
 
@@ -193,6 +209,10 @@ async function markJobFailed(job: JobRow, errorMessage: string) {
 async function runSingleJob(job: JobRow): Promise<void> {
   if (job.jobType === JOB_TYPE_FUB) {
     await dispatchLeadToFollowUpBoss(job.leadId, { throwOnFailure: true });
+    return;
+  }
+  if (job.jobType === JOB_TYPE_NOTIFICATIONS) {
+    await sendLeadNotifications(job.leadId, { throwOnFailure: true });
     return;
   }
   throw new Error(`Unsupported dispatch job type: ${job.jobType}`);
