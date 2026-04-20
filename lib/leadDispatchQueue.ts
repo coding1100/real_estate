@@ -207,6 +207,13 @@ async function markJobFailed(job: JobRow, errorMessage: string) {
 }
 
 async function runSingleJob(job: JobRow): Promise<void> {
+  console.log("[lead-dispatch-queue] Running job", {
+    jobId: job.id,
+    leadId: job.leadId,
+    jobType: job.jobType,
+    attemptCount: job.attemptCount,
+    maxAttempts: job.maxAttempts,
+  });
   if (job.jobType === JOB_TYPE_FUB) {
     await dispatchLeadToFollowUpBoss(job.leadId, { throwOnFailure: true });
     return;
@@ -226,6 +233,12 @@ export async function processLeadDispatchQueue(options?: {
   const workerId = options?.workerId?.trim() || `worker-${randomUUID()}`;
 
   const jobs = await claimDispatchJobs(maxJobs, workerId);
+  console.log("[lead-dispatch-queue] Claimed jobs", {
+    workerId,
+    requestedMaxJobs: maxJobs,
+    claimed: jobs.length,
+    jobIds: jobs.map((j) => j.id),
+  });
   let succeeded = 0;
   let failed = 0;
 
@@ -233,6 +246,11 @@ export async function processLeadDispatchQueue(options?: {
     try {
       await runSingleJob(job);
       await markJobDone(job.id);
+      console.log("[lead-dispatch-queue] Job succeeded", {
+        jobId: job.id,
+        leadId: job.leadId,
+        jobType: job.jobType,
+      });
       succeeded += 1;
     } catch (error) {
       const errorMessage =
@@ -240,10 +258,23 @@ export async function processLeadDispatchQueue(options?: {
           ? String((error as { message?: unknown }).message ?? "Unknown error")
           : String(error ?? "Unknown error");
       await markJobFailed(job, errorMessage);
+      console.error("[lead-dispatch-queue] Job failed", {
+        jobId: job.id,
+        leadId: job.leadId,
+        jobType: job.jobType,
+        attemptCount: (job.attemptCount ?? 0) + 1,
+        error: errorMessage,
+      });
       failed += 1;
     }
   }
 
+  console.log("[lead-dispatch-queue] Batch completed", {
+    workerId,
+    processed: jobs.length,
+    succeeded,
+    failed,
+  });
   return { processed: jobs.length, succeeded, failed };
 }
 

@@ -270,12 +270,24 @@ export async function POST(req: NextRequest) {
       await enqueueLeadDispatchJobsTx(tx, created.id);
       return created;
     });
+    console.log("[leads] Lead created and dispatch jobs enqueued", {
+      leadId: lead.id,
+      domain: domainRow.hostname,
+      entryPageSlug: page.slug,
+      type: lead.type,
+      hasMultistepData: !!_multistepData,
+      hasStepSlug: typeof mergedFormData._stepSlug === "string",
+      hasCtaText: typeof mergedFormData._ctaText === "string",
+    });
 
     // Critical path: attempt Resend notifications immediately so user-facing
     // delivery does not depend on scheduler timing. Queue remains as retry fallback.
     try {
       await sendLeadNotifications(lead.id, { throwOnFailure: true });
       await markLeadDispatchJobDoneByType(lead.id, "notifications");
+      console.log("[leads] Immediate notifications send succeeded", {
+        leadId: lead.id,
+      });
     } catch (notificationError) {
       console.error("[leads] Immediate notification send failed; queue retry will continue", {
         leadId: lead.id,
@@ -297,12 +309,19 @@ export async function POST(req: NextRequest) {
     void processLeadDispatchQueue({
       maxJobs: 2,
       workerId: `api-leads-${lead.id}`,
-    }).catch((queueError) => {
+    })
+      .then((queueResult) => {
+        console.log("[leads] Immediate queue drain completed", {
+          leadId: lead.id,
+          ...queueResult,
+        });
+      })
+      .catch((queueError) => {
       console.error("[leads] Immediate queue drain failure", {
         leadId: lead.id,
         error: queueError,
       });
-    });
+      });
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (error) {
