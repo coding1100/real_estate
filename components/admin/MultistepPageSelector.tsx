@@ -6,6 +6,7 @@ import { X, ChevronDown, GripVertical, Search } from "lucide-react";
 interface PageOption {
   id: string;
   slug: string;
+  displaySlug?: string;
   title: string;
   headline: string;
   type: string;
@@ -111,6 +112,7 @@ export function MultistepPageSelector({
       const headline = p.headline || "";
       return (
         p.slug.toLowerCase().includes(q) ||
+        (p.displaySlug ?? "").toLowerCase().includes(q) ||
         title.toLowerCase().includes(q) ||
         headline.toLowerCase().includes(q)
       );
@@ -219,7 +221,7 @@ export function MultistepPageSelector({
                     </span>
                     {page ? (
                       <span className="text-zinc-800">
-                        {`Slug: ${page.slug} | Title: ${(page.title || page.headline || "").trim()}`}
+                        {`${(page.title || page.headline || "").trim()} (${page.displaySlug || `/${page.slug}`})`}
                       </span>
                     ) : (
                       <span className="text-amber-700">
@@ -298,7 +300,7 @@ export function MultistepPageSelector({
                       className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-50"
                     >
                       <span className="text-zinc-700">
-                        {`Slug: ${p.slug} | Title: ${(p.title || p.headline || "").trim()}`}
+                        {`${(p.title || p.headline || "").trim()} (${p.displaySlug || `/${p.slug}`})`}
                       </span>
                     </button>
                   ))

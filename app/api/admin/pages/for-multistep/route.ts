@@ -2,6 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
 
+function resolveAdminDisplaySlug(input: {
+  slug: string;
+  canonicalUrl: string | null;
+}): string {
+  const canonical = String(input.canonicalUrl ?? "").trim();
+  if (!canonical) return `/${input.slug}`;
+  try {
+    const url =
+      canonical.startsWith("http://") || canonical.startsWith("https://")
+        ? new URL(canonical)
+        : new URL(canonical, "https://placeholder.local");
+    const canonicalPath = (url.pathname || "").trim();
+    if (canonicalPath && canonicalPath !== "/") return canonicalPath;
+  } catch {
+    if (canonical.startsWith("/")) {
+      const path = canonical.split("?")[0]?.split("#")[0] ?? "";
+      if (path.trim()) return path.trim();
+    }
+  }
+  return `/${input.slug}`;
+}
+
 export async function GET(req: NextRequest) {
   const session = await getServerAuthSession();
   if (!session) {
@@ -27,6 +49,7 @@ export async function GET(req: NextRequest) {
       select: {
         id: true,
         slug: true,
+        canonicalUrl: true,
         title: true,
         headline: true,
         type: true,
@@ -38,6 +61,10 @@ export async function GET(req: NextRequest) {
       pages: pages.map((p) => ({
         id: p.id,
         slug: p.slug,
+        displaySlug: resolveAdminDisplaySlug({
+          slug: p.slug,
+          canonicalUrl: p.canonicalUrl,
+        }),
         title: p.title ?? "",
         headline: p.headline ?? "",
         type: p.type,
