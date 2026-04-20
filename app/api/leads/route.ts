@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyRecaptchaToken } from "@/lib/captcha";
 import { dispatchLeadToWebhooks } from "@/lib/webhooks";
-import { dispatchLeadToFollowUpBoss } from "@/lib/followupboss";
 import { sendLeadNotifications } from "@/lib/notifications";
+import {
+  enqueueLeadDispatchJobsTx,
+  ensureLeadDispatchTableOnce,
+  processLeadDispatchQueue,
+} from "@/lib/leadDispatchQueue";
 import type { Prisma } from "@prisma/client";
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -249,28 +253,44 @@ export async function POST(req: NextRequest) {
       if (name) mergedFormData = { ...mergedFormData, name };
     }
 
-    const lead = await prisma.lead.create({
-      data: {
-        domainId: domainRow.id,
-        pageId: page.id,
-        type: String(type),
-        formData: mergedFormData as Prisma.InputJsonValue,
-        utmSource: typeof utm_source === "string" ? utm_source : undefined,
-        utmMedium: typeof utm_medium === "string" ? utm_medium : undefined,
-        utmCampaign: typeof utm_campaign === "string" ? utm_campaign : undefined,
-      },
+    await ensureLeadDispatchTableOnce();
+    const lead = await prisma.$transaction(async (tx) => {
+      const created = await tx.lead.create({
+        data: {
+          domainId: domainRow.id,
+          pageId: page.id,
+          type: String(type),
+          formData: mergedFormData as Prisma.InputJsonValue,
+          utmSource: typeof utm_source === "string" ? utm_source : undefined,
+          utmMedium: typeof utm_medium === "string" ? utm_medium : undefined,
+          utmCampaign: typeof utm_campaign === "string" ? utm_campaign : undefined,
+        },
+      });
+      await enqueueLeadDispatchJobsTx(tx, created.id);
+      return created;
     });
 
     // Fire and forget non-critical integrations so submit response returns fast.
     // This preserves lead capture reliability while reducing user-facing latency.
     void Promise.allSettled([
       dispatchLeadToWebhooks(lead.id),
-      dispatchLeadToFollowUpBoss(lead.id),
       sendLeadNotifications(lead.id),
     ]).catch((dispatchError) => {
       console.error("[leads] Async dispatch failure", {
         leadId: lead.id,
         error: dispatchError,
+      });
+    });
+
+    // Opportunistically run one queued dispatch immediately.
+    // If the process exits early, the persisted queue guarantees retry.
+    void processLeadDispatchQueue({
+      maxJobs: 1,
+      workerId: `api-leads-${lead.id}`,
+    }).catch((queueError) => {
+      console.error("[leads] Immediate queue drain failure", {
+        leadId: lead.id,
+        error: queueError,
       });
     });
 

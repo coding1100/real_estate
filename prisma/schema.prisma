@@ -157,6 +157,26 @@ model Lead {
   status      String   @default("new")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  dispatchJobs LeadDispatchJob[]
+}
+
+model LeadDispatchJob {
+  id           String   @id
+  leadId       String
+  lead         Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  jobType      String
+  status       String   @default("pending")
+  attemptCount Int      @default(0)
+  maxAttempts  Int      @default(8)
+  nextRunAt    DateTime @default(now())
+  lockedAt     DateTime?
+  lockedBy     String?
+  lastError    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([leadId, jobType])
+  @@index([status, nextRunAt])
 }
 
 model WebhookConfig {

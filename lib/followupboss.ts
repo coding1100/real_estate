@@ -734,7 +734,21 @@ function getErrorMessage(body: string): string {
   }
 }
 
-export async function dispatchLeadToFollowUpBoss(leadId: string): Promise<void> {
+export async function dispatchLeadToFollowUpBoss(
+  leadId: string,
+  options?: { throwOnFailure?: boolean },
+): Promise<void> {
+  const throwOnFailure = options?.throwOnFailure === true;
+  const fail = (message: string, error?: unknown): never | void => {
+    if (error) {
+      console.error(message, error);
+    } else {
+      console.error(message);
+    }
+    if (throwOnFailure) {
+      throw new Error(message);
+    }
+  };
   const config = getConfig();
 
   if (!config.enabled) {
@@ -815,14 +829,14 @@ export async function dispatchLeadToFollowUpBoss(leadId: string): Promise<void> 
       }
 
       if (!RETRYABLE_STATUS_CODES.has(response.status)) {
-        console.error(
+        fail(
           `[followupboss] Lead ${lead.id} failed (status=${response.status}): ${getErrorMessage(body)}`,
         );
         return;
       }
 
       if (attempt >= config.maxAttempts) {
-        console.error(
+        fail(
           `[followupboss] Lead ${lead.id} failed after ${attempt} attempt(s) (status=${response.status}): ${getErrorMessage(body)}`,
         );
         return;
@@ -835,8 +849,8 @@ export async function dispatchLeadToFollowUpBoss(leadId: string): Promise<void> 
       await sleep(delayMs);
     } catch (error) {
       if (!isRetryableError(error) || attempt >= config.maxAttempts) {
-        console.error(
-          `[followupboss] Lead ${lead.id} dispatch error (attempt=${attempt}):`,
+        fail(
+          `[followupboss] Lead ${lead.id} dispatch error (attempt=${attempt})`,
           error,
         );
         return;
