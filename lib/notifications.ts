@@ -595,16 +595,38 @@ export async function sendLeadNotifications(
   const { domain, page } = lead;
   const formData = (lead.formData as Record<string, unknown>) ?? {};
   let ruleSourcePage: typeof page = page;
+  const multistepStepSlugs = Array.isArray(
+    (lead.page as { multistepStepSlugs?: unknown }).multistepStepSlugs,
+  )
+    ? ((lead.page as { multistepStepSlugs?: unknown }).multistepStepSlugs as unknown[])
+        .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+        .map((entry) => entry.trim())
+    : [];
+
+  // Multistep requirement: CTA Management should come from the last step page.
+  // If _stepSlug exists, prefer it; otherwise use the configured last step slug.
   const submittedStepSlug = extractStepSlugFromFormData(formData);
-  if (submittedStepSlug) {
+  const preferredStepSlug =
+    submittedStepSlug ||
+    (multistepStepSlugs.length > 0
+      ? multistepStepSlugs[multistepStepSlugs.length - 1]
+      : null);
+
+  if (preferredStepSlug) {
     const stepPage = await prisma.landingPage.findFirst({
       where: {
         domainId: domain.id,
-        slug: submittedStepSlug,
+        slug: preferredStepSlug,
       },
     });
     if (stepPage) {
       ruleSourcePage = stepPage;
+    } else {
+      console.warn("[notifications] Preferred step page slug not found for CTA resolution", {
+        leadId: lead.id,
+        preferredStepSlug,
+        fallbackPageSlug: page.slug,
+      });
     }
   }
 
