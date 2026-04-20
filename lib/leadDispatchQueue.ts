@@ -129,13 +129,17 @@ async function claimDispatchJobs(maxJobs: number, workerId: string): Promise<Job
       `WITH picked AS (
          SELECT "id"
          FROM ${TABLE_NAME}
-         WHERE "status" IN ('pending', 'failed')
-           AND "nextRunAt" <= CURRENT_TIMESTAMP
-           AND "attemptCount" < "maxAttempts"
-           AND (
-             "lockedAt" IS NULL
-             OR "lockedAt" < (CURRENT_TIMESTAMP - INTERVAL '${LOCK_STALE_MINUTES} minutes')
+         WHERE (
+             (
+               "status" IN ('pending', 'failed')
+               AND "nextRunAt" <= CURRENT_TIMESTAMP
+             )
+             OR (
+               "status" = 'processing'
+               AND "lockedAt" < (CURRENT_TIMESTAMP - INTERVAL '${LOCK_STALE_MINUTES} minutes')
+             )
            )
+           AND "attemptCount" < "maxAttempts"
          ORDER BY "nextRunAt" ASC
          LIMIT $1
          FOR UPDATE SKIP LOCKED
