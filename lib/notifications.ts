@@ -595,6 +595,8 @@ export async function sendLeadNotifications(
   const { domain, page } = lead;
   const formData = (lead.formData as Record<string, unknown>) ?? {};
   let ruleSourcePage: typeof page = page;
+  let leadAlertSent = false;
+  let documentEmailSent = false;
   const multistepStepSlugs = Array.isArray(
     (lead.page as { multistepStepSlugs?: unknown }).multistepStepSlugs,
   )
@@ -604,13 +606,13 @@ export async function sendLeadNotifications(
     : [];
 
   // Multistep requirement: CTA Management should come from the last step page.
-  // If _stepSlug exists, prefer it; otherwise use the configured last step slug.
+  // Always prefer configured last step slug; fall back to submitted _stepSlug.
   const submittedStepSlug = extractStepSlugFromFormData(formData);
   const preferredStepSlug =
-    submittedStepSlug ||
     (multistepStepSlugs.length > 0
       ? multistepStepSlugs[multistepStepSlugs.length - 1]
-      : null);
+      : null) ||
+    submittedStepSlug;
 
   if (preferredStepSlug) {
     const stepPage = await prisma.landingPage.findFirst({
@@ -640,6 +642,15 @@ export async function sendLeadNotifications(
       : ((settings.ctaForwardingRules ?? []) as CtaForwardingRule[]);
   const resolvedRule = findCtaRule(rules, ruleSourcePage.ctaText, formData);
   const resolvedNotifyEmails = getActiveNotifyEmails(resolvedRule);
+  console.log("[notifications] CTA resolution", {
+    leadId: lead.id,
+    entryPageSlug: page.slug,
+    submittedStepSlug,
+    preferredStepSlug,
+    resolvedRuleSourceSlug: ruleSourcePage.slug,
+    resolvedRuleCtaTitle: resolvedRule?.ctaTitle ?? null,
+    multistepStepsCount: multistepStepSlugs.length,
+  });
 
   // Email to agent via Resend
   if (resend && (domain.notifyEmail || resolvedNotifyEmails.length > 0)) {
@@ -669,6 +680,11 @@ export async function sendLeadNotifications(
           leadId: lead.id,
           pageSlug: ruleSourcePage.slug,
         });
+        if (throwOnFailure) {
+          throw new Error(
+            `[notifications] Lead alert has no recipients (leadId=${lead.id}, page=${ruleSourcePage.slug})`,
+          );
+        }
       } else {
         const leadPayload: Parameters<typeof resend.emails.send>[0] = {
           from: resolveFromAddress(domain.notifyEmail),
@@ -680,6 +696,7 @@ export async function sendLeadNotifications(
         if (leadAlertRouting.cc.length > 0) leadPayload.cc = leadAlertRouting.cc;
         if (leadAlertRouting.bcc.length > 0) leadPayload.bcc = leadAlertRouting.bcc;
         await resend.emails.send(leadPayload);
+        leadAlertSent = true;
       }
     } catch (e) {
       console.error("[notifications] Failed to send email", e);
@@ -707,6 +724,11 @@ export async function sendLeadNotifications(
           ctaText: ruleSourcePage.ctaText,
           ctaCandidates,
         });
+        if (throwOnFailure && multistepStepSlugs.length > 0) {
+          throw new Error(
+            `[notifications] Multistep CTA rule not found (leadId=${lead.id}, preferredStepSlug=${preferredStepSlug ?? "n/a"})`,
+          );
+        }
       }
       const docs = (rule?.documents ?? []).filter(
         (d) => d.url && d.autoSend !== false,
@@ -805,6 +827,7 @@ export async function sendLeadNotifications(
                 } as any,
               } as any;
               await resend.emails.send(templatePayload);
+              documentEmailSent = true;
             } catch (templateErr) {
               const resendTemplateError =
                 templateErr &&
@@ -821,9 +844,11 @@ export async function sendLeadNotifications(
                 },
               );
               await resend.emails.send(payload);
+              documentEmailSent = true;
             }
           } else {
             await resend.emails.send(payload);
+            documentEmailSent = true;
           }
 
           console.log("[notifications] Document email send summary", {
@@ -855,6 +880,12 @@ export async function sendLeadNotifications(
       console.error("[notifications] Failed to send SMS", e);
       if (throwOnFailure) throw e;
     }
+  }
+
+  if (throwOnFailure && !leadAlertSent && !documentEmailSent) {
+    throw new Error(
+      `[notifications] No notification email sent (leadId=${lead.id}, page=${ruleSourcePage.slug})`,
+    );
   }
 }
 
