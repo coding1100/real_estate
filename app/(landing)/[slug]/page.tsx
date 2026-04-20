@@ -156,6 +156,41 @@ function canonicalPathFromUrl(value: string | null | undefined): string | null {
   }
 }
 
+async function readMultistepLastStepToastThemeOverride(input: {
+  page: Awaited<ReturnType<typeof getLandingPage>>;
+  effectiveHostname: string;
+  includeDraft: boolean;
+  allowFallbackToAnyDomain: boolean;
+}): Promise<Partial<ToastTheme> | null> {
+  const stepSlugs = Array.isArray(
+    (input.page as { multistepStepSlugs?: unknown }).multistepStepSlugs,
+  )
+    ? ((input.page as { multistepStepSlugs?: unknown }).multistepStepSlugs as unknown[])
+        .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+        .map((entry) => entry.trim())
+    : [];
+  if (stepSlugs.length === 0) return null;
+
+  const lastStepSlug = stepSlugs[stepSlugs.length - 1];
+  if (!lastStepSlug) return null;
+
+  try {
+    const lastStepPage = await getLandingPage(input.effectiveHostname, lastStepSlug, {
+      allowFallbackToAnyDomain: input.allowFallbackToAnyDomain,
+      includeDraft: input.includeDraft,
+      includeArchived: input.includeDraft,
+    });
+    return (
+      (lastStepPage as { toastThemeOverride?: Partial<ToastTheme> | null })
+        .toastThemeOverride ??
+      readPageToastThemeOverride((lastStepPage as { sections?: unknown }).sections) ??
+      null
+    );
+  } catch {
+    return null;
+  }
+}
+
 export async function generateMetadata({
   params,
   searchParams,
@@ -295,10 +330,17 @@ export default async function LandingPage({ params, searchParams }: RouteParams)
   const pageCtaForwardingRules = readPageCtaForwardingRules(
     (page as { sections?: unknown }).sections,
   );
-  const pageToastThemeOverride =
+  const currentPageToastThemeOverride =
     ((page as { toastThemeOverride?: Partial<ToastTheme> | null }).toastThemeOverride ??
       readPageToastThemeOverride((page as { sections?: unknown }).sections)) ??
     null;
+  const lastStepToastThemeOverride = await readMultistepLastStepToastThemeOverride({
+    page,
+    effectiveHostname,
+    includeDraft,
+    allowFallbackToAnyDomain: isPreviewHost,
+  });
+  const pageToastThemeOverride = lastStepToastThemeOverride ?? currentPageToastThemeOverride;
   const frontendBaseToastTheme: ToastTheme = {
     ...theme,
     position: theme.frontendPosition ?? theme.position,
