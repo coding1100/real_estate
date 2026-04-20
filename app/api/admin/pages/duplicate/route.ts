@@ -192,9 +192,7 @@ export async function POST(req: NextRequest) {
       schemaMarkup: schemaMarkup as any,
       customHeadTags: customHeadTags as any,
       slug: slugToUse,
-      // Reset canonical on duplicates so admin list and SEO do not
-      // keep pointing at the original page URL.
-      canonicalUrl: null,
+      canonicalUrl: `/${slugToUse}`,
       status: "draft",
       domainId: domainIdToUse,
     },
