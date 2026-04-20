@@ -141,20 +141,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
-    // Verify reCAPTCHA (if configured)
-    let captchaResult: {
-      ok: boolean;
-      score?: number;
-      skipped?: boolean;
-      raw?: Record<string, unknown>;
-    };
-    try {
-      captchaResult = await verifyRecaptchaToken(recaptchaToken ?? null);
-    } catch (e) {
+    const captchaPromise = verifyRecaptchaToken(recaptchaToken ?? null).catch((e) => {
       console.error("[recaptcha] verification error", e);
       // Treat verification errors as hard failures, but avoid 500s.
-      captchaResult = { ok: false, score: 0, skipped: false };
-    }
+      return { ok: false, score: 0, skipped: false } as {
+        ok: boolean;
+        score?: number;
+        skipped?: boolean;
+        raw?: Record<string, unknown>;
+      };
+    });
+
+    // Query page+domain in one round-trip while CAPTCHA verification is in flight.
+    const pageWithDomainPromise = prisma.landingPage.findFirst({
+      where: {
+        slug,
+        status: "published",
+        domain: {
+          hostname: String(domain),
+          isActive: true,
+        },
+      },
+      include: {
+        domain: true,
+      },
+    });
+
+    const [captchaResult, pageWithDomain] = await Promise.all([
+      captchaPromise,
+      pageWithDomainPromise,
+    ]);
 
     // Log reCAPTCHA outcome for debugging/monitoring
     // Does not log the raw token, only verification result metadata.
@@ -180,31 +196,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Find domain + page
-    const domainRow = await prisma.domain.findFirst({
-      where: { hostname: domain, isActive: true },
-    });
-    if (!domainRow) {
-      console.warn("[leads] Unknown or inactive domain", { domain });
-      // Soft-fail for user experience; no lead is stored but UI succeeds.
-      return NextResponse.json({ ok: true }, { status: 200 });
-    }
-
-    const page = await prisma.landingPage.findFirst({
-      where: {
-        slug,
-        domainId: domainRow.id,
-        status: "published",
-      },
-    });
-    if (!page) {
-      console.warn("[leads] Unknown landing page for domain", {
-        domain: domainRow.hostname,
+    if (!pageWithDomain) {
+      console.warn("[leads] Unknown/inactive domain or unknown published page", {
+        domain,
         slug,
       });
       // Soft-fail for user experience; no lead is stored but UI succeeds.
       return NextResponse.json({ ok: true }, { status: 200 });
     }
+
+    const page = pageWithDomain;
+    const domainRow = pageWithDomain.domain;
 
     const { utm_source, utm_medium, utm_campaign, _multistepData, ...restForm } = formData as Record<string, unknown>;
     let mergedFormData: Record<string, unknown> = restForm;
@@ -259,12 +261,18 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Await external dispatches so they complete before serverless function exits (Vercel)
-    await Promise.allSettled([
+    // Fire and forget non-critical integrations so submit response returns fast.
+    // This preserves lead capture reliability while reducing user-facing latency.
+    void Promise.allSettled([
       dispatchLeadToWebhooks(lead.id),
       dispatchLeadToFollowUpBoss(lead.id),
       sendLeadNotifications(lead.id),
-    ]);
+    ]).catch((dispatchError) => {
+      console.error("[leads] Async dispatch failure", {
+        leadId: lead.id,
+        error: dispatchError,
+      });
+    });
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (error) {
