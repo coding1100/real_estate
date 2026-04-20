@@ -4,6 +4,7 @@ import {
   getLandingPage,
   asUnpublishedLandingPageError,
 } from "@/lib/pages";
+import { prisma } from "@/lib/prisma";
 import { BuyerTemplate } from "@/components/templates/BuyerTemplate";
 import { SellerTemplate } from "@/components/templates/SellerTemplate";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
@@ -160,7 +161,6 @@ async function readMultistepLastStepToastThemeOverride(input: {
   page: Awaited<ReturnType<typeof getLandingPage>>;
   effectiveHostname: string;
   includeDraft: boolean;
-  allowFallbackToAnyDomain: boolean;
 }): Promise<Partial<ToastTheme> | null> {
   const stepSlugs = Array.isArray(
     (input.page as { multistepStepSlugs?: unknown }).multistepStepSlugs,
@@ -175,18 +175,49 @@ async function readMultistepLastStepToastThemeOverride(input: {
   if (!lastStepSlug) return null;
 
   try {
-    const lastStepPage = await getLandingPage(input.effectiveHostname, lastStepSlug, {
-      allowFallbackToAnyDomain: input.allowFallbackToAnyDomain,
-      includeDraft: input.includeDraft,
-      includeArchived: input.includeDraft,
+    // Use a direct DB lookup to avoid slug fallback behavior from generic page
+    // resolver and make "last step override" deterministic on live.
+    const lastStepPage = await prisma.landingPage.findFirst({
+      where: {
+        slug: lastStepSlug,
+        ...(input.includeDraft ? {} : { status: "published" }),
+        ...(input.includeDraft ? {} : { deletedAt: null }),
+        domain: {
+          hostname: input.effectiveHostname,
+          isActive: true,
+        },
+      },
+      select: {
+        sections: true,
+      },
     });
-    return (
-      (lastStepPage as { toastThemeOverride?: Partial<ToastTheme> | null })
-        .toastThemeOverride ??
+    if (!lastStepPage) {
+      console.log("[toast] Multistep last-step page not found", {
+        entrySlug: input.page.slug,
+        lastStepSlug,
+        hostname: input.effectiveHostname,
+        includeDraft: input.includeDraft,
+      });
+      return null;
+    }
+    const override =
       readPageToastThemeOverride((lastStepPage as { sections?: unknown }).sections) ??
-      null
-    );
+      null;
+    console.log("[toast] Multistep last-step override resolution", {
+      entrySlug: input.page.slug,
+      lastStepSlug,
+      hostname: input.effectiveHostname,
+      includeDraft: input.includeDraft,
+      overrideFound: !!override,
+    });
+    return override;
   } catch {
+    console.log("[toast] Multistep last-step override lookup failed", {
+      entrySlug: input.page.slug,
+      lastStepSlug,
+      hostname: input.effectiveHostname,
+      includeDraft: input.includeDraft,
+    });
     return null;
   }
 }
@@ -338,9 +369,18 @@ export default async function LandingPage({ params, searchParams }: RouteParams)
     page,
     effectiveHostname,
     includeDraft,
-    allowFallbackToAnyDomain: isPreviewHost,
   });
   const pageToastThemeOverride = lastStepToastThemeOverride ?? currentPageToastThemeOverride;
+  console.log("[toast] Applied toast theme source", {
+    pageSlug: page.slug,
+    hasLastStepOverride: !!lastStepToastThemeOverride,
+    hasCurrentPageOverride: !!currentPageToastThemeOverride,
+    usingSource: lastStepToastThemeOverride
+      ? "multistep-last-step-local"
+      : currentPageToastThemeOverride
+        ? "current-page-local"
+        : "global-frontend",
+  });
   const frontendBaseToastTheme: ToastTheme = {
     ...theme,
     position: theme.frontendPosition ?? theme.position,
