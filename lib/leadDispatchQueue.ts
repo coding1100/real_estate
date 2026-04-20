@@ -261,4 +261,26 @@ export async function countPendingLeadDispatchJobs(): Promise<number> {
   return Number(rows[0]?.count ?? 0);
 }
 
+export async function markLeadDispatchJobDoneByType(
+  leadId: string,
+  jobType: JobType,
+): Promise<void> {
+  await ensureLeadDispatchTableOnce();
+  await withPrismaRetry(() =>
+    prisma.$executeRawUnsafe(
+      `UPDATE ${TABLE_NAME}
+       SET
+         "status" = 'done',
+         "lockedAt" = NULL,
+         "lockedBy" = NULL,
+         "lastError" = NULL,
+         "updatedAt" = CURRENT_TIMESTAMP
+       WHERE "leadId" = $1
+         AND "jobType" = $2`,
+      leadId,
+      jobType,
+    ),
+  );
+}
+
 export type { JobStatus, JobType };

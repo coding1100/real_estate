@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyRecaptchaToken } from "@/lib/captcha";
 import { dispatchLeadToWebhooks } from "@/lib/webhooks";
+import { sendLeadNotifications } from "@/lib/notifications";
 import {
   enqueueLeadDispatchJobsTx,
   ensureLeadDispatchTableOnce,
+  markLeadDispatchJobDoneByType,
   processLeadDispatchQueue,
 } from "@/lib/leadDispatchQueue";
 import type { Prisma } from "@prisma/client";
@@ -268,6 +270,18 @@ export async function POST(req: NextRequest) {
       await enqueueLeadDispatchJobsTx(tx, created.id);
       return created;
     });
+
+    // Critical path: attempt Resend notifications immediately so user-facing
+    // delivery does not depend on scheduler timing. Queue remains as retry fallback.
+    try {
+      await sendLeadNotifications(lead.id, { throwOnFailure: true });
+      await markLeadDispatchJobDoneByType(lead.id, "notifications");
+    } catch (notificationError) {
+      console.error("[leads] Immediate notification send failed; queue retry will continue", {
+        leadId: lead.id,
+        error: notificationError,
+      });
+    }
 
     // Fire and forget non-critical integrations so submit response returns fast.
     // This preserves lead capture reliability while reducing user-facing latency.
