@@ -159,6 +159,17 @@ export async function POST(req: NextRequest) {
   // cannot be reused across domains or page types.
   const normalizedSlug = String(slug).trim().toLowerCase();
   const canonicalPath = `/${normalizedSlug}`;
+  const targetDomain = await prisma.domain.findUnique({
+    where: { id: domainIdStr },
+    select: { hostname: true },
+  });
+  if (!targetDomain || !targetDomain.hostname) {
+    return NextResponse.json(
+      { error: "Domain not found." },
+      { status: 400 },
+    );
+  }
+  const canonicalFullUrl = `https://${targetDomain.hostname}${canonicalPath}`;
   const existingWithSlug = await prisma.landingPage.findFirst({
     where: {
       slug: normalizedSlug,
@@ -182,7 +193,7 @@ export async function POST(req: NextRequest) {
       data: {
         domainId: domainIdStr,
         slug: normalizedSlug,
-        canonicalUrl: canonicalPath,
+        canonicalUrl: canonicalFullUrl,
         type: String(type),
         masterTemplateId: String(masterTemplateId),
         status: "draft",

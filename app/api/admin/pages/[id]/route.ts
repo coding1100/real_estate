@@ -331,6 +331,16 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
   if (!existingPage) {
     return NextResponse.json({ error: "Page not found." }, { status: 404 });
   }
+  const currentDomain = await prisma.domain.findUnique({
+    where: { id: existingPage.domainId },
+    select: { hostname: true },
+  });
+  if (!currentDomain || !currentDomain.hostname) {
+    return NextResponse.json(
+      { error: "Domain not found for this page." },
+      { status: 400 },
+    );
+  }
 
   if (body.action === "restore") {
     if (!existingPage.deletedAt) {
@@ -420,14 +430,14 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     const derivedSlug = deriveSlugFromCanonicalUrl(body.canonicalUrl);
     if (derivedSlug) {
       body.slug = derivedSlug;
-      body.canonicalUrl = `/${derivedSlug}`;
+      body.canonicalUrl = `https://${currentDomain.hostname}/${derivedSlug}`;
     }
   } else if (hasCanonicalInBody && body.canonicalUrl == null && hasSlugInBody) {
     const rawSlug = typeof body.slug === "string" ? body.slug : "";
     const normalized = normalizeSlug(rawSlug);
     if (normalized) {
       body.slug = normalized;
-      body.canonicalUrl = `/${normalized}`;
+      body.canonicalUrl = `https://${currentDomain.hostname}/${normalized}`;
     }
   }
 
@@ -461,7 +471,7 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     }
 
     body.slug = normalizedSlug;
-    body.canonicalUrl = `/${normalizedSlug}`;
+    body.canonicalUrl = `https://${currentDomain.hostname}/${normalizedSlug}`;
   }
 
   try {
