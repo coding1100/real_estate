@@ -91,7 +91,7 @@ function SearchablePageSelector({
       }}
     >
       <input
-        className="w-full rounded-md border border-zinc-300 pl-8 pr-2 py-1.5 text-sm"
+        className="w-full !rounded-md border border-zinc-300 pl-8 pr-2 py-1.5 text-sm"
         placeholder={placeholder}
         value={query}
         onFocus={() => setOpen(true)}
@@ -102,7 +102,7 @@ function SearchablePageSelector({
       />
       <Search className="pointer-events-none absolute left-2 top-2 h-4 w-4 text-zinc-400" />
       {open && (
-        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border border-zinc-200 bg-white shadow-lg">
+        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto !rounded-md border border-zinc-200 bg-white shadow-lg">
           {filtered.length === 0 ? (
             <p className="px-2 py-2 text-xs text-zinc-500">No pages found.</p>
           ) : (
@@ -530,7 +530,7 @@ export function PageEditor({
                   type="text"
                   value={titleDraft}
                   onChange={(e) => setTitleDraft(e.target.value)}
-                  className="w-[340px] rounded-md border border-zinc-300 bg-white px-2 py-1 text-base text-zinc-800"
+                  className="w-[340px] !rounded-md border border-zinc-300 bg-white px-2 py-1 text-base text-zinc-800"
                   placeholder="Enter page title"
                 />
                 <button
@@ -543,7 +543,7 @@ export function PageEditor({
                     update("headline", nextTitle as any);
                     setIsEditingTitle(false);
                   }}
-                  className="inline-flex items-center rounded-md border border-zinc-300 bg-white px-2 py-1 text-zinc-700 hover:bg-zinc-50"
+                  className="inline-flex items-center !rounded-md border border-zinc-300 bg-white px-2 py-1 text-zinc-700 hover:bg-zinc-50"
                 >
                   <Check className="h-3.5 w-3.5" />
                 </button>
@@ -554,7 +554,7 @@ export function PageEditor({
                     setTitleDraft(currentTitle === "—" ? "" : currentTitle);
                     setIsEditingTitle(false);
                   }}
-                  className="inline-flex items-center rounded-md border border-zinc-300 bg-white px-2 py-1 text-zinc-700 hover:bg-zinc-50"
+                  className="inline-flex items-center !rounded-md border border-zinc-300 bg-white px-2 py-1 text-zinc-700 hover:bg-zinc-50"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -569,7 +569,7 @@ export function PageEditor({
                     setTitleDraft(currentTitle === "—" ? "" : currentTitle);
                     setIsEditingTitle(true);
                   }}
-                  className="inline-flex items-center rounded-md border border-zinc-300 bg-white px-2 py-1 text-zinc-700 hover:bg-zinc-50"
+                  className="inline-flex items-center !rounded-md border border-zinc-300 bg-white px-2 py-1 text-zinc-700 hover:bg-zinc-50"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
@@ -677,7 +677,7 @@ export function PageEditor({
         </p>
       )} */}
       {!isFixedDefaultHomepage && (
-      <div className="rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="!rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600 default-homepage">
           Page mode
         </p>
@@ -720,7 +720,7 @@ export function PageEditor({
       </div>
       )}
       {isFixedDefaultHomepage && (
-        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+        <div className="!rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
           This page is configured as the domain default homepage. Layout changes and
           deletion are locked, but content remains editable.
         </div>
@@ -788,7 +788,7 @@ export function PageEditor({
                 <>
                   <div className="grid gap-4 md:grid-cols-1">
                     {isFixedDefaultHomepage && (
-                      <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+                      <div className="space-y-4 !rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
                         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
                           Default homepage settings
                         </p>
@@ -800,7 +800,7 @@ export function PageEditor({
                               </label>
                               <button
                                 type="button"
-                                className="rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                                className="!rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
                                 onClick={() =>
                                   updateHeroLayout({
                                     homeNavLinks: [
@@ -817,7 +817,7 @@ export function PageEditor({
                               {homeNavLinks.map((item, idx) => (
                                 <div key={`home-nav-${idx}`} className="flex gap-2">
                                   <input
-                                    className="col-span-4 flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+                                    className="col-span-4 flex-1 !rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
                                     placeholder="Label"
                                     value={item.label ?? ""}
                                     onChange={(e) => {
@@ -827,7 +827,7 @@ export function PageEditor({
                                     }}
                                   />
                                   <input
-                                    className="col-span-7 flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+                                    className="col-span-7 flex-1 !rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
                                     placeholder="/path or https://..."
                                     value={item.href ?? ""}
                                     onChange={(e) => {
@@ -847,7 +847,7 @@ export function PageEditor({
                                   />
                                   <button
                                     type="button"
-                                    className="col-span-1 rounded-md w-[50px] border border-zinc-300 px-1 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                                    className="col-span-1 !rounded-md w-[50px] border border-zinc-300 px-1 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
                                     onClick={() => {
                                       const next = homeNavLinks.filter((_, i) => i !== idx);
                                       updateHeroLayout({ homeNavLinks: next });
@@ -876,7 +876,7 @@ export function PageEditor({
                                 return (
                                   <div
                                     key={`nav-mega-${navIdx}`}
-                                    className="rounded-md border border-zinc-200 bg-zinc-50 p-3"
+                                    className="!rounded-md border border-zinc-200 bg-zinc-50 p-3"
                                   >
                                     <div className="mb-2 flex items-center justify-between">
                                       <p className="text-xs font-semibold uppercase tracking-wide text-zinc-600">
@@ -884,7 +884,7 @@ export function PageEditor({
                                       </p>
                                       <button
                                         type="button"
-                                        className="rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                                        className="!rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
                                         onClick={() => {
                                           const next = [...homeNavLinks];
                                           const current = Array.isArray(next[navIdx].megaMenuColumns)
@@ -908,11 +908,11 @@ export function PageEditor({
                                       {megaColumns.map((column, colIdx) => (
                                         <div
                                           key={`nav-${navIdx}-mega-${colIdx}`}
-                                          className="rounded-md border border-zinc-200 bg-white p-3"
+                                          className="!rounded-md border border-zinc-200 bg-white p-3"
                                         >
                                           <div className="mb-2 flex gap-2">
                                             <input
-                                              className="col-span-10 flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+                                              className="col-span-10 flex-1 !rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
                                               placeholder="Column title"
                                               value={column.title ?? ""}
                                               onChange={(e) => {
@@ -936,7 +936,7 @@ export function PageEditor({
                                             />
                                             <button
                                               type="button"
-                                              className="col-span-2 rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                                              className="col-span-2 !rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
                                               onClick={() => {
                                                 const next = [...homeNavLinks];
                                                 const current = Array.isArray(next[navIdx].megaMenuColumns)
@@ -965,7 +965,7 @@ export function PageEditor({
                                                   className="flex gap-2"
                                                 >
                                                   <input
-                                                    className="col-span-4 flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+                                                    className="col-span-4 flex-1 !rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
                                                     placeholder="Label"
                                                     value={link.label ?? ""}
                                                     onChange={(e) => {
@@ -995,7 +995,7 @@ export function PageEditor({
                                                     }}
                                                   />
                                                   <input
-                                                    className="col-span-7 flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+                                                    className="col-span-7 flex-1 !rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
                                                     placeholder="/path or https://..."
                                                     value={link.href ?? ""}
                                                     onChange={(e) => {
@@ -1055,7 +1055,7 @@ export function PageEditor({
                                                   />
                                                   <button
                                                     type="button"
-                                                    className="col-span-1 w-[50px] rounded-md border border-zinc-300 px-1 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                                                    className="col-span-1 w-[50px] !rounded-md border border-zinc-300 px-1 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
                                                     onClick={() => {
                                                       const next = [...homeNavLinks];
                                                       const current = Array.isArray(next[navIdx].megaMenuColumns)
@@ -1087,7 +1087,7 @@ export function PageEditor({
                                             )}
                                             <button
                                               type="button"
-                                              className="rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                                              className="!rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
                                               onClick={() => {
                                                 const next = [...homeNavLinks];
                                                 const current = Array.isArray(next[navIdx].megaMenuColumns)
@@ -1132,7 +1132,7 @@ export function PageEditor({
                         </div>
                       </div>
                     )}
-                    <div className="space-y-3 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+                    <div className="space-y-3 !rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
                         Hero text & form intro
                       </p>
@@ -1153,7 +1153,7 @@ export function PageEditor({
                             fontOptions={editorFonts}
                           />
 
-                          <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+                          <div className="space-y-4 !rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
                             <div className="flex items-start justify-between gap-3">
                               <div>
                                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
@@ -1165,7 +1165,7 @@ export function PageEditor({
                               </div>
                               <button
                                 type="button"
-                                className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                                className="!rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
                                 onClick={() =>
                                   updateHeroLayout({ blockquoteStyle: undefined })
                                 }
@@ -1201,7 +1201,7 @@ export function PageEditor({
                                 />
                               </div>
                             </div>
-                            <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600">
+                            <div className="!rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600">
                               <div
                                 className="custom space-y-2"
                                 style={{
@@ -1223,7 +1223,7 @@ export function PageEditor({
                           </div>
                         </div>
                         {/* RIGHT SECTION */}
-                        <div className="space-y-3 rounded-md border border-zinc-200 bg-white p-4 shadow-sm md:col-span-2 lg:col-span-2">
+                        <div className="space-y-3 !rounded-md border border-zinc-200 bg-white p-4 shadow-sm md:col-span-2 lg:col-span-2">
                           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
                             Hero image
                           </p>
@@ -1240,7 +1240,7 @@ export function PageEditor({
                               update("heroImageUrl", url ?? undefined)
                             }
                           />
-                          <div className="space-y-2 rounded-md border border-zinc-200 bg-zinc-50 p-3">
+                          <div className="space-y-2 !rounded-md border border-zinc-200 bg-zinc-50 p-3">
                             <div className="flex items-center justify-between gap-2">
                               <label className="block text-sm font-medium text-zinc-700">
                                 Background image brightness
@@ -1294,7 +1294,7 @@ export function PageEditor({
                                 onClick={() =>
                                   updateHeroLayout({ heroImageBrightness: 0.58 })
                                 }
-                                className="ml-2 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
+                                className="ml-2 !rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
                               >
                                 Reset
                               </button>
@@ -1306,7 +1306,7 @@ export function PageEditor({
                   </div>
 
                   {!isFixedDefaultHomepage && (
-                  <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+                  <div className="space-y-4 !rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
                       Form behavior
                     </p>
@@ -1326,7 +1326,7 @@ export function PageEditor({
                             Form layout
                           </label>
                           <select
-                            className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                            className="w-full !rounded-md border border-zinc-300 px-2 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
                             value={(heroLayout.formStyle as string) ?? "default"}
                             onChange={(e) =>
                               updateHeroLayout({
@@ -1476,7 +1476,7 @@ export function PageEditor({
                   )}
 
                   {!isFixedDefaultHomepage && (
-                  <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+                  <div className="space-y-4 !rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
                       Call to action & confirmation
                     </p>
@@ -1522,7 +1522,7 @@ export function PageEditor({
                   </div>
                   )}
 
-                  <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+                  <div className="space-y-4 !rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
                       Page footer
                     </p>
@@ -1555,7 +1555,7 @@ export function PageEditor({
                   </div>
 
                   {(heroLayout.formStyle as string) === "detailed-perspective" && (
-                    <div className="space-y-2.5 rounded-md border border-zinc-200 bg-white p-3 shadow-sm">
+                    <div className="space-y-2.5 !rounded-md border border-zinc-200 bg-white p-3 shadow-sm">
                       <div className="space-y-0.5">
                         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
                           Detailed Perspective – profile column
@@ -1565,7 +1565,7 @@ export function PageEditor({
                         </p>
                       </div>
                       <div className="grid gap-3 md:grid-cols-2 md:items-start md:gap-3">
-                        <div className="min-w-0 rounded-md border border-zinc-200 bg-zinc-50/80 p-2">
+                        <div className="min-w-0 !rounded-md border border-zinc-200 bg-zinc-50/80 p-2">
                           <RichTextEditor
                             label="Profile content (rich text)"
                             value={(heroLayout.profileSectionHtml as string) ?? ""}
@@ -1577,9 +1577,9 @@ export function PageEditor({
                             height={220}
                           />
                         </div>
-                        <div className="min-w-0 rounded-md border border-zinc-200 bg-zinc-50/80 p-2">
+                        <div className="min-w-0 !rounded-md border border-zinc-200 bg-zinc-50/80 p-2">
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-                            <div className="w-full shrink-0 rounded-md border border-zinc-200 bg-white p-2 sm:w-fit sm:max-w-full">
+                            <div className="w-full shrink-0 !rounded-md border border-zinc-200 bg-white p-2 sm:w-fit sm:max-w-full">
                               <ImageUploader
                                 compact
                                 label="Profile image"
@@ -1589,7 +1589,7 @@ export function PageEditor({
                                 }
                               />
                             </div>
-                            <div className="min-w-0 flex-1 space-y-1.5 rounded-md border border-zinc-200 bg-white p-2">
+                            <div className="min-w-0 flex-1 space-y-1.5 !rounded-md border border-zinc-200 bg-white p-2">
                               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-600">
                                 Image layout
                               </p>
@@ -1603,7 +1603,7 @@ export function PageEditor({
                                     profileImagePosition: e.target.value as any,
                                   })
                                 }
-                                className="h-9 w-full rounded-md border border-zinc-300 bg-white px-2 text-sm text-zinc-800 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                                className="h-9 w-full !rounded-md border border-zinc-300 bg-white px-2 text-sm text-zinc-800 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                               >
                                 <option value="right">Right</option>
                                 <option value="left">Left</option>
@@ -1674,7 +1674,7 @@ export function PageEditor({
                                       profileImageWidthPx: clamped,
                                     } as any);
                                   }}
-                                  className="h-9 w-full rounded-md border border-zinc-300 bg-white px-2 text-sm text-zinc-800 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                                  className="h-9 w-full !rounded-md border border-zinc-300 bg-white px-2 text-sm text-zinc-800 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                                 />
                                 <p className="text-[10px] leading-tight text-zinc-500">
                                   Public page width; default 240px.
@@ -1685,7 +1685,7 @@ export function PageEditor({
                         </div>
                       </div>
 
-                      <div className="space-y-2 rounded-md border border-dashed border-zinc-200 bg-zinc-50/90 p-2.5">
+                      <div className="space-y-2 !rounded-md border border-dashed border-zinc-200 bg-zinc-50/90 p-2.5">
                         <p className="text-xs font-medium text-zinc-600">
                           Additional form text (Detailed Perspective)
                         </p>
@@ -1716,7 +1716,7 @@ export function PageEditor({
                   )}
 
                   {(heroLayout.formStyle as string) === "next-steps" && (
-                    <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+                    <div className="space-y-4 !rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
                         Next steps panel (thank-you layout)
                       </p>
@@ -1759,7 +1759,7 @@ export function PageEditor({
                           />
                         </div>
                       </div>
-                      <div className="space-y-2 rounded-md border border-dashed border-zinc-200 bg-zinc-50 p-3">
+                      <div className="space-y-2 !rounded-md border border-dashed border-zinc-200 bg-zinc-50 p-3">
                         <label className="inline-flex items-center gap-2 text-xs text-zinc-700">
                           <input
                             type="checkbox"
@@ -1789,12 +1789,12 @@ export function PageEditor({
                 </>
               ) : (
                 <>
-                  <div className="rounded-md border border-dashed border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                  <div className="!rounded-md border border-dashed border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
                     This page is configured as a multistep form entry. Only the list of
                     step slugs below is editable here. Content, form fields, SEO, and
                     layout are taken from the first step page.
                   </div>
-                  <div className="space-y-3 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+                  <div className="space-y-3 !rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
                       Multistep flow (step slugs)
                     </p>
@@ -1818,13 +1818,13 @@ export function PageEditor({
           )}
           {tab === "form" && (
             effectivePageMode === "multistep" ? (
-              <div className="rounded-md border border-zinc-200 bg-white p-4 text-sm text-zinc-600 shadow-sm">
+              <div className="!rounded-md border border-zinc-200 bg-white p-4 text-sm text-zinc-600 shadow-sm">
                 This page is a multistep entry. Form fields are configured on the
                 individual step pages instead of here.
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+                <div className="!rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
                     Social media icons for this page
                   </p>
@@ -1940,7 +1940,7 @@ export function PageEditor({
           )}
           {tab === "layout" && (
             effectivePageMode === "multistep" ? (
-              <div className="rounded-md border border-zinc-200 bg-white p-4 text-sm text-zinc-600 shadow-sm">
+              <div className="!rounded-md border border-zinc-200 bg-white p-4 text-sm text-zinc-600 shadow-sm">
                 This page is a multistep entry. Hero layout and grid positions are
                 controlled by the first step page.
               </div>
@@ -1956,7 +1956,7 @@ export function PageEditor({
           )}
           {tab === "seo" && (
             effectivePageMode === "multistep" ? (
-              <div className="rounded-md border border-zinc-200 bg-white p-4 text-sm text-zinc-600 shadow-sm">
+              <div className="!rounded-md border border-zinc-200 bg-white p-4 text-sm text-zinc-600 shadow-sm">
                 This page is a multistep entry. SEO (title, description, canonical)
                 should be edited on the first step page; it will be used for the full
                 flow.
@@ -2063,7 +2063,7 @@ export function PageEditor({
             </div>
           )}
         </div>
-        <div className="h-[588px] overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm md:h-[784px] adj01 mb-[50px]">
+        <div className="h-[588px] overflow-hidden !rounded-md border border-zinc-200 bg-white shadow-sm md:h-[784px] adj01 mb-[50px]">
           <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50 px-3 py-2">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-600 ">
               Live preview

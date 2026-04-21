@@ -21,11 +21,23 @@ export async function generateMetadata({
     where: {
       slug: masterSlug,
       status: "published",
+      ...(type === "buyer"
+        ? {
+            domain: {
+              hostname: "bendhomes.us",
+              isActive: true,
+            },
+          }
+        : {}),
     },
     select: {
       headline: true,
       slug: true,
     },
+    orderBy:
+      type === "buyer"
+        ? [{ updatedAt: "desc" }]
+        : [{ updatedAt: "desc" }],
   });
 
   if (!page) {
@@ -47,15 +59,37 @@ export default async function MasterTemplatePreview({
   const { type } = await params;
   const masterSlug = type === "buyer" ? "master-buyer" : "master-seller";
 
-  const page = await prisma.landingPage.findFirst({
-    where: {
-      slug: masterSlug,
-      status: "published",
-    },
-    include: {
-      domain: true,
-    },
-  });
+  const page =
+    (await prisma.landingPage.findFirst({
+      where: {
+        slug: masterSlug,
+        status: "published",
+        ...(type === "buyer"
+          ? {
+              domain: {
+                hostname: "bendhomes.us",
+                isActive: true,
+              },
+            }
+          : {}),
+      },
+      include: {
+        domain: true,
+      },
+      orderBy: [{ updatedAt: "desc" }],
+    })) ??
+    (type === "buyer"
+      ? await prisma.landingPage.findFirst({
+          where: {
+            slug: masterSlug,
+            status: "published",
+          },
+          include: {
+            domain: true,
+          },
+          orderBy: [{ updatedAt: "desc" }],
+        })
+      : null);
 
   if (!page || !page.domain) {
     notFound();

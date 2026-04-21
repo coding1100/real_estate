@@ -425,7 +425,7 @@ function SortablePagesTableRow({
     <div className="flex items-center gap-0.5">
       <button
         type="button"
-        className="inline-flex h-8 w-8 shrink-0 cursor-grab touch-manipulation items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 active:cursor-grabbing"
+        className="inline-flex h-8 w-8 shrink-0 cursor-grab touch-manipulation items-center justify-center !rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 active:cursor-grabbing"
         aria-label="Drag to reorder page under this domain"
         {...attributes}
         {...listeners}
@@ -436,7 +436,7 @@ function SortablePagesTableRow({
         type="button"
         onClick={() => onToggleBookmark(page.id, !page.bookmarked)}
         onPointerDown={(e) => e.stopPropagation()}
-        className="inline-flex relative right-[5px] h-8 w-8 items-center justify-center rounded-md hover:bg-zinc-100"
+        className="inline-flex relative right-[5px] h-8 w-8 items-center justify-center !rounded-md hover:bg-zinc-100"
         title={page.bookmarked ? "Unstar" : "Star"}
       >
         <Star
@@ -741,7 +741,7 @@ export function PagesTable({ pages }: PagesTableProps) {
           <button
             type="button"
             onClick={() => setPreviewOpenId(page.id)}
-            className="absolute right-1 top-1 inline-flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 bg-white/95 text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900"
+            className="absolute right-1 top-1 inline-flex h-7 w-7 items-center justify-center !rounded-md border border-zinc-200 bg-white/95 text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900"
             aria-label={`Open preview for ${page.slug}`}
             title="Preview"
           >
@@ -756,14 +756,14 @@ export function PagesTable({ pages }: PagesTableProps) {
                 setPreviewOpenId(null);
               }}
             >
-              <div className="relative rounded-md border border-zinc-200 bg-white p-2 shadow-lg">
+              <div className="relative !rounded-md border border-zinc-200 bg-white p-2 shadow-lg">
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div className="text-xs font-medium text-zinc-600">
                     {page.domainHostname}/{page.slug}
                   </div>
                   <button
                     type="button"
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                    className="inline-flex h-7 w-7 items-center justify-center !rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
                     aria-label="Close preview"
                     onClick={() => {
                       setPreviewOpenId(null);
@@ -823,7 +823,7 @@ export function PagesTable({ pages }: PagesTableProps) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by domain, slug, or title…"
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 pr-9 py-1.5 text-sm text-zinc-800 shadow-sm placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+              className="w-full !rounded-md border border-zinc-300 bg-white px-3 pr-9 py-1.5 text-sm text-zinc-800 shadow-sm placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
             />
           </div>
         </div>
@@ -905,7 +905,7 @@ export function PagesTable({ pages }: PagesTableProps) {
                               onClick={() =>
                                 toggleBookmark(page.id, !page.bookmarked)
                               }
-                              className="inline-flex relative left-[5px] h-8 w-8 items-center justify-center rounded-md hover:bg-zinc-100"
+                              className="inline-flex relative left-[5px] h-8 w-8 items-center justify-center !rounded-md hover:bg-zinc-100"
                               title={page.bookmarked ? "Unstar" : "Star"}
                             >
                               <Star
@@ -947,7 +947,7 @@ export function PagesTable({ pages }: PagesTableProps) {
             closeNotesDialog();
           }}
         >
-          <div className="w-full max-w-2xl rounded-md border border-zinc-200 bg-white p-4 shadow-lg">
+          <div className="w-full max-w-2xl !rounded-md border border-zinc-200 bg-white p-4 shadow-lg">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-base font-semibold text-zinc-900">
@@ -960,7 +960,7 @@ export function PagesTable({ pages }: PagesTableProps) {
               <button
                 type="button"
                 onClick={closeNotesDialog}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                className="inline-flex h-7 w-7 items-center justify-center !rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
                 aria-label="Close notes dialog"
                 disabled={notesSaving}
               >
@@ -971,7 +971,7 @@ export function PagesTable({ pages }: PagesTableProps) {
               value={notesDraft}
               onChange={(e) => setNotesDraft(e.target.value)}
               rows={10}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              className="w-full !rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
               placeholder="Write page notes..."
             />
             {notesError && (
@@ -982,7 +982,7 @@ export function PagesTable({ pages }: PagesTableProps) {
                 type="button"
                 onClick={closeNotesDialog}
                 disabled={notesSaving}
-                className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+                className="!rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
               >
                 Cancel
               </button>
@@ -990,7 +990,7 @@ export function PagesTable({ pages }: PagesTableProps) {
                 type="button"
                 onClick={saveNotes}
                 disabled={notesSaving}
-                className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+                className="!rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
               >
                 {notesSaving ? "Saving..." : "Save notes"}
               </button>

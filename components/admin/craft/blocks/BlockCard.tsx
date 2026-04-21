@@ -80,7 +80,7 @@ export function BlockCard({ label, description, icon }: BlockCardProps) {
       } ${sizeClass}`}
     >
       <div className="mt-0.5 flex shrink-0 items-center">
-        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-zinc-100 text-zinc-400 group-hover:bg-zinc-200">
+        <span className="inline-flex h-6 w-6 items-center justify-center !rounded-md bg-zinc-100 text-zinc-400 group-hover:bg-zinc-200">
           <GripVertical className="h-3 w-3" />
         </span>
       </div>

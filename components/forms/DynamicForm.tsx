@@ -3,10 +3,13 @@
 import { useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import type { FormSchema } from "@/lib/types/form";
+import { type CtaForwardingRule } from "@/lib/types/ctaForwarding";
 import {
-  type CtaForwardingRule,
-  normalizeCtaTitleKey,
-} from "@/lib/types/ctaForwarding";
+  buildEmailRequiredValidationMessage,
+  hasValidEmailInPayload,
+  resolveCtaRuleForSubmission,
+  ruleHasConfiguredCtaForwardingExtras,
+} from "@/lib/ctaForwardingValidation";
 import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 import { FormField } from "./FormField";
 import { useRecaptcha } from "./Captcha";
@@ -89,6 +92,29 @@ export function DynamicForm({
       onNextStep(values as Record<string, unknown>);
       return;
     }
+    const ctaRuleResolution = resolveCtaRuleForSubmission(
+      ctaForwardingRules,
+      ctaText,
+    );
+    const matchingRule = ctaRuleResolution.rule;
+    const needsEmailForConfiguredForwarding =
+      ruleHasConfiguredCtaForwardingExtras(matchingRule);
+    if (
+      needsEmailForConfiguredForwarding
+      && !hasValidEmailInPayload({ ...values, ...extraHiddenFields })
+    ) {
+      const msg = buildEmailRequiredValidationMessage({
+        ctaText,
+        resolution: ctaRuleResolution,
+      });
+      setError(msg);
+      toast({
+        title: "Unable to submit",
+        description: msg,
+        variant: "destructive",
+      });
+      return;
+    }
     startTransition(async () => {
       try {
         const token = await execute("lead_submit");
@@ -116,12 +142,12 @@ export function DynamicForm({
             "Thank you! We'll be in touch shortly.",
           variant: "default",
         });
-        const normalizedCtaText = normalizeCtaTitleKey(ctaText || "");
-        const matchingRule = (ctaForwardingRules ?? []).find(
-          (rule) => normalizeCtaTitleKey(rule.ctaTitle) === normalizedCtaText,
-        );
-        if (matchingRule?.forwardEnabled !== false && matchingRule?.forwardUrl) {
-          window.location.assign(matchingRule.forwardUrl);
+        const redirectRule = resolveCtaRuleForSubmission(
+          ctaForwardingRules,
+          ctaText,
+        ).rule;
+        if (redirectRule?.forwardEnabled !== false && redirectRule?.forwardUrl) {
+          window.location.assign(redirectRule.forwardUrl);
         }
       } catch (e) {
         console.error(e);
@@ -161,9 +187,9 @@ export function DynamicForm({
   const isQuestionnaire = formStyle === "questionnaire";
   const isDetailedPerspective = formStyle === "detailed-perspective";
   const buttonClass = isDetailedPerspective && !ctaBgColor
-    ? "inline-flex w-full items-center justify-center rounded-md bg-amber-800 px-4 py-2.5 text-md font-medium text-amber-50 shadow-md hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60 font-serif"
+    ? "inline-flex w-full items-center justify-center !rounded-md bg-amber-800 px-4 py-2.5 text-md font-medium text-amber-50 shadow-md hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60 font-serif"
     : isQuestionnaire && !ctaBgColor
-    ? "inline-flex w-full items-center justify-center rounded-md bg-amber-800 px-4 py-2.5 text-md font-medium text-amber-50 shadow-md hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60 font-serif"
+    ? "inline-flex w-full items-center justify-center !rounded-md bg-amber-800 px-4 py-2.5 text-md font-medium text-amber-50 shadow-md hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60 font-serif"
     : "inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-md font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60";
 
   return (

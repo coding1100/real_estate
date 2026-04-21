@@ -100,7 +100,7 @@ export function AdminShell({
                   callbackUrl: "/admin/login",
                 })
               }
-              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+              className="inline-flex items-center justify-center gap-1.5 !rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
             >
               <LogOut className="h-3.5 w-3.5" />
               <span>Logout</span>
@@ -111,7 +111,7 @@ export function AdminShell({
 
       <div className="mx-auto flex w-full flex-1 gap-6 px-4 py-6 overflow-auto min-w-0 max-[768px]:min-w-0">
         <aside
-          className={`hidden h-full overflow-y-auto rounded-md bg-white/80 p-2 shadow-sm ring-1 ring-zinc-100 backdrop-blur md:block transition-all duration-200 ${
+          className={`hidden h-full overflow-y-auto !rounded-md bg-white/80 p-2 shadow-sm ring-1 ring-zinc-100 backdrop-blur md:block transition-all duration-200 ${
             collapsed ? "w-[52px]" : "w-56"
           }`}
         >
@@ -126,7 +126,7 @@ export function AdminShell({
                   href={item.href}
                   title={item.label}
                   aria-label={item.label}
-                  className={`flex items-center gap-2 !rounded-lg px-2 py-2 text-md font-medium transition-colors min-h-[40px] ${
+                  className={`flex items-center gap-2 !rounded-md px-2 py-2 text-md font-medium transition-colors min-h-[40px] ${
                     isActive
                       ? "bg-zinc-900 text-zinc-50 shadow-sm"
                       : "text-zinc-700 hover:bg-zinc-100"
@@ -156,7 +156,7 @@ export function AdminShell({
         <aside className="md:hidden">
           <div className="fixed inset-x-0 top-[56px] z-30">
             <div
-              className={`mx-4 origin-top rounded-md bg-white/95 p-2 shadow-md ring-1 ring-zinc-200 transition-all duration-200 ${
+              className={`mx-4 origin-top !rounded-md bg-white/95 p-2 shadow-md ring-1 ring-zinc-200 transition-all duration-200 ${
                 collapsed ? "scale-y-0 opacity-0 pointer-events-none" : "scale-y-100 opacity-100"
               }`}
             >
@@ -171,7 +171,7 @@ export function AdminShell({
                       href={item.href}
                       title={item.label}
                       aria-label={item.label}
-                      className={`flex items-center gap-2 rounded-md px-2 py-2 text-md font-medium transition-colors ${
+                      className={`flex items-center gap-2 !rounded-md px-2 py-2 text-md font-medium transition-colors ${
                         isActive
                           ? "bg-zinc-900 text-zinc-50 shadow-sm"
                           : "text-zinc-700 hover:bg-zinc-100"

@@ -1,17 +1,28 @@
 import { prisma } from "@/lib/prisma";
 import { TemplatesGridWithDialog } from "@/components/admin/TemplatesGridWithDialog";
+import { safePrismaRead } from "@/lib/prismaRetry";
 
 export default async function TemplatesPage() {
   const [templates, domains] = await Promise.all([
-    prisma.masterTemplate.findMany({
-      orderBy: { type: "asc" },
-      select: { id: true, type: true, name: true },
-    }),
-    prisma.domain.findMany({
-      where: { isActive: true },
-      orderBy: { hostname: "asc" },
-      select: { id: true, hostname: true },
-    }),
+    safePrismaRead(
+      "templates:masterTemplate.findMany",
+      () =>
+        prisma.masterTemplate.findMany({
+          orderBy: { type: "asc" },
+          select: { id: true, type: true, name: true },
+        }),
+      [],
+    ),
+    safePrismaRead(
+      "templates:domain.findMany",
+      () =>
+        prisma.domain.findMany({
+          where: { isActive: true },
+          orderBy: { hostname: "asc" },
+          select: { id: true, hostname: true },
+        }),
+      [],
+    ),
   ]);
 
   return (
