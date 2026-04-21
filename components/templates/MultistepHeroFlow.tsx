@@ -5,12 +5,6 @@ import Image from "next/image";
 import type { LandingPageContent } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
 import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
-import {
-  buildEmailRequiredValidationMessage,
-  hasValidEmailInPayload,
-  resolveCtaRuleForSubmission,
-  ruleHasConfiguredCtaForwardingExtras,
-} from "@/lib/ctaForwardingValidation";
 import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 import { DynamicForm } from "@/components/forms/DynamicForm";
 import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
@@ -189,27 +183,6 @@ export function MultistepHeroFlow({
     setSubmitError(null);
     try {
       const resolvedCtaText = step.ctaText ?? mainPage.ctaText ?? "";
-      const ctaRuleResolution = resolveCtaRuleForSubmission(
-        stepCtaForwardingRules,
-        resolvedCtaText,
-      );
-      const matchingRule = ctaRuleResolution.rule;
-      if (
-        ruleHasConfiguredCtaForwardingExtras(matchingRule)
-        && !hasValidEmailInPayload(accumulatedData)
-      ) {
-        const msg = buildEmailRequiredValidationMessage({
-          ctaText: resolvedCtaText,
-          resolution: ctaRuleResolution,
-        });
-        setSubmitError(msg);
-        toast({
-          title: "Unable to submit",
-          description: msg,
-          variant: "destructive",
-        });
-        return;
-      }
       // Obtain reCAPTCHA token (if configured)
       const token = await execute("lead_submit");
 

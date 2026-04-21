@@ -5,10 +5,7 @@ import { useForm, useWatch } from "react-hook-form";
 import type { FormSchema } from "@/lib/types/form";
 import { type CtaForwardingRule } from "@/lib/types/ctaForwarding";
 import {
-  buildEmailRequiredValidationMessage,
-  hasValidEmailInPayload,
   resolveCtaRuleForSubmission,
-  ruleHasConfiguredCtaForwardingExtras,
 } from "@/lib/ctaForwardingValidation";
 import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 import { FormField } from "./FormField";
@@ -90,29 +87,6 @@ export function DynamicForm({
     }
     if (onNextStep) {
       onNextStep(values as Record<string, unknown>);
-      return;
-    }
-    const ctaRuleResolution = resolveCtaRuleForSubmission(
-      ctaForwardingRules,
-      ctaText,
-    );
-    const matchingRule = ctaRuleResolution.rule;
-    const needsEmailForConfiguredForwarding =
-      ruleHasConfiguredCtaForwardingExtras(matchingRule);
-    if (
-      needsEmailForConfiguredForwarding
-      && !hasValidEmailInPayload({ ...values, ...extraHiddenFields })
-    ) {
-      const msg = buildEmailRequiredValidationMessage({
-        ctaText,
-        resolution: ctaRuleResolution,
-      });
-      setError(msg);
-      toast({
-        title: "Unable to submit",
-        description: msg,
-        variant: "destructive",
-      });
       return;
     }
     startTransition(async () => {
