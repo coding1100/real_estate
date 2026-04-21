@@ -62,9 +62,8 @@ function extractLeadEmail(formData: unknown): string | null {
   return exact || firstEmailLikeValue;
 }
 
-function resolveFromAddress(fallback?: string | null): string {
+function resolveFromAddress(): string {
   if (RESEND_FROM_EMAIL) return RESEND_FROM_EMAIL;
-  if (fallback && /\S+@\S+\.\S+/.test(fallback)) return fallback;
   return "leads@no-reply.example.com";
 }
 
@@ -725,8 +724,14 @@ export async function sendLeadNotifications(
     notifyKinds: resolvedNotifyEmails.map((entry) => entry.kind ?? "cc"),
   });
 
-  // Email to agent via Resend
-  if (resend && (domain.notifyEmail || resolvedNotifyEmails.length > 0)) {
+  const hasConfiguredResendTemplate =
+    typeof resolvedRule?.resendTemplateId === "string" &&
+    resolvedRule.resendTemplateId.trim().length > 0;
+
+  // Email to agent via Resend (CTA notify recipients only; do not use domain notifyEmail).
+  // When a CTA-specific Resend template is configured, that template email is the priority
+  // path, so skip this default lead alert to avoid duplicate sends.
+  if (resend && resolvedNotifyEmails.length > 0 && !hasConfiguredResendTemplate) {
     try {
       const subject = `[New ${lead.type} lead] ${domain.hostname} / ${ruleSourcePage.slug}`;
       const data = (lead.formData as Record<string, unknown>) ?? {};
@@ -744,9 +749,9 @@ export async function sendLeadNotifications(
       });
 
       const leadAlertRouting = buildDocumentRecipients(
-        domain.notifyEmail,
+        null,
         resolvedNotifyEmails,
-        domain.notifyEmail,
+        null,
       );
       if (!leadAlertRouting || leadAlertRouting.to.length === 0) {
         console.warn("[notifications] Lead email skipped: no recipients found", {
@@ -767,7 +772,7 @@ export async function sendLeadNotifications(
           pageSlug: ruleSourcePage.slug,
         });
         const leadPayload: Parameters<typeof resend.emails.send>[0] = {
-          from: resolveFromAddress(domain.notifyEmail),
+          from: resolveFromAddress(),
           to: leadAlertRouting.to,
           subject,
           html,
@@ -825,7 +830,7 @@ export async function sendLeadNotifications(
         const routing = buildDocumentRecipients(
           leadEmail,
           notify,
-          domain.notifyEmail,
+          null,
         );
 
         if (!routing || routing.to.length === 0) {
@@ -872,7 +877,7 @@ export async function sendLeadNotifications(
           }>;
 
           const payload: Parameters<typeof resend.emails.send>[0] = {
-            from: resolveFromAddress(domain.notifyEmail),
+            from: resolveFromAddress(),
             to: routing.to,
             subject: `Your requested documents from ${domain.displayName ?? domain.hostname}`,
             html,
@@ -892,8 +897,12 @@ export async function sendLeadNotifications(
               const websiteValue = domain.hostname;
               const docNamesArray = documentNames;
               const docNameValue = documentNames.join(", ");
+              const emailVariableValue =
+                (leadEmail && leadEmail.includes("@") ? leadEmail : null) ??
+                routing.to[0] ??
+                "";
               const templatePayload: Parameters<typeof resend.emails.send>[0] = {
-                from: resolveFromAddress(domain.notifyEmail),
+                from: resolveFromAddress(),
                 to: routing.to,
                 subject: `Your requested documents from ${domain.displayName ?? domain.hostname}`,
                 ...(routing.cc.length > 0 ? { cc: routing.cc } : {}),
@@ -904,6 +913,7 @@ export async function sendLeadNotifications(
                   id: resendTemplateId,
                   variables: {
                     ...extractedFormVariables,
+                    email: emailVariableValue,
                     siteName,
                     domainHostname: websiteValue,
                     pageSlug: pageValue,
@@ -915,8 +925,16 @@ export async function sendLeadNotifications(
                   },
                 } as any,
               } as any;
-              await resend.emails.send(templatePayload);
+              const templateResult = await resend.emails.send(templatePayload as any);
+              if ((templateResult as { error?: unknown } | null)?.error) {
+                throw (templateResult as { error: unknown }).error;
+              }
               documentEmailSent = true;
+              console.log("[notifications] Resend template email sent", {
+                leadId: lead.id,
+                templateId: resendTemplateId,
+                pageSlug: ruleSourcePage.slug,
+              });
             } catch (templateErr) {
               const resendTemplateError =
                 templateErr &&
@@ -925,15 +943,16 @@ export async function sendLeadNotifications(
                   ? (templateErr as { message?: unknown }).message
                   : null;
               console.error(
-                "[notifications] Resend template send failed, falling back to React Email html/text",
+                "[notifications] Resend template send failed (no fallback default email when template is configured)",
                 {
                   leadId: lead.id,
                   templateId: resendTemplateId,
                   error: resendTemplateError ?? templateErr,
                 },
               );
-              await resend.emails.send(payload);
-              documentEmailSent = true;
+              if (throwOnFailure) {
+                throw templateErr;
+              }
             }
           } else {
             await resend.emails.send(payload);

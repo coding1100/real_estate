@@ -535,13 +535,14 @@ export function HomeValueMultistepFlow({
     setIsSubmittingFinal(true);
     setSubmitError(null);
     try {
+      const resolvedCtaText = step?.ctaText ?? mainPage.ctaText ?? "";
       const token = await execute("lead_submit");
 
       const body: Record<string, unknown> = {
         domain: mainPage.domain.hostname,
         slug: mainPage.slug,
         type: mainPage.type,
-        _ctaText: step?.ctaText ?? mainPage.ctaText ?? "",
+        _ctaText: resolvedCtaText,
         _stepSlug: step?.slug ?? mainPage.slug,
         website: "",
       };

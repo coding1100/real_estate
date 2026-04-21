@@ -13,6 +13,13 @@ function isTransientPrismaError(error: unknown): boolean {
     typeof (error as { code?: unknown }).code === "string"
       ? (error as { code: string }).code
       : "";
+  const name =
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    typeof (error as { name?: unknown }).name === "string"
+      ? (error as { name: string }).name
+      : "";
   const message =
     typeof error === "object" &&
     error !== null &&
@@ -23,7 +30,13 @@ function isTransientPrismaError(error: unknown): boolean {
 
   if (code === "ETIMEDOUT") return true;
   if (code === "P1001") return true; // can't reach database server
-  if (/ETIMEDOUT|timeout|ECONNRESET|connection reset|socket hang up/i.test(message)) {
+  if (code === "EDBHANDLEREXITED") return true;
+  if (/DriverAdapterError/i.test(name)) return true;
+  if (
+    /ETIMEDOUT|timeout|ECONNRESET|connection reset|socket hang up|DbHandler exited|EDBHANDLEREXITED/i.test(
+      message,
+    )
+  ) {
     return true;
   }
   return false;
@@ -48,5 +61,19 @@ export async function withPrismaRetry<T>(
     }
   }
   throw lastError;
+}
+
+export async function safePrismaRead<T>(
+  operationName: string,
+  operation: () => Promise<T>,
+  fallback: T,
+  options?: { attempts?: number; baseDelayMs?: number },
+): Promise<T> {
+  try {
+    return await withPrismaRetry(operation, options);
+  } catch (error) {
+    console.error(`[prisma] Read failed (${operationName}). Using fallback.`, error);
+    return fallback;
+  }
 }
 

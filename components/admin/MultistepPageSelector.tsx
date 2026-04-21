@@ -139,7 +139,7 @@ export function MultistepPageSelector({
 
   if (loading) {
     return (
-      <div className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-4 text-sm text-zinc-500">
+      <div className="!rounded-md border border-zinc-200 bg-zinc-50 px-3 py-4 text-sm text-zinc-500">
         Loading pages…
       </div>
     );
@@ -147,7 +147,7 @@ export function MultistepPageSelector({
 
   if (error) {
     return (
-      <div className="rounded-md border border-red-200 bg-red-50 px-3 py-4 text-sm text-red-700">
+      <div className="!rounded-md border border-red-200 bg-red-50 px-3 py-4 text-sm text-red-700">
         {error}
       </div>
     );
@@ -166,7 +166,7 @@ export function MultistepPageSelector({
               return (
                 <li
                   key={slug}
-                  className={`flex items-center justify-between rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm transition-colors transition-transform ${
+                  className={`flex items-center justify-between !rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm transition-colors transition-transform ${
                     dragIndex === idx
                       ? "ring-2 ring-zinc-400 bg-zinc-50 scale-[0.99]"
                       : dragOverIndex === idx
@@ -253,7 +253,7 @@ export function MultistepPageSelector({
             type="button"
             onClick={() => setDropdownOpen(!dropdownOpen)}
             disabled={disabled || availableToAdd.length === 0}
-            className="flex w-full items-center justify-between rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex w-full items-center justify-between !rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span>
               {availableToAdd.length === 0
@@ -267,7 +267,7 @@ export function MultistepPageSelector({
             />
           </button>
           {dropdownOpen && availableToAdd.length > 0 && (
-            <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-56 overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg">
+            <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-56 overflow-hidden !rounded-md border border-zinc-200 bg-white shadow-lg">
               <div className="border-b border-zinc-200 px-2 py-1.5">
                 <div className="relative">
                   <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-zinc-400">
@@ -278,7 +278,7 @@ export function MultistepPageSelector({
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Filter pages…"
-                    className="w-full rounded-md border border-zinc-200 bg-white pl-7 pr-2 py-1 text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                    className="w-full !rounded-md border border-zinc-200 bg-white pl-7 pr-2 py-1 text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                 </div>
               </div>

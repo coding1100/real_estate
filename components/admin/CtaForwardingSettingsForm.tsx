@@ -8,7 +8,7 @@ import {
   sanitizeCtaTitle,
 } from "@/lib/types/ctaForwarding";
 import { useAdminToast } from "@/components/admin/useAdminToast";
-import { Search } from "lucide-react";
+import { Search, Trash2, Upload } from "lucide-react";
 
 interface CtaForwardingSettingsFormProps {
   initialRules: CtaForwardingRule[];
@@ -80,7 +80,7 @@ function SearchableTemplateSelector({
       <Search className="pointer-events-none absolute left-2 top-[10px] z-10 h-3.5 w-3.5 text-zinc-400" />
       <input
         type="text"
-        className="h-9 w-full rounded-md border border-zinc-300 bg-white py-1.5 pl-7 pr-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+        className="h-9 w-full !rounded-md border border-zinc-300 bg-white py-1.5 pl-7 pr-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
         value={displayValue}
         placeholder={loading ? "Loading templates..." : "Use default template logic"}
         onFocus={() => {
@@ -93,7 +93,7 @@ function SearchableTemplateSelector({
         }}
       />
       {open && (
-        <div className="absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-md border border-zinc-200 bg-white shadow-lg">
+        <div className="absolute z-30 mt-1 max-h-56 w-full overflow-auto !rounded-md border border-zinc-200 bg-white shadow-lg">
           <button
             type="button"
             className="block w-full border-b border-zinc-100 px-2 py-2 text-left text-xs text-zinc-500 hover:bg-zinc-50"
@@ -195,7 +195,7 @@ export function CtaForwardingSettingsForm({
             | { reason?: TemplatesFetchReason; message?: string }
             | null;
           if (!ignore && errData?.message) {
-            error(errData.message);
+            error(errData.message, "Unable to update");
           }
           if (!ignore) setTemplatesReason(errData?.reason ?? "resend_api_error");
           throw new Error("Failed to load templates");
@@ -247,6 +247,28 @@ export function CtaForwardingSettingsForm({
 
   const hasValidationErrors = validationErrors.some(
     (item) => !!item.ctaTitle || !!item.forwardUrl,
+  );
+  const dependencyErrors = useMemo(() => {
+    return rows.map((row) => {
+      const docs = (row.documents ?? []).filter(
+        (doc) => doc.name?.trim().length && doc.url?.trim().length,
+      );
+      const emails = (row.notifyEmails ?? []).filter(
+        (entry) => entry.email?.trim().length,
+      );
+      const docsRequireEmails =
+        docs.length > 0 && emails.length === 0
+          ? "Add at least one notification email because a document is configured."
+          : "";
+      const emailsRequireDocs =
+        emails.length > 0 && docs.length === 0
+          ? "Add at least one document because notification emails are configured."
+          : "";
+      return { docsRequireEmails, emailsRequireDocs };
+    });
+  }, [rows]);
+  const hasDependencyErrors = dependencyErrors.some(
+    (item) => !!item.docsRequireEmails || !!item.emailsRequireDocs,
   );
 
   function updateRow(
@@ -313,7 +335,31 @@ export function CtaForwardingSettingsForm({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (hasValidationErrors) {
-      error("Please fix CTA forwarding validation errors.");
+      error(
+        "Please fix CTA title/URL validation errors before saving.",
+        "Unable to update",
+      );
+      return;
+    }
+    if (hasDependencyErrors) {
+      const hasDocsWithoutEmails = dependencyErrors.some(
+        (item) => !!item.docsRequireEmails,
+      );
+      const hasEmailsWithoutDocs = dependencyErrors.some(
+        (item) => !!item.emailsRequireDocs,
+      );
+      const dependencyMessages: string[] = [];
+      if (hasDocsWithoutEmails) {
+        dependencyMessages.push(
+          "Documents are configured for one or more CTA rules, so add at least one Notification email (BCC/CC).",
+        );
+      }
+      if (hasEmailsWithoutDocs) {
+        dependencyMessages.push(
+          "Notification emails are configured for one or more CTA rules, so add at least one Document to send.",
+        );
+      }
+      error(dependencyMessages.join(" "), "Unable to update");
       return;
     }
     const payload: CtaForwardingRule[] = rows.map((row) => {
@@ -372,7 +418,7 @@ export function CtaForwardingSettingsForm({
         }
         success("CTA forwarding rules saved.");
       } catch {
-        error("Failed to save CTA forwarding rules.");
+        error("Failed to save CTA forwarding rules.", "Unable to update");
       }
     });
   }
@@ -392,19 +438,26 @@ export function CtaForwardingSettingsForm({
             so each CTA can power a complete experience after form submit.
           </p>
         </div>
-        <button
+        {/* <button
           type="button"
           onClick={addRow}
-          className="inline-flex items-center gap-1 rounded-md border border-amber-700 bg-amber-600 px-3 py-1.5 text-sm font-medium text-amber-50 shadow-sm hover:bg-amber-700"
+          className="inline-flex items-center gap-1 !rounded-md border border-amber-700 bg-amber-600 px-3 py-1.5 text-sm font-medium text-amber-50 shadow-sm hover:bg-amber-700"
         >
           <span className="text-lg leading-none">＋</span>
           <span>Add rule</span>
+        </button> */}
+        <button
+          type="submit"
+          disabled={isPending}
+          className="inline-flex items-center !rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+        >
+          {isPending ? "Saving..." : saveButtonLabel}
         </button>
       </div>
 
       <div className="space-y-3">
         {rows.length === 0 ? (
-          <p className="rounded-md border border-dashed border-zinc-300 p-3 text-sm text-zinc-600">
+          <p className="!rounded-md border border-dashed border-zinc-300 p-3 text-sm text-zinc-600">
             No CTA forwarding rules configured. Click Add rule to create one.
           </p>
         ) : rows.map((row, index) => (
@@ -423,13 +476,15 @@ export function CtaForwardingSettingsForm({
               <button
                 type="button"
                 onClick={() => removeRow(row.id)}
-                className="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                aria-label="Delete CTA rule"
+                title="Delete CTA rule"
+                className="inline-flex !hidden items-center !rounded-md p-1.5 text-red-600 hover:bg-red-50"
               >
-                Remove
+                <Trash2 className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-3 md:items-start">
+            <div className="grid gap-3 md:grid-cols-2 md:items-start">
               <div className="flex h-full flex-col">
                 <label className="mb-1 block min-h-5 text-xs font-medium text-zinc-600">
                   Selector / CTA Title
@@ -439,7 +494,7 @@ export function CtaForwardingSettingsForm({
                   value={row.ctaTitle}
                   onChange={(e) => updateRow(row.id, "ctaTitle", e.target.value)}
                   placeholder="Book My Home Valuation"
-                  className="h-9 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  className="h-9 w-full !rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                 />
                 {validationErrors[index]?.ctaTitle ? (
                   <p className="mt-1 text-xs text-red-600">
@@ -490,7 +545,7 @@ export function CtaForwardingSettingsForm({
                   onChange={(e) => updateRow(row.id, "forwardUrl", e.target.value)}
                   placeholder="https://example.com/thank-you"
                   disabled={!row.forwardEnabled}
-                  className={`h-9 w-full rounded-md border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 ${
+                  className={`h-9 w-full !rounded-md border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 ${
                     row.forwardEnabled
                       ? "border-zinc-300 focus:border-zinc-900 focus:ring-zinc-900"
                       : "border-zinc-200 bg-zinc-100 text-zinc-500"
@@ -507,65 +562,20 @@ export function CtaForwardingSettingsForm({
                     : "Forwarding is disabled. This CTA will not redirect after submit."}
                 </p>
               </div>
-              <div className="flex h-full flex-col">
-                <label className="mb-1 block min-h-5 text-xs font-medium text-zinc-600">
-                  Resend template (for this CTA document email)
-                </label>
-                <SearchableTemplateSelector
-                  templates={templates}
-                  value={row.resendTemplateId ?? ""}
-                  loading={templatesLoading}
-                  onSelect={(nextTemplateId) =>
-                    setRows((prev) =>
-                      prev.map((item) =>
-                        item.id === row.id
-                          ? {
-                              ...item,
-                              resendTemplateId: nextTemplateId,
-                              resendTemplateName:
-                                templates.find((t) => t.id === nextTemplateId)?.name ?? "",
-                            }
-                          : item,
-                      ),
-                    )
-                  }
-                />
-                {row.resendTemplateId ? (
-                  <p className="mt-1 min-h-8 text-[11px] text-zinc-500">
-                    Selected template ID:{" "}
-                    <span className="font-mono">{row.resendTemplateId}</span>
-                  </p>
-                ) : (
-                  <p className="mt-1 min-h-8 text-[11px] text-zinc-500">
-                    No template selected. Existing document email rendering will be used.
-                  </p>
-                )}
-                {!templatesLoading && templates.length === 0 && (
-                  <p className="mt-1 text-[11px] text-amber-700">
-                    {templatesReason === "missing_api_key"
-                      ? "RESEND_API_KEY is missing on the server."
-                      : templatesReason === "restricted_api_key"
-                        ? "Your Resend API key is send-only (restricted), so template listing is blocked."
-                      : templatesReason === "no_templates"
-                        ? "No templates found in your Resend account."
-                        : "Unable to fetch templates from Resend right now."}
-                  </p>
-                )}
-              </div>
             </div>
-
-            <div className="grid gap-3 md:grid-cols-2">
+            <hr className="mt-4 !mb-8 border-zinc-200 !w-full"/>      
+            <div className="grid gap-3 md:grid-cols-3 md:items-start">
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-600">
                     Documents to send
                   </p>
-                  <span className="text-[11px] text-zinc-500">
+                  {/* <span className="text-[11px] text-zinc-500">
                     Optional PDFs, guides, or policies for this CTA.
-                  </span>
+                  </span> */}
                 </div>
                 {(row.documents ?? []).length === 0 ? (
-                  <p className="rounded-md border border-dashed border-zinc-200 p-2 text-xs text-zinc-500">
+                  <p className="!rounded-md border border-dashed border-zinc-200 p-2 text-xs text-zinc-500">
                     No documents added. Use Add document to link guides, privacy
                     policies, etc.
                   </p>
@@ -587,7 +597,7 @@ export function CtaForwardingSettingsForm({
                       return (
                         <div
                           key={`${row.id}-doc-${docIndex}`}
-                          className="grid gap-2 rounded-md border border-zinc-200 p-2 text-xs md:grid-cols-[auto_minmax(1,1fr)]"
+                          className="grid gap-2 !rounded-md border border-zinc-200 p-2 text-xs md:grid-cols-[auto_minmax(1,1fr)]"
                         >
                           <div className="flex flex-col items-center justify-center gap-1 px-1">
                             <div className="flex h-8 w-8 items-center justify-center rounded bg-white text-[10px] font-semibold text-zinc-700 shadow-sm">
@@ -623,7 +633,7 @@ export function CtaForwardingSettingsForm({
                                   style={{ marginTop: 1 }}
                                 />
                               </button>
-                              <label className="mt-1 inline-flex cursor-pointer items-center justify-center rounded-md border border-zinc-300 bg-white px-2 py-0.5 text-[10px] font-medium text-zinc-700 hover:bg-zinc-50">
+                              <label className="mt-1 inline-flex cursor-pointer items-center justify-center !rounded-md border border-zinc-300 bg-white px-2 py-0.5 text-[10px] font-medium text-zinc-700 hover:bg-zinc-50">
                                 <input
                                   type="file"
                                   className="hidden"
@@ -632,13 +642,19 @@ export function CtaForwardingSettingsForm({
                                     const file = e.target.files?.[0];
                                     if (!file) return;
                                     if (!isAllowedDocumentFile(file)) {
-                                      error("Only .doc, .docx, and .pdf files are allowed.");
+                                      error(
+                                        "Only .doc, .docx, and .pdf files are allowed.",
+                                        "Unable to update",
+                                      );
                                       e.target.value = "";
                                       return;
                                     }
                                     const MAX_BYTES = 20 * 1024 * 1024; // 20MB
                                     if (file.size > MAX_BYTES) {
-                                      error("Document must be smaller than 20MB.");
+                                      error(
+                                        "Document must be smaller than 20MB.",
+                                        "Unable to update",
+                                      );
                                       e.target.value = "";
                                       return;
                                     }
@@ -714,18 +730,24 @@ export function CtaForwardingSettingsForm({
                                       );
                                     } catch (err) {
                                       console.error(err);
-                                      error("Document upload failed.");
+                                      error("Document upload failed.", "Unable to update");
                                     } finally {
                                       setUploadingKey(null);
                                       e.target.value = "";
                                     }
                                   }}
                                 />
-                                <span>
-                                  {uploadingKey === uploadKey
-                                    ? "Uploading..."
-                                    : "Upload"}
-                                </span>
+                                {uploadingKey === uploadKey ? (
+                                  <span>Uploading...</span>
+                                ) : (
+                                  <span
+                                    aria-label="Upload document"
+                                    title="Upload document"
+                                    className="inline-flex items-center"
+                                  >
+                                    <Upload className="h-3.5 w-3.5" />
+                                  </span>
+                                )}
                               </label>
                             </div>
                           </div>
@@ -743,7 +765,7 @@ export function CtaForwardingSettingsForm({
                                 )
                               }
                               placeholder="Document name (shown in UI)"
-                              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-xs focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                              className="w-full !rounded-md border border-zinc-300 px-2 py-1 text-xs focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                             />
                             <input
                               type="url"
@@ -758,7 +780,7 @@ export function CtaForwardingSettingsForm({
                                 )
                               }
                               placeholder="https://… (SharePoint, Google Docs, etc.)"
-                              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-xs focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                              className="w-full !rounded-md border border-zinc-300 px-2 py-1 text-xs focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                             />
                             <div className="flex justify-end">
                               <button
@@ -768,9 +790,11 @@ export function CtaForwardingSettingsForm({
                                     docs.filter((_, i) => i !== docIndex),
                                   )
                                 }
-                                className="mt-1 rounded-md px-2 py-1 text-[11px] font-medium text-red-600 hover:bg-red-50"
+                                aria-label="Delete document"
+                                title="Delete document"
+                                className="mt-1 inline-flex items-center !rounded-md p-1.5 text-red-600 hover:bg-red-50"
                               >
-                                Remove
+                                <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
                           </div>
@@ -787,10 +811,15 @@ export function CtaForwardingSettingsForm({
                       { name: "", url: "", autoSend: true },
                     ])
                   }
-                  className="mt-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
+                  className="mt-1 !rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
                 >
                   Add document
                 </button>
+                {dependencyErrors[index]?.docsRequireEmails ? (
+                  <p className="text-xs text-red-600">
+                    {dependencyErrors[index].docsRequireEmails}
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-2">
@@ -798,12 +827,12 @@ export function CtaForwardingSettingsForm({
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-600">
                     Notification emails (BCC / CC)
                   </p>
-                  <span className="text-[11px] text-zinc-500">
+                  {/* <span className="text-[11px] text-zinc-500">
                     Who should receive alerts for this CTA.
-                  </span>
+                  </span> */}
                 </div>
                 {(row.notifyEmails ?? []).length === 0 ? (
-                  <p className="rounded-md border border-dashed border-zinc-200 p-2 text-xs text-zinc-500">
+                  <p className="!rounded-md border border-dashed border-zinc-200 p-2 text-xs text-zinc-500">
                     No overrides configured. Domain-level notify email will be used.
                   </p>
                 ) : (
@@ -811,7 +840,7 @@ export function CtaForwardingSettingsForm({
                     {(row.notifyEmails ?? []).map((entry, emailIndex) => (
                       <div
                         key={`${row.id}-email-${emailIndex}`}
-                        className="flex items-center gap-2 rounded-md border border-zinc-200 p-2 text-xs"
+                        className="flex items-center gap-2 !rounded-md border border-zinc-200 p-2 text-xs"
                       >
                         <div className="flex items-center gap-2">
                           <label className="flex flex-col gap-0.5 text-[10px] text-zinc-600">
@@ -862,7 +891,7 @@ export function CtaForwardingSettingsForm({
                                 ),
                               )
                             }
-                            className="rounded-md border border-zinc-300 bg-white px-1.5 py-1 text-[11px] text-zinc-700 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                            className="!rounded-md border border-zinc-300 bg-white px-1.5 py-1 text-[11px] text-zinc-700 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                           >
                             <option value="bcc">BCC</option>
                             <option value="cc">CC</option>
@@ -881,7 +910,7 @@ export function CtaForwardingSettingsForm({
                             )
                           }
                           placeholder="team@example.com"
-                          className="flex-1 rounded-md border border-zinc-300 px-2 py-1 text-xs focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                          className="flex-1 !rounded-md border border-zinc-300 px-2 py-1 text-xs focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                         />
                         <button
                           type="button"
@@ -890,9 +919,11 @@ export function CtaForwardingSettingsForm({
                               list.filter((_, i) => i !== emailIndex),
                             )
                           }
-                          className="shrink-0 rounded-md px-2 py-1 text-[11px] font-medium text-red-600 hover:bg-red-50"
+                          aria-label="Delete notification email"
+                          title="Delete notification email"
+                          className="shrink-0 !rounded-md p-1.5 text-red-600 hover:bg-red-50"
                         >
-                          Remove
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     ))}
@@ -906,10 +937,61 @@ export function CtaForwardingSettingsForm({
                       { email: "", enabled: true, kind: "bcc" },
                     ])
                   }
-                  className="mt-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
+                  className="mt-1 !rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
                 >
                   Add email
                 </button>
+                {dependencyErrors[index]?.emailsRequireDocs ? (
+                  <p className="text-xs text-red-600">
+                    {dependencyErrors[index].emailsRequireDocs}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="flex h-full flex-col">
+                <label className="mb-1 block min-h-5 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-600">
+                  Resend template (for this CTA document email)
+                </label>
+                <SearchableTemplateSelector
+                  templates={templates}
+                  value={row.resendTemplateId ?? ""}
+                  loading={templatesLoading}
+                  onSelect={(nextTemplateId) =>
+                    setRows((prev) =>
+                      prev.map((item) =>
+                        item.id === row.id
+                          ? {
+                              ...item,
+                              resendTemplateId: nextTemplateId,
+                              resendTemplateName:
+                                templates.find((t) => t.id === nextTemplateId)?.name ?? "",
+                            }
+                          : item,
+                      ),
+                    )
+                  }
+                />
+                {row.resendTemplateId ? (
+                  <p className="mt-1 min-h-8 text-[11px] text-zinc-500">
+                    Selected template ID:{" "}
+                    <span className="font-mono">{row.resendTemplateId}</span>
+                  </p>
+                ) : (
+                  <p className="mt-1 min-h-8 text-[11px] text-zinc-500">
+                    No template selected. Existing document email rendering will be used.
+                  </p>
+                )}
+                {!templatesLoading && templates.length === 0 && (
+                  <p className="mt-1 text-[11px] text-amber-700">
+                    {templatesReason === "missing_api_key"
+                      ? "RESEND_API_KEY is missing on the server."
+                      : templatesReason === "restricted_api_key"
+                        ? "Your Resend API key is send-only (restricted), so template listing is blocked."
+                      : templatesReason === "no_templates"
+                        ? "No templates found in your Resend account."
+                        : "Unable to fetch templates from Resend right now."}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -920,17 +1002,11 @@ export function CtaForwardingSettingsForm({
         <button
           type="button"
           onClick={addRow}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-red-50"
+          className="hidden !rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-red-50"
         >
           Add rule
         </button>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="inline-flex items-center rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
-        >
-          {isPending ? "Saving..." : saveButtonLabel}
-        </button>
+        
       </div>
     </form>
   );

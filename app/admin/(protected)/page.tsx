@@ -3,13 +3,15 @@ import { TemplatesGridWithDialog } from "@/components/admin/TemplatesGridWithDia
 
 export default async function AdminDashboardPage() {
   const [domainsCount, pagesCount, domains] = await Promise.all([
-    prisma.domain.count(),
-    prisma.landingPage.count(),
-    prisma.domain.findMany({
-      where: { isActive: true },
-      orderBy: { hostname: "asc" },
-      select: { id: true, hostname: true },
-    }),
+    prisma.domain.count().catch(() => 0),
+    prisma.landingPage.count().catch(() => 0),
+    prisma.domain
+      .findMany({
+        where: { isActive: true },
+        orderBy: { hostname: "asc" },
+        select: { id: true, hostname: true },
+      })
+      .catch(() => []),
   ]);
 
   // Some databases may not have the Lead table yet.

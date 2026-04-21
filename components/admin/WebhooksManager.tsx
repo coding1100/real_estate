@@ -107,7 +107,7 @@ export function WebhooksManager({
         <button
           type="button"
           onClick={addNewRow}
-          className="rounded-md bg-zinc-900 px-3 py-1.5 text-md font-medium text-white hover:bg-zinc-800"
+          className="!rounded-md bg-zinc-900 px-3 py-1.5 text-md font-medium text-white hover:bg-zinc-800"
         >
           + Add webhook
         </button>
@@ -190,7 +190,7 @@ export function WebhooksManager({
                       type="button"
                       onClick={() => deleteHook(h.id)}
                       disabled={isPending}
-                      className="rounded-md border border-zinc-300 px-2 py-1 text-[14px] text-red-600 hover:bg-red-50 disabled:opacity-60"
+                      className="!rounded-md border border-zinc-300 px-2 py-1 text-[14px] text-red-600 hover:bg-red-50 disabled:opacity-60"
                     >
                       Delete
                     </button>

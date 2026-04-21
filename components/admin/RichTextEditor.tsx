@@ -729,7 +729,7 @@ export function RichTextEditor({
           {label}
         </label>
       )}
-      <div className="overflow-hidden rounded-md border border-zinc-300 bg-white text-sm shadow-sm blk-set">
+      <div className="overflow-hidden !rounded-md border border-zinc-300 bg-white text-sm shadow-sm blk-set">
         <div className="tiptap-toolbar relative flex flex-wrap items-center gap-1 border-b border-zinc-200 bg-zinc-50 px-3 py-1.5">
           {/* Undo / Redo */}
           <button
@@ -867,7 +867,7 @@ export function RichTextEditor({
               type="text"
               value={toHex6(editor?.getAttributes("textStyle").color as string)}
               readOnly
-              className="h-6 w-[86px] rounded-md border border-zinc-300 bg-white px-1 text-[11px] text-zinc-700 shadow-sm"
+              className="h-6 w-[86px] !rounded-md border border-zinc-300 bg-white px-1 text-[11px] text-zinc-700 shadow-sm"
               title="Hex color (copy)"
               onFocus={(e) => e.currentTarget.select()}
             />
@@ -1262,7 +1262,7 @@ export function RichTextEditor({
             Clear
           </button>
           {showLinkDialog && (
-            <div className="absolute left-2 top-[calc(100%+6px)] z-20 w-[320px] rounded-md border border-zinc-200 bg-white p-3 shadow-lg">
+            <div className="absolute left-2 top-[calc(100%+6px)] z-20 w-[320px] !rounded-md border border-zinc-200 bg-white p-3 shadow-lg">
               <p className="mb-2 text-xs font-medium text-zinc-700">
                 Hyperlink
               </p>
@@ -1271,7 +1271,7 @@ export function RichTextEditor({
                 value={linkDraft}
                 onChange={(e) => setLinkDraft(e.target.value)}
                 placeholder="https://example.com"
-                className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                className="w-full !rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900"
               />
               {linkError && (
                 <p className="mt-1 text-[11px] text-red-600">{linkError}</p>
@@ -1280,7 +1280,7 @@ export function RichTextEditor({
                 <button
                   type="button"
                   onClick={removeLinkFromDialog}
-                  className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                  className="!rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
                 >
                   Remove link
                 </button>
@@ -1291,14 +1291,14 @@ export function RichTextEditor({
                       setLinkError(null);
                       setShowLinkDialog(false);
                     }}
-                    className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                    className="!rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={applyLinkFromDialog}
-                    className="rounded-md bg-zinc-900 px-2 py-1 text-xs font-medium text-white hover:bg-zinc-800"
+                    className="!rounded-md bg-zinc-900 px-2 py-1 text-xs font-medium text-white hover:bg-zinc-800"
                   >
                     Apply
                   </button>
