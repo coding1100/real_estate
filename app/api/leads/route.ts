@@ -280,20 +280,21 @@ export async function POST(req: NextRequest) {
       hasCtaText: typeof mergedFormData._ctaText === "string",
     });
 
-    // Critical path: attempt Resend notifications immediately so user-facing
-    // delivery does not depend on scheduler timing. Queue remains as retry fallback.
-    try {
-      await sendLeadNotifications(lead.id, { throwOnFailure: true });
-      await markLeadDispatchJobDoneByType(lead.id, "notifications");
-      console.log("[leads] Immediate notifications send succeeded", {
-        leadId: lead.id,
+    // Fire notification delivery in background so submit response is not blocked.
+    // Queue still provides durable retry if this immediate attempt fails.
+    void sendLeadNotifications(lead.id, { throwOnFailure: true })
+      .then(async () => {
+        await markLeadDispatchJobDoneByType(lead.id, "notifications");
+        console.log("[leads] Immediate notifications send succeeded", {
+          leadId: lead.id,
+        });
+      })
+      .catch((notificationError) => {
+        console.error("[leads] Immediate notification send failed; queue retry will continue", {
+          leadId: lead.id,
+          error: notificationError,
+        });
       });
-    } catch (notificationError) {
-      console.error("[leads] Immediate notification send failed; queue retry will continue", {
-        leadId: lead.id,
-        error: notificationError,
-      });
-    }
 
     // Fire and forget non-critical integrations so submit response returns fast.
     // This preserves lead capture reliability while reducing user-facing latency.
