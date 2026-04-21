@@ -728,10 +728,13 @@ export async function sendLeadNotifications(
     typeof resolvedRule?.resendTemplateId === "string" &&
     resolvedRule.resendTemplateId.trim().length > 0;
 
-  // Email to agent via Resend (CTA notify recipients only; do not use domain notifyEmail).
-  // When a CTA-specific Resend template is configured, that template email is the priority
-  // path, so skip this default lead alert to avoid duplicate sends.
-  if (resend && resolvedNotifyEmails.length > 0 && !hasConfiguredResendTemplate) {
+  const leadAlertTask = async (): Promise<boolean> => {
+    // Email to agent via Resend (CTA notify recipients only; do not use domain notifyEmail).
+    // When a CTA-specific Resend template is configured, that template email is the priority
+    // path, so skip this default lead alert to avoid duplicate sends.
+    if (!(resend && resolvedNotifyEmails.length > 0 && !hasConfiguredResendTemplate)) {
+      return false;
+    }
     try {
       const subject = `[New ${lead.type} lead] ${domain.hostname} / ${ruleSourcePage.slug}`;
       const data = (lead.formData as Record<string, unknown>) ?? {};
@@ -763,34 +766,37 @@ export async function sendLeadNotifications(
             `[notifications] Lead alert has no recipients (leadId=${lead.id}, page=${ruleSourcePage.slug})`,
           );
         }
-      } else {
-        console.log("[notifications] Sending lead alert email", {
-          leadId: lead.id,
-          toCount: leadAlertRouting.to.length,
-          ccCount: leadAlertRouting.cc.length,
-          bccCount: leadAlertRouting.bcc.length,
-          pageSlug: ruleSourcePage.slug,
-        });
-        const leadPayload: Parameters<typeof resend.emails.send>[0] = {
-          from: resolveFromAddress(),
-          to: leadAlertRouting.to,
-          subject,
-          html,
-          text,
-        };
-        if (leadAlertRouting.cc.length > 0) leadPayload.cc = leadAlertRouting.cc;
-        if (leadAlertRouting.bcc.length > 0) leadPayload.bcc = leadAlertRouting.bcc;
-        await resend.emails.send(leadPayload);
-        leadAlertSent = true;
+        return false;
       }
+
+      console.log("[notifications] Sending lead alert email", {
+        leadId: lead.id,
+        toCount: leadAlertRouting.to.length,
+        ccCount: leadAlertRouting.cc.length,
+        bccCount: leadAlertRouting.bcc.length,
+        pageSlug: ruleSourcePage.slug,
+      });
+      const leadPayload: Parameters<typeof resend.emails.send>[0] = {
+        from: resolveFromAddress(),
+        to: leadAlertRouting.to,
+        subject,
+        html,
+        text,
+      };
+      if (leadAlertRouting.cc.length > 0) leadPayload.cc = leadAlertRouting.cc;
+      if (leadAlertRouting.bcc.length > 0) leadPayload.bcc = leadAlertRouting.bcc;
+      await resend.emails.send(leadPayload);
+      return true;
     } catch (e) {
       console.error("[notifications] Failed to send email", e);
       if (throwOnFailure) throw e;
+      return false;
     }
-  }
+  };
 
-  // Email documents to lead + CC/BCC from CTA Notification emails
-  if (resend) {
+  const documentEmailTask = async (): Promise<boolean> => {
+    // Email documents to lead + CC/BCC from CTA Notification emails
+    if (!resend) return false;
     try {
       const leadEmail = extractLeadEmail(lead.formData);
       if (!leadEmail) {
@@ -823,157 +829,175 @@ export async function sendLeadNotifications(
           leadId: lead.id,
           pageSlug: ruleSourcePage.slug,
         });
+        return false;
       }
-      if (docs.length > 0) {
-        const notify = resolvedNotifyEmails;
 
-        const routing = buildDocumentRecipients(
-          leadEmail,
-          notify,
-          null,
-        );
+      const notify = resolvedNotifyEmails;
+      const routing = buildDocumentRecipients(
+        leadEmail,
+        notify,
+        null,
+      );
 
-        if (!routing || routing.to.length === 0) {
-          console.warn("[notifications] Document email skipped: no recipients found", {
-            leadId: lead.id,
-            pageSlug: page.slug,
-          });
-        } else {
-          console.log("[notifications] Preparing document email", {
-            leadId: lead.id,
-            docsCount: docs.length,
-            toCount: routing.to.length,
-            ccCount: routing.cc.length,
-            bccCount: routing.bcc.length,
-            templateId: rule?.resendTemplateId ?? null,
-            pageSlug: ruleSourcePage.slug,
-          });
-          const documentNames = docs.map((d) => d.name?.trim() || "Document");
+      if (!routing || routing.to.length === 0) {
+        console.warn("[notifications] Document email skipped: no recipients found", {
+          leadId: lead.id,
+          pageSlug: page.slug,
+        });
+        return false;
+      }
 
-          const { html, text } = await renderDocumentDeliveryEmailHtml({
-            siteName: domain.displayName?.trim() || domain.hostname,
-            domainHostname: domain.hostname,
-            pageSlug: ruleSourcePage.slug,
-            documentNames,
-            logoUrl: domain.logoUrl ?? null,
-          });
+      console.log("[notifications] Preparing document email", {
+        leadId: lead.id,
+        docsCount: docs.length,
+        toCount: routing.to.length,
+        ccCount: routing.cc.length,
+        bccCount: routing.bcc.length,
+        templateId: rule?.resendTemplateId ?? null,
+        pageSlug: ruleSourcePage.slug,
+      });
+      const documentNames = docs.map((d) => d.name?.trim() || "Document");
 
-          const attachments = (
-            await Promise.all(
-              docs.map((d) =>
-                fetchAttachmentFromUrl({
-                  url: d.url,
-                  name: d.name,
-                  mimeType: d.mimeType,
-                  publicId: (d as any).publicId,
-                  format: (d as any).format,
-                }),
-              ),
-            )
-          ).filter(Boolean) as Array<{
-            content: string;
-            filename: string;
-            content_type?: string;
-          }>;
+      const { html, text } = await renderDocumentDeliveryEmailHtml({
+        siteName: domain.displayName?.trim() || domain.hostname,
+        domainHostname: domain.hostname,
+        pageSlug: ruleSourcePage.slug,
+        documentNames,
+        logoUrl: domain.logoUrl ?? null,
+      });
 
-          const payload: Parameters<typeof resend.emails.send>[0] = {
+      const attachments = (
+        await Promise.all(
+          docs.map((d) =>
+            fetchAttachmentFromUrl({
+              url: d.url,
+              name: d.name,
+              mimeType: d.mimeType,
+              publicId: (d as any).publicId,
+              format: (d as any).format,
+            }),
+          ),
+        )
+      ).filter(Boolean) as Array<{
+        content: string;
+        filename: string;
+        content_type?: string;
+      }>;
+
+      const payload: Parameters<typeof resend.emails.send>[0] = {
+        from: resolveFromAddress(),
+        to: routing.to,
+        subject: `Your requested documents from ${domain.displayName ?? domain.hostname}`,
+        html,
+        text,
+        attachments,
+      };
+      if (routing.cc.length > 0) payload.cc = routing.cc;
+      if (routing.bcc.length > 0) payload.bcc = routing.bcc;
+      const resendTemplateId = rule?.resendTemplateId?.trim();
+      if (resendTemplateId) {
+        try {
+          const extractedFormVariables = extractTemplateVariablesFromFormData(
+            formData,
+          );
+          const siteName = domain.displayName?.trim() || domain.hostname;
+          const pageValue = ruleSourcePage.slug;
+          const websiteValue = domain.hostname;
+          const docNamesArray = documentNames;
+          const docNameValue = documentNames.join(", ");
+          const emailVariableValue =
+            (leadEmail && leadEmail.includes("@") ? leadEmail : null) ??
+            routing.to[0] ??
+            "";
+          const templatePayload: Parameters<typeof resend.emails.send>[0] = {
             from: resolveFromAddress(),
             to: routing.to,
             subject: `Your requested documents from ${domain.displayName ?? domain.hostname}`,
-            html,
-            text,
+            ...(routing.cc.length > 0 ? { cc: routing.cc } : {}),
+            ...(routing.bcc.length > 0 ? { bcc: routing.bcc } : {}),
+            // keep docs delivery behavior consistent with existing flow
             attachments,
-          };
-          if (routing.cc.length > 0) payload.cc = routing.cc;
-          if (routing.bcc.length > 0) payload.bcc = routing.bcc;
-          const resendTemplateId = rule?.resendTemplateId?.trim();
-          if (resendTemplateId) {
-            try {
-              const extractedFormVariables = extractTemplateVariablesFromFormData(
-                formData,
-              );
-              const siteName = domain.displayName?.trim() || domain.hostname;
-              const pageValue = ruleSourcePage.slug;
-              const websiteValue = domain.hostname;
-              const docNamesArray = documentNames;
-              const docNameValue = documentNames.join(", ");
-              const emailVariableValue =
-                (leadEmail && leadEmail.includes("@") ? leadEmail : null) ??
-                routing.to[0] ??
-                "";
-              const templatePayload: Parameters<typeof resend.emails.send>[0] = {
-                from: resolveFromAddress(),
-                to: routing.to,
-                subject: `Your requested documents from ${domain.displayName ?? domain.hostname}`,
-                ...(routing.cc.length > 0 ? { cc: routing.cc } : {}),
-                ...(routing.bcc.length > 0 ? { bcc: routing.bcc } : {}),
-                // keep docs delivery behavior consistent with existing flow
-                attachments,
-                template: {
-                  id: resendTemplateId,
-                  variables: {
-                    ...extractedFormVariables,
-                    email: emailVariableValue,
-                    siteName,
-                    domainHostname: websiteValue,
-                    pageSlug: pageValue,
-                    documentNames: docNamesArray,
-                    // Alias keys for web-platform templates
-                    website: websiteValue,
-                    page: pageValue,
-                    doc_name: docNameValue,
-                  },
-                } as any,
-              } as any;
-              const templateResult = await resend.emails.send(templatePayload as any);
-              if ((templateResult as { error?: unknown } | null)?.error) {
-                throw (templateResult as { error: unknown }).error;
-              }
-              documentEmailSent = true;
-              console.log("[notifications] Resend template email sent", {
-                leadId: lead.id,
-                templateId: resendTemplateId,
-                pageSlug: ruleSourcePage.slug,
-              });
-            } catch (templateErr) {
-              const resendTemplateError =
-                templateErr &&
-                typeof templateErr === "object" &&
-                "message" in templateErr
-                  ? (templateErr as { message?: unknown }).message
-                  : null;
-              console.error(
-                "[notifications] Resend template send failed (no fallback default email when template is configured)",
-                {
-                  leadId: lead.id,
-                  templateId: resendTemplateId,
-                  error: resendTemplateError ?? templateErr,
-                },
-              );
-              if (throwOnFailure) {
-                throw templateErr;
-              }
-            }
-          } else {
-            await resend.emails.send(payload);
-            documentEmailSent = true;
+            template: {
+              id: resendTemplateId,
+              variables: {
+                ...extractedFormVariables,
+                email: emailVariableValue,
+                siteName,
+                domainHostname: websiteValue,
+                pageSlug: pageValue,
+                documentNames: docNamesArray,
+                // Alias keys for web-platform templates
+                website: websiteValue,
+                page: pageValue,
+                doc_name: docNameValue,
+              },
+            } as any,
+          } as any;
+          const templateResult = await resend.emails.send(templatePayload as any);
+          if ((templateResult as { error?: unknown } | null)?.error) {
+            throw (templateResult as { error: unknown }).error;
           }
-
-          console.log("[notifications] Document email send summary", {
+          console.log("[notifications] Resend template email sent", {
             leadId: lead.id,
-            to: routing.to,
-            cc: routing.cc,
-            bcc: routing.bcc,
-            docsCount: docs.length,
-            successCount: 1,
-            failedCount: 0,
+            templateId: resendTemplateId,
+            pageSlug: ruleSourcePage.slug,
           });
+        } catch (templateErr) {
+          const resendTemplateError =
+            templateErr &&
+            typeof templateErr === "object" &&
+            "message" in templateErr
+              ? (templateErr as { message?: unknown }).message
+              : null;
+          console.error(
+            "[notifications] Resend template send failed (no fallback default email when template is configured)",
+            {
+              leadId: lead.id,
+              templateId: resendTemplateId,
+              error: resendTemplateError ?? templateErr,
+            },
+          );
+          if (throwOnFailure) {
+            throw templateErr;
+          }
+          return false;
         }
+      } else {
+        await resend.emails.send(payload);
       }
+
+      console.log("[notifications] Document email send summary", {
+        leadId: lead.id,
+        to: routing.to,
+        cc: routing.cc,
+        bcc: routing.bcc,
+        docsCount: docs.length,
+        successCount: 1,
+        failedCount: 0,
+      });
+      return true;
     } catch (e) {
       console.error("[notifications] Failed to send lead documents", e);
       if (throwOnFailure) throw e;
+      return false;
     }
+  };
+
+  const [leadAlertResult, documentEmailResult] = await Promise.allSettled([
+    leadAlertTask(),
+    documentEmailTask(),
+  ]);
+
+  if (leadAlertResult.status === "fulfilled") {
+    leadAlertSent = leadAlertResult.value;
+  } else if (throwOnFailure) {
+    throw leadAlertResult.reason;
+  }
+
+  if (documentEmailResult.status === "fulfilled") {
+    documentEmailSent = documentEmailResult.value;
+  } else if (throwOnFailure) {
+    throw documentEmailResult.reason;
   }
 
   // SMS to agent via Twilio
