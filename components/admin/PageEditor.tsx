@@ -371,6 +371,34 @@ export function PageEditor({
             );
           }
         }
+        // Always persist the latest CTA rules into hero props so publish/save
+        // never overwrites CTA Management edits with stale sections state.
+        if (Array.isArray(sections)) {
+          const heroIndex = sections.findIndex((s) => s?.kind === "hero");
+          if (heroIndex >= 0) {
+            const heroSection = sections[heroIndex] as any;
+            sections = sections.map((s, idx) =>
+              idx === heroIndex
+                ? {
+                    ...heroSection,
+                    props: {
+                      ...(heroSection?.props || {}),
+                      ctaForwardingRules,
+                    },
+                  }
+                : s,
+            );
+          } else {
+            sections = [
+              ...sections,
+              {
+                id: "hero",
+                kind: "hero",
+                props: { ctaForwardingRules },
+              } as any,
+            ];
+          }
+        }
         const body: any = {
           title: effectiveTitle.length > 0 ? effectiveTitle : null,
           headline: effectiveTitle.length > 0 ? effectiveTitle : page.headline,
@@ -1986,6 +2014,31 @@ export function PageEditor({
                     );
                   }
                   setCtaForwardingRules(rules);
+                  setPage((prev) => {
+                    const currentSections = Array.isArray(prev.sections)
+                      ? [...prev.sections]
+                      : [];
+                    const heroIndex = currentSections.findIndex(
+                      (section) => section?.kind === "hero",
+                    );
+                    if (heroIndex >= 0) {
+                      const heroSection = currentSections[heroIndex] as any;
+                      currentSections[heroIndex] = {
+                        ...heroSection,
+                        props: {
+                          ...(heroSection?.props || {}),
+                          ctaForwardingRules: rules,
+                        },
+                      } as any;
+                    } else {
+                      currentSections.push({
+                        id: "hero",
+                        kind: "hero",
+                        props: { ctaForwardingRules: rules },
+                      } as any);
+                    }
+                    return { ...prev, sections: currentSections };
+                  });
                 }}
               />
               <PageToastSettingsForm
