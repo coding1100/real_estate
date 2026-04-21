@@ -108,7 +108,7 @@ export function DeletePageButton({
             ? "text-emerald-700 hover:bg-emerald-50"
             : "text-red-600 hover:bg-red-50"
         } focus:outline-none`
-      : `inline-flex items-center gap-1 rounded-md px-2 py-1 text-[14px] disabled:opacity-60 ${
+      : `inline-flex items-center gap-1 !rounded-md px-2 py-1 text-[14px] disabled:opacity-60 ${
           isRestore
             ? "border border-emerald-200 text-emerald-700 hover:bg-emerald-50"
             : "border border-red-200 text-red-700 hover:bg-red-50"
@@ -156,7 +156,7 @@ export function DeletePageButton({
       >
         <div className="space-y-4">
           {error && (
-            <p className="rounded-md bg-red-50 px-3 py-2 text-md text-red-700">
+            <p className="!rounded-md bg-red-50 px-3 py-2 text-md text-red-700">
               {error}
             </p>
           )}
@@ -165,7 +165,7 @@ export function DeletePageButton({
               type="button"
               onClick={() => setConfirmOpen(false)}
               disabled={loading}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-md font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+              className="!rounded-md border border-zinc-300 px-4 py-2 text-md font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
             >
               Cancel
             </button>
@@ -173,7 +173,7 @@ export function DeletePageButton({
               type="button"
               onClick={handleConfirmDelete}
               disabled={loading}
-              className={`rounded-md px-4 py-2 text-md font-medium text-white disabled:opacity-60 ${
+              className={`!rounded-md px-4 py-2 text-md font-medium text-white disabled:opacity-60 ${
                 isRestore
                   ? "bg-emerald-600 hover:bg-emerald-700"
                   : "bg-red-600 hover:bg-red-700"

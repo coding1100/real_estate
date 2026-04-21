@@ -623,7 +623,17 @@ export async function getAdminUiSettings(): Promise<{
       editorFonts,
     };
   } catch (err: any) {
-    if (err?.code === "P2021" || /AdminUiSettings/.test(String(err?.message))) {
+    const code = typeof err?.code === "string" ? err.code : "";
+    const message = String(err?.message ?? "");
+    const name = typeof err?.name === "string" ? err.name : "";
+    const shouldUseDefaults =
+      code === "P2021" ||
+      code === "ETIMEDOUT" ||
+      code === "EDBHANDLEREXITED" ||
+      /AdminUiSettings|DbHandler exited|timeout|DriverAdapterError/i.test(
+        `${name} ${message}`,
+      );
+    if (shouldUseDefaults) {
       const settings: AdminUiSettings = {
         id: SINGLETON_ID,
         toastSuccessBg: DEFAULT_THEME.successBg,

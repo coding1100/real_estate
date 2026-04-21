@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { DomainsManager } from "@/components/admin/DomainsManager";
+import { safePrismaRead, withPrismaRetry } from "@/lib/prismaRetry";
 
 export default async function DomainsPage() {
   const resolveDisplayPath = (slug: string, canonicalUrl: string | null): string => {
@@ -19,16 +20,21 @@ export default async function DomainsPage() {
     }
     return `/${slug}`;
   };
-  const domains = await prisma.domain.findMany({
-    orderBy: { hostname: "asc" },
-  });
+  const domains = await safePrismaRead(
+    "domains:domain.findMany",
+    () =>
+      prisma.domain.findMany({
+        orderBy: { hostname: "asc" },
+      }),
+    [],
+  );
   let defaultRows: {
     id: string;
     defaultHomepagePageId: string | null;
     defaultHomepageButtonLimit: number | null;
   }[] = [];
   try {
-    defaultRows = await prisma.$queryRaw<
+    defaultRows = await withPrismaRetry(() => prisma.$queryRaw<
       {
         id: string;
         defaultHomepagePageId: string | null;
@@ -37,7 +43,7 @@ export default async function DomainsPage() {
     >`
       SELECT d."id", d."defaultHomepagePageId", d."defaultHomepageButtonLimit"
       FROM "Domain" d
-    `;
+    `);
   } catch (error: unknown) {
     const code =
       typeof error === "object" &&
@@ -46,19 +52,26 @@ export default async function DomainsPage() {
       typeof (error as { code?: unknown }).code === "string"
         ? (error as { code: string }).code
         : null;
-    if (code !== "42703") {
-      throw error;
+    if (code === "42703") {
+      const fallbackRows = await safePrismaRead(
+        "domains:defaultHomepage fallback query",
+        () =>
+          withPrismaRetry(() =>
+            prisma.$queryRaw<{ id: string; defaultHomepagePageId: string | null }[]>`
+              SELECT d."id", d."defaultHomepagePageId"
+              FROM "Domain" d
+            `,
+          ),
+        [],
+      );
+      defaultRows = fallbackRows.map((row) => ({
+        ...row,
+        defaultHomepageButtonLimit: 9,
+      }));
+    } else {
+      console.error("[domains] Failed to load default homepage rows. Using empty defaults.", error);
+      defaultRows = [];
     }
-    const fallbackRows = await prisma.$queryRaw<
-      { id: string; defaultHomepagePageId: string | null }[]
-    >`
-      SELECT d."id", d."defaultHomepagePageId"
-      FROM "Domain" d
-    `;
-    defaultRows = fallbackRows.map((row) => ({
-      ...row,
-      defaultHomepageButtonLimit: 9,
-    }));
   }
   const defaultByDomainId = new Map<
     string,
@@ -73,18 +86,23 @@ export default async function DomainsPage() {
     ]),
   );
 
-  const publishedPages = await prisma.landingPage.findMany({
-    where: { status: "published", deletedAt: null },
-    select: {
-      id: true,
-      slug: true,
-      canonicalUrl: true,
-      title: true,
-      headline: true,
-      domainId: true,
-    },
-    orderBy: [{ domainId: "asc" }, { adminListOrder: "asc" }, { slug: "asc" }],
-  });
+  const publishedPages = await safePrismaRead(
+    "domains:landingPage.findMany",
+    () =>
+      prisma.landingPage.findMany({
+        where: { status: "published", deletedAt: null },
+        select: {
+          id: true,
+          slug: true,
+          canonicalUrl: true,
+          title: true,
+          headline: true,
+          domainId: true,
+        },
+        orderBy: [{ domainId: "asc" }, { adminListOrder: "asc" }, { slug: "asc" }],
+      }),
+    [],
+  );
   const pageOptionsByDomain = new Map<
     string,
     { id: string; slug: string; label: string; path: string }[]

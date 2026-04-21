@@ -7,6 +7,12 @@ import { Search } from "lucide-react";
 import type { LandingPageContent } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
 import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
+import {
+  buildEmailRequiredValidationMessage,
+  hasValidEmailInPayload,
+  resolveCtaRuleForSubmission,
+  ruleHasConfiguredCtaForwardingExtras,
+} from "@/lib/ctaForwardingValidation";
 import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 import { DynamicForm } from "@/components/forms/DynamicForm";
 import { useRecaptcha } from "@/components/forms/Captcha";
@@ -535,13 +541,39 @@ export function HomeValueMultistepFlow({
     setIsSubmittingFinal(true);
     setSubmitError(null);
     try {
+      const resolvedCtaText = step?.ctaText ?? mainPage.ctaText ?? "";
+      const ctaRuleResolution = resolveCtaRuleForSubmission(
+        stepCtaForwardingRules,
+        resolvedCtaText,
+      );
+      const matchingRule = ctaRuleResolution.rule;
+      if (
+        ruleHasConfiguredCtaForwardingExtras(matchingRule)
+        && !hasValidEmailInPayload({
+          ...accumulatedData,
+          searchedAddress: trimmedAddress,
+          resolvedAddress: propertyFindingContext.result?.address,
+        })
+      ) {
+        const msg = buildEmailRequiredValidationMessage({
+          ctaText: resolvedCtaText,
+          resolution: ctaRuleResolution,
+        });
+        setSubmitError(msg);
+        toast({
+          title: "Unable to submit",
+          description: msg,
+          variant: "destructive",
+        });
+        return;
+      }
       const token = await execute("lead_submit");
 
       const body: Record<string, unknown> = {
         domain: mainPage.domain.hostname,
         slug: mainPage.slug,
         type: mainPage.type,
-        _ctaText: step?.ctaText ?? mainPage.ctaText ?? "",
+        _ctaText: resolvedCtaText,
         _stepSlug: step?.slug ?? mainPage.slug,
         website: "",
       };

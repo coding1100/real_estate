@@ -167,7 +167,7 @@ function SortableLandingPageRow({
         <div className="flex items-center gap-0.5 self-start sm:self-center">
           <button
             type="button"
-            className="inline-flex h-8 w-8 shrink-0 cursor-grab touch-manipulation items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 active:cursor-grabbing"
+            className="inline-flex h-8 w-8 shrink-0 cursor-grab touch-manipulation items-center justify-center !rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 active:cursor-grabbing"
             aria-label="Drag to reorder page under this domain"
             {...attributes}
             {...listeners}
@@ -206,7 +206,7 @@ function SortableLandingPageRow({
                       type="button"
                       onClick={() => onToggleBookmark(page.id, !page.bookmarked)}
                       onPointerDown={(e) => e.stopPropagation()}
-                      className="inline-flex h-8 w-8 items-center relative top-[2px] justify-center rounded-md hover:bg-zinc-100 ml-[10px]"
+                      className="inline-flex h-8 w-8 items-center relative top-[2px] justify-center !rounded-md hover:bg-zinc-100 ml-[10px]"
                       title={page.bookmarked ? "Unstar" : "Star"}
                       aria-label={page.bookmarked ? "Unstar page" : "Star page"}
                     >
@@ -257,7 +257,7 @@ function SortableLandingPageRow({
           <div className="hidden">
             <div className="mt-1">
               <span
-                className={`inline-flex items-center rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${isMultistep
+                className={`inline-flex items-center !rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${isMultistep
                     ? "border border-amber-200 bg-amber-50 text-amber-800"
                     : "bg-[#F1F3F5] text-[#495057]"
                   }`}
@@ -283,21 +283,21 @@ function SortableLandingPageRow({
               {!archivedView ? (
                 <div className="col-span-10 flex-1 flex items-center justify-end">
                   <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-1.5 border-t border-[#E9ECEF] pt-3 sm:border-t-0 sm:pt-0">
-                    <span className="inline-flex shrink-0 items-center rounded-md bg-[#F1F3F5] border border-[#dcdcdc] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#495057]">
+                    <span className="inline-flex shrink-0 items-center !rounded-md bg-[#F1F3F5] border border-[#dcdcdc] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#495057]">
                       {category}
                     </span>
                     {published ? (
-                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#C5DCF7] bg-[#E7F1FF] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#1864AB]">
+                      <span className="inline-flex shrink-0 items-center gap-1.5 !rounded-md border border-[#C5DCF7] bg-[#E7F1FF] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#1864AB]">
                         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#228BE6]" aria-hidden />
                         PUBLISHED
                       </span>
                     ) : isDeleted ? (
-                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#f5d0fe] bg-[#fdf4ff] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#a21caf]">
+                      <span className="inline-flex shrink-0 items-center gap-1.5 !rounded-md border border-[#f5d0fe] bg-[#fdf4ff] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#a21caf]">
                         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#d946ef]" aria-hidden />
                         ARCHIVED
                       </span>
                     ) : (
-                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#DEE2E6] bg-[#F8F9FA] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#495057]">
+                      <span className="inline-flex shrink-0 items-center gap-1.5 !rounded-md border border-[#DEE2E6] bg-[#F8F9FA] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#495057]">
                         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#868E96]" aria-hidden />
                         DRAFT
                       </span>
@@ -684,7 +684,7 @@ export function LandingPagesV2Client({
             <h1 className="text-2xl font-bold tracking-tight text-[#212529]">
               {viewMode === "archived" ? "Archived Pages" : "Landing Pages"}
             </h1>
-            {/* <span className="rounded-md bg-[#E7F1FF] px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-[#1c7ed6] ring-1 ring-[#C5DCF7]">
+            {/* <span className="!rounded-md bg-[#E7F1FF] px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-[#1c7ed6] ring-1 ring-[#C5DCF7]">
               V2
             </span> */}
           </div>
@@ -719,7 +719,7 @@ export function LandingPagesV2Client({
                 <button
                   type="button"
                   onClick={() => open()}
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#18181b] px-[15px] py-[10px] text-[18px] !rounded-lg font-semibold text-white shadow-sm hover:bg-[#000000] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228BE6]"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#18181b] px-[15px] py-[10px] text-[18px] !rounded-md font-semibold text-white shadow-sm hover:bg-[#000000] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228BE6]"
                 >
                   <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
                   New Page
@@ -961,14 +961,14 @@ export function LandingPagesV2Client({
                   setPreviewOpenId(null);
                 }}
               >
-                <div className="relative rounded-md border border-zinc-200 bg-white p-2 shadow-lg">
+                <div className="relative !rounded-md border border-zinc-200 bg-white p-2 shadow-lg">
                   <div className="mb-2 flex items-start justify-between gap-3">
                     <div className="text-xs font-medium text-zinc-600">
                       {previewPage.domainHostname}/{previewPage.slug}
                     </div>
                     <button
                       type="button"
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                      className="inline-flex h-7 w-7 items-center justify-center !rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
                       aria-label="Close preview"
                       onClick={() => {
                         setPreviewLoading(false);
@@ -1017,7 +1017,7 @@ export function LandingPagesV2Client({
             closeNotesDialog();
           }}
         >
-          <div className="w-full max-w-2xl rounded-md border border-zinc-200 bg-white p-4 shadow-lg">
+          <div className="w-full max-w-2xl !rounded-md border border-zinc-200 bg-white p-4 shadow-lg">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-base font-semibold text-zinc-900">
@@ -1035,7 +1035,7 @@ export function LandingPagesV2Client({
               <button
                 type="button"
                 onClick={closeNotesDialog}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                className="inline-flex h-7 w-7 items-center justify-center !rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
                 aria-label="Close notes dialog"
                 disabled={notesSaving}
               >
@@ -1046,7 +1046,7 @@ export function LandingPagesV2Client({
               value={notesDraft}
               onChange={(e) => setNotesDraft(e.target.value)}
               rows={10}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              className="w-full !rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
               placeholder="Write page notes..."
             />
             {notesError && <p className="mt-2 text-xs text-red-600">{notesError}</p>}
@@ -1055,7 +1055,7 @@ export function LandingPagesV2Client({
                 type="button"
                 onClick={closeNotesDialog}
                 disabled={notesSaving}
-                className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+                className="!rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
               >
                 Cancel
               </button>
@@ -1063,7 +1063,7 @@ export function LandingPagesV2Client({
                 type="button"
                 onClick={saveNotes}
                 disabled={notesSaving}
-                className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+                className="!rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
               >
                 {notesSaving ? "Saving..." : "Save notes"}
               </button>

@@ -367,7 +367,7 @@ export function DragDropPageLayoutEditor({
           {layout.map((item) => (
             <div
               key={item.i}
-              className="rounded-md border border-zinc-300 bg-white p-3"
+              className="!rounded-md border border-zinc-300 bg-white p-3"
             >
               <p className="text-md font-bold text-zinc-900 capitalize mb-2">
                 {item.i.replace(/-/g, " ")}
