@@ -95,7 +95,7 @@ export async function generateMetadata(): Promise<Metadata> {
         faviconUrl: true,
       },
     }),
-  );
+  ).catch(() => null);
 
   const iconUrl = domain?.faviconUrl || FALLBACK_FAVICON;
 
@@ -115,7 +115,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { editorFonts } = await getAdminUiSettings();
+  const { editorFonts } = await getAdminUiSettings().catch(() => ({
+    editorFonts: [] as EditorFontOption[],
+  }));
   const enabledEditorFonts = getEnabledEditorFonts(editorFonts);
   const fontsWithImports = enabledEditorFonts.filter(
     (f: EditorFontOption) =>

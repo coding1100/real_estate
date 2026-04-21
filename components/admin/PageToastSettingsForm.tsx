@@ -72,7 +72,7 @@ export function PageToastSettingsForm({
   }
 
   return (
-    <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+    <div className="space-y-4 !rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-zinc-900">Toast design (Local)</h3>
@@ -105,7 +105,7 @@ export function PageToastSettingsForm({
                   e.target.value as PageToastThemeOverride["position"],
                 )
               }
-              className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+              className="mt-1 w-full !rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
             >
               <option value="top-right">Top right</option>
               <option value="top-left">Top left</option>
@@ -129,7 +129,7 @@ export function PageToastSettingsForm({
                 const clamped = Math.min(30, Math.max(1, seconds));
                 update("durationMs", clamped * 1000);
               }}
-              className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+              className="mt-1 w-full !rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
             />
           </div>
 
@@ -183,7 +183,7 @@ export function PageToastSettingsForm({
             setEnabled(false);
             setValue(DEFAULT_LOCAL_TOAST);
           }}
-          className="rounded-md border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
+          className="!rounded-md border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
         >
           Reset to global
         </button>
@@ -191,7 +191,7 @@ export function PageToastSettingsForm({
           type="button"
           onClick={handleSave}
           disabled={isPending}
-          className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm text-white hover:bg-zinc-800 disabled:opacity-60"
+          className="!rounded-md bg-zinc-900 px-3 py-1.5 text-sm text-white hover:bg-zinc-800 disabled:opacity-60"
         >
           {isPending ? "Saving..." : "Save local toast"}
         </button>

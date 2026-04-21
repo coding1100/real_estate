@@ -247,7 +247,7 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
                 >
                   <button
                     type="button"
-                    className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 font-medium text-[16px] transition-all duration-250 ${
+                    className={`inline-flex items-center gap-1.5 !rounded-md px-3 py-2 font-medium text-[16px] transition-all duration-250 ${
                       hasMega
                         ? openMegaIndex === idx
                           ? "text-zinc-900"
@@ -297,7 +297,7 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
                                 <li key={`${idx}-mega-item-${colIdx}-${itemIdx}`}>
                                   <a
                                     href={resolveNavHref(item.href)}
-                                    className="group/link inline-flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-zinc-700 transition-all duration-200  hover:text-zinc-900 focus-visible:bg-white focus-visible:text-zinc-900"
+                                    className="group/link inline-flex w-full items-center gap-2 !rounded-md px-2 py-1.5 text-sm text-zinc-700 transition-all duration-200  hover:text-zinc-900 focus-visible:bg-white focus-visible:text-zinc-900"
                                   >
                                     <span className="text-zinc-300 transition-colors duration-200 group-hover/link:text-zinc-500 group-focus-visible/link:text-zinc-500">
                                       -
@@ -471,7 +471,7 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
                 )}
                 <div className="absolute inset-0 bg-black/45" />
                 <div className="relative z-10 flex h-full w-full items-center justify-center p-4">
-                  <span className="inline-flex rounded-md border border-white/40 bg-black/55 px-3 py-2 text-sm font-semibold text-white shadow">
+                  <span className="inline-flex !rounded-md border border-white/40 bg-black/55 px-3 py-2 text-sm font-semibold text-white shadow">
                     No published pages available for preview.
                   </span>
                 </div>

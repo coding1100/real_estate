@@ -192,7 +192,7 @@ export function PageRowActions({
             <div
               ref={panelRef}
               role="menu"
-              className="fixed z-[50] overflow-hidden rounded-md border border-zinc-200 bg-white py-1 text-sm shadow-lg"
+              className="fixed z-[50] overflow-hidden !rounded-md border border-zinc-200 bg-white py-1 text-sm shadow-lg"
               style={{
                 top: panelPos.openUp ? undefined : panelPos.top,
                 bottom: panelPos.openUp ? panelPos.bottom : undefined,

@@ -76,7 +76,7 @@ export function HexAlphaColorField({
         className={
           swatchClassName
             ? swatchClassName
-            : "h-9 w-9 rounded-md border border-zinc-300 bg-white shadow-sm disabled:opacity-60"
+            : "h-9 w-9 !rounded-md border border-zinc-300 bg-white shadow-sm disabled:opacity-60"
         }
         onClick={() => setOpen((v) => !v)}
         title="Pick color (hex with alpha)"
@@ -90,7 +90,7 @@ export function HexAlphaColorField({
           className={
             inputClassName
               ? inputClassName
-              : "h-9 flex-1 rounded-md border border-zinc-300 px-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 disabled:opacity-60"
+              : "h-9 flex-1 !rounded-md border border-zinc-300 px-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 disabled:opacity-60"
           }
           value={normalizeWhileTyping(value)}
           onChange={(e) => onChange(normalizeWhileTyping(e.target.value))}
@@ -110,7 +110,7 @@ export function HexAlphaColorField({
 
       {open && (
         <div
-          className={`absolute left-0 top-11 z-50 ${popoverWidthClassName} rounded-md border border-zinc-200 bg-white p-3 shadow-lg`}
+          className={`absolute left-0 top-11 z-50 ${popoverWidthClassName} !rounded-md border border-zinc-200 bg-white p-3 shadow-lg`}
         >
           {label && (
             <div className="text-[11px] font-medium text-zinc-600">{label}</div>

@@ -41,7 +41,7 @@ export function TemplatesGridWithDialog({
                     href={`/templates/master/${tpl.type}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="group relative block h-[290px] w-[500px] max-[768px]:w-full max-[768px]:max-w-full max-[768px]:h-48 overflow-hidden rounded-md border border-zinc-200 bg-zinc-50"
+                    className="group relative block h-[290px] w-[500px] max-[768px]:w-full max-[768px]:max-w-full max-[768px]:h-48 overflow-hidden !rounded-md border border-zinc-200 bg-zinc-50"
                   >
                     <iframe
                       title={`${tpl.name} preview`}
@@ -72,7 +72,7 @@ export function TemplatesGridWithDialog({
                   <button
                     type="button"
                     onClick={() => open(tpl.type)}
-                    className="mt-2 inline-flex items-center rounded-md bg-zinc-900 px-3 py-1.5 text-md font-medium text-white hover:bg-zinc-800"
+                    className="mt-2 inline-flex items-center !rounded-md bg-zinc-900 px-3 py-1.5 text-md font-medium text-white hover:bg-zinc-800"
                   >
                     Create page from template
                   </button>

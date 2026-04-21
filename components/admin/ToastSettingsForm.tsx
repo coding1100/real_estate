@@ -92,7 +92,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
     <div className="grid gap-6 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
       <form
         onSubmit={handleSubmit}
-        className="space-y-5 rounded-md border border-zinc-200 bg-white p-4 shadow-sm"
+        className="space-y-5 !rounded-md border border-zinc-200 bg-white p-4 shadow-sm"
       >
         <div>
           <h2 className="text-base font-semibold text-zinc-900">
@@ -107,7 +107,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2 md:col-span-2">
             <h3 className="text-sm font-medium text-zinc-800">Toast position</h3>
-            <div className="rounded-md bg-zinc-50 p-3">
+            <div className="!rounded-md bg-zinc-50 p-3">
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
                   <label className="block text-xs font-medium text-zinc-600">
@@ -116,7 +116,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                   <select
                     value={theme.position}
                     onChange={(e) => update("position", e.target.value)}
-                    className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                    className="mt-1 w-full !rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   >
                     <option value="top-right">Top right</option>
                     <option value="top-left">Top left</option>
@@ -140,7 +140,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                       const clamped = Math.min(30, Math.max(1, seconds));
                       update("durationMs", clamped * 1000);
                     }}
-                    className="mt-1 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                    className="mt-1 w-full !rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                   <p className="mt-1 text-[11px] text-zinc-500">
                     How long toasts stay visible before auto-hide.
@@ -152,7 +152,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
           {/* Success toast configuration */}
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-zinc-800">Success toast</h3>
-            <div className="space-y-3 rounded-md bg-zinc-50 p-3">
+            <div className="space-y-3 !rounded-md bg-zinc-50 p-3">
               <label className="block text-xs font-medium text-zinc-600">
                 Background color
               </label>
@@ -161,7 +161,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                   type="text"
                   value={theme.successBg}
                   onChange={(e) => update("successBg", e.target.value)}
-                  className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  className="w-full !rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   placeholder="#ecfdf3"
                 />
               </div>
@@ -182,7 +182,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                   type="text"
                   value={theme.successText}
                   onChange={(e) => update("successText", e.target.value)}
-                  className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  className="w-full !rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   placeholder="#166534"
                 />
               </div>
@@ -203,7 +203,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
           {/* Error toast configuration */}
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-zinc-800">Error toast</h3>
-            <div className="space-y-3 rounded-md bg-zinc-50 p-3">
+            <div className="space-y-3 !rounded-md bg-zinc-50 p-3">
               <label className="block text-xs font-medium text-zinc-600">
                 Background color
               </label>
@@ -212,7 +212,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                   type="text"
                   value={theme.errorBg}
                   onChange={(e) => update("errorBg", e.target.value)}
-                  className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  className="w-full !rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   placeholder="#fef2f2"
                 />
               </div>
@@ -233,7 +233,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                   type="text"
                   value={theme.errorText}
                   onChange={(e) => update("errorText", e.target.value)}
-                  className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  className="w-full !rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   placeholder="#b91c1c"
                 />
               </div>
@@ -254,7 +254,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
           {/* Alert toast configuration */}
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-zinc-800">Alert toast</h3>
-            <div className="space-y-3 rounded-md bg-zinc-50 p-3">
+            <div className="space-y-3 !rounded-md bg-zinc-50 p-3">
               <p className="text-xs text-zinc-600">
                 Alert toasts are used for important warnings or non‑blocking
                 alerts.
@@ -267,7 +267,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                   type="text"
                   value={theme.alertBg}
                   onChange={(e) => update("alertBg", e.target.value)}
-                  className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  className="w-full !rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   placeholder="#fffbeb"
                 />
               </div>
@@ -288,7 +288,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                   type="text"
                   value={theme.alertText}
                   onChange={(e) => update("alertText", e.target.value)}
-                  className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  className="w-full !rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   placeholder="#92400e"
                 />
               </div>
@@ -310,7 +310,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
           {/* Info toast configuration */}
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-zinc-800">Info toast</h3>
-            <div className="space-y-3 rounded-md bg-zinc-50 p-3">
+            <div className="space-y-3 !rounded-md bg-zinc-50 p-3">
               <p className="text-xs text-zinc-600">
                 Info toasts communicate neutral information.
               </p>
@@ -322,7 +322,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                   type="text"
                   value={theme.infoBg}
                   onChange={(e) => update("infoBg", e.target.value)}
-                  className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  className="w-full !rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   placeholder="#eff6ff"
                 />
               </div>
@@ -343,7 +343,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
                   type="text"
                   value={theme.infoText}
                   onChange={(e) => update("infoText", e.target.value)}
-                  className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  className="w-full !rounded-md border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   placeholder="#1d4ed8"
                 />
               </div>
@@ -373,14 +373,14 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
           <button
             type="submit"
             disabled={isPending}
-            className="inline-flex items-center gap-2 rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60"
+            className="inline-flex items-center gap-2 !rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-60"
           >
             {isPending ? "Saving…" : "Save changes"}
           </button>
         </div>
       </form>
 
-      <div className="space-y-4 rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="space-y-4 !rounded-md border border-zinc-200 bg-white p-4 shadow-sm">
         <div>
           <h2 className="text-base font-semibold text-zinc-900">
             Live preview
@@ -392,7 +392,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
         </div>
         <div className="space-y-3">
           <div
-            className="flex items-start gap-3 rounded-md border px-3 py-2 text-sm shadow-sm"
+            className="flex items-start gap-3 !rounded-md border px-3 py-2 text-sm shadow-sm"
             style={{
               backgroundColor: theme.successBg,
               color: theme.successText,
@@ -417,7 +417,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
 
           {/* Info toast preview (uses success colors) */}
           <div
-            className="flex items-start gap-3 rounded-md border px-3 py-2 text-sm shadow-sm"
+            className="flex items-start gap-3 !rounded-md border px-3 py-2 text-sm shadow-sm"
             style={{
               backgroundColor: theme.infoBg,
               color: theme.infoText,
@@ -443,7 +443,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
           </div>
 
           <div
-            className="flex items-start gap-3 rounded-md border px-3 py-2 text-sm shadow-sm"
+            className="flex items-start gap-3 !rounded-md border px-3 py-2 text-sm shadow-sm"
             style={{
               backgroundColor: theme.errorBg,
               color: theme.errorText,
@@ -466,7 +466,7 @@ export function ToastSettingsForm({ initialTheme }: ToastSettingsFormProps) {
             </div>
           </div>
           <div
-            className="flex items-start gap-3 rounded-md border px-3 py-2 text-sm shadow-sm"
+            className="flex items-start gap-3 !rounded-md border px-3 py-2 text-sm shadow-sm"
             style={{
               backgroundColor: theme.alertBg,
               color: theme.alertText,

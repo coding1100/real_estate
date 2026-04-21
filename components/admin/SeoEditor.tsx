@@ -52,7 +52,7 @@ export function SeoEditor({
           SEO Page Title
         </label>
         <input
-          className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+          className="block w-full !rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
           value={seoTitle}
           placeholder={title || "SEO page title"}
           onChange={(e) =>
@@ -73,7 +73,7 @@ export function SeoEditor({
           Meta Description
         </label>
         <textarea
-          className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+          className="block w-full !rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
           rows={3}
           value={seoDescription}
           onChange={(e) =>
@@ -94,7 +94,7 @@ export function SeoEditor({
           Canonical URL
         </label>
         <input
-          className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+          className="block w-full !rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
           value={canonical}
           onChange={(e) =>
             onChange({
@@ -121,7 +121,7 @@ export function SeoEditor({
         />
         <span>Hide this page from search engines (noindex)</span>
       </label>
-      <div className="rounded-md border border-zinc-200 bg-white p-4">
+      <div className="!rounded-md border border-zinc-200 bg-white p-4">
         <p className="text-[13px] text-[#1a0dab]">
           {seoTitle || "Example title"}
         </p>

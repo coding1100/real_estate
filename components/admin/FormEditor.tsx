@@ -365,28 +365,28 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
           <button
             type="button"
             onClick={loadDefaultContactPreset}
-            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-md font-medium text-zinc-700 hover:bg-zinc-50"
+            className="!rounded-md border border-zinc-300 bg-white px-2 py-1 text-md font-medium text-zinc-700 hover:bg-zinc-50"
           >
             Load default contact form
           </button>
           <button
             type="button"
             onClick={loadQuestionnairePreset}
-            className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-md font-medium text-amber-800 hover:bg-amber-100"
+            className="!rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-md font-medium text-amber-800 hover:bg-amber-100"
           >
             Load questionnaire preset
           </button>
           <button
             type="button"
             onClick={loadDetailedPerspectivePreset}
-            className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-md font-medium text-amber-800 hover:bg-amber-100"
+            className="!rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-md font-medium text-amber-800 hover:bg-amber-100"
           >
             Load detailed perspective preset
           </button>
           <button
             type="button"
             onClick={addField}
-            className="rounded-md border border-zinc-300 px-2 py-1 text-md font-medium text-zinc-800 hover:bg-zinc-100"
+            className="!rounded-md border border-zinc-300 px-2 py-1 text-md font-medium text-zinc-800 hover:bg-zinc-100"
           >
             + Add field
           </button>
@@ -437,7 +437,7 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
           return (
             <div
               key={field.id}
-              className={`flex items-start justify-between gap-2 rounded-md border bg-white p-2 transition-shadow ${
+              className={`flex items-start justify-between gap-2 !rounded-md border bg-white p-2 transition-shadow ${
                 isDragging
                   ? "border-amber-500 shadow-lg shadow-amber-100"
                   : "border-zinc-200 hover:shadow-sm"
@@ -547,7 +547,7 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
                 )}
               </div>
 
-              <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
+              <div className="!rounded-md border border-zinc-200 bg-zinc-50 p-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[14px] font-medium text-zinc-700">
@@ -752,7 +752,7 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
               setRawJsonText(JSON.stringify(schema, null, 2));
               setError(null);
             }}
-            className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-md font-medium text-zinc-700 hover:bg-zinc-50"
+            className="inline-flex items-center gap-1 !rounded-md border border-zinc-300 bg-white px-2 py-1 text-md font-medium text-zinc-700 hover:bg-zinc-50"
           >
             <svg
               viewBox="0 0 20 20"
@@ -818,7 +818,7 @@ export function FormEditor({ value, onChange, editorFonts }: FormEditorProps) {
           </div>
         </div>
         <textarea
-          className="h-40 w-full rounded-md border border-zinc-300 px-2 py-1 text-md font-mono"
+          className="h-40 w-full !rounded-md border border-zinc-300 px-2 py-1 text-md font-mono"
           value={rawJsonText}
           onChange={(e) => setRawJsonText(e.target.value)}
           onBlur={(e) => handleJsonChange(e.target.value)}

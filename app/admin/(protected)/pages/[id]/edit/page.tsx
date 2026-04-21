@@ -7,6 +7,7 @@ import {
 } from "@/lib/uiSettings";
 import { isFixedDefaultHomepagePage } from "@/lib/defaultHomepage";
 import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
+import { safePrismaRead } from "@/lib/prismaRetry";
 
 type EditPageProps = {
   params: Promise<{
@@ -59,19 +60,28 @@ export default async function EditPage({ params }: EditPageProps) {
   }
 
   const domain = page.domain;
-  const fixedDefaultHomepage = await isFixedDefaultHomepagePage(page.id);
-  const allPages = await prisma.landingPage.findMany({
-    where: { deletedAt: null },
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-      headline: true,
-      status: true,
-      domain: { select: { hostname: true } },
-    },
-    orderBy: [{ updatedAt: "desc" }],
-  });
+  const fixedDefaultHomepage = await safePrismaRead(
+    "edit-page:isFixedDefaultHomepagePage",
+    () => isFixedDefaultHomepagePage(page.id),
+    false,
+  );
+  const allPages = await safePrismaRead(
+    "edit-page:landingPage.findMany",
+    () =>
+      prisma.landingPage.findMany({
+        where: { deletedAt: null },
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          headline: true,
+          status: true,
+          domain: { select: { hostname: true } },
+        },
+        orderBy: [{ updatedAt: "desc" }],
+      }),
+    [],
+  );
 
   let pageLayout = null;
   try {
@@ -147,7 +157,11 @@ export default async function EditPage({ params }: EditPageProps) {
   const initialCtaForwardingRules = readPageCtaForwardingRules(sections);
   const initialToastThemeOverride = readPageToastThemeOverride(sections);
 
-  const { editorFonts } = await getAdminUiSettings();
+  const { editorFonts } = await safePrismaRead(
+    "edit-page:getAdminUiSettings",
+    () => getAdminUiSettings(),
+    { editorFonts: [] as any[] },
+  );
 
   return (
     <PageEditor

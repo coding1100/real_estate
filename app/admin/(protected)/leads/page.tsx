@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { safePrismaRead } from "@/lib/prismaRetry";
 
 interface LeadRow {
   id: string;
@@ -10,11 +11,16 @@ interface LeadRow {
 }
 
 export default async function LeadsPage() {
-  const leads = (await prisma.lead.findMany({
-    include: { domain: true, page: true },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  })) as LeadRow[];
+  const leads = (await safePrismaRead(
+    "leads:lead.findMany",
+    () =>
+      prisma.lead.findMany({
+        include: { domain: true, page: true },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      }),
+    [],
+  )) as LeadRow[];
 
   return (
     <div className="space-y-4">

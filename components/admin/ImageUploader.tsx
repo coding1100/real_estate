@@ -110,7 +110,7 @@ export function ImageUploader({
         <div
           className={
             previewClassName ||
-            "relative w-[200px] max-[768px]:w-full max-[768px]:max-w-[200px] overflow-hidden rounded-md flex p-[10px] border border-[#eee] rounded-[2px]"
+            "relative w-[200px] max-[768px]:w-full max-[768px]:max-w-[200px] overflow-hidden !rounded-md flex p-[10px] border border-[#eee] rounded-[2px]"
           }
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -125,7 +125,7 @@ export function ImageUploader({
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="inline-flex items-center rounded-md border border-zinc-300 px-2 py-1 text-md font-medium text-zinc-800 hover:bg-zinc-100"
+          className="inline-flex items-center !rounded-md border border-zinc-300 px-2 py-1 text-md font-medium text-zinc-800 hover:bg-zinc-100"
           disabled={loading}
         >
           {loading ? "Uploading..." : value ? "Change image" : "Upload image"}

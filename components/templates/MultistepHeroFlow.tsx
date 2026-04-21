@@ -182,6 +182,7 @@ export function MultistepHeroFlow({
     setIsSubmittingFinal(true);
     setSubmitError(null);
     try {
+      const resolvedCtaText = step.ctaText ?? mainPage.ctaText ?? "";
       // Obtain reCAPTCHA token (if configured)
       const token = await execute("lead_submit");
 
@@ -189,7 +190,7 @@ export function MultistepHeroFlow({
         domain: mainPage.domain.hostname,
         slug: mainPage.slug,
         type: mainPage.type,
-        _ctaText: step.ctaText ?? mainPage.ctaText ?? "",
+        _ctaText: resolvedCtaText,
         _stepSlug: step.slug ?? mainPage.slug,
         website: "",
       };

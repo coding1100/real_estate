@@ -73,7 +73,7 @@ export function Dialog({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-400"
+            className="inline-flex h-8 w-8 items-center justify-center !rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-400"
             aria-label="Close"
           >
             <X className="h-4 w-4" />

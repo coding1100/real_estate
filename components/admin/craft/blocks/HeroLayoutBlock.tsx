@@ -11,7 +11,7 @@ export function HeroLayoutBlock() {
           <p className="mb-2 text-[14px] font-semibold uppercase tracking-[0.18em] text-zinc-200">
             Content (matches hero left)
           </p>
-          <div className="space-y-2 rounded-md border border-dashed border-zinc-500/60 bg-black/20 p-3">
+          <div className="space-y-2 !rounded-md border border-dashed border-zinc-500/60 bg-black/20 p-3">
             <Element id="heroLeft" is="div" canvas />
           </div>
         </div>
@@ -19,7 +19,7 @@ export function HeroLayoutBlock() {
           <p className="mb-2 text-[14px] font-semibold uppercase tracking-[0.18em] text-zinc-200">
             Form column (matches hero right)
           </p>
-          <div className="space-y-2 rounded-md border border-dashed border-zinc-500/60 bg-black/30 p-3">
+          <div className="space-y-2 !rounded-md border border-dashed border-zinc-500/60 bg-black/30 p-3">
             <Element id="heroRight" is="div" canvas />
           </div>
         </div>

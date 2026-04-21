@@ -138,7 +138,7 @@ export function EditorFontSettingsForm({
               value={font.label}
               onChange={(e) => updateFont(index, { label: e.target.value })}
               readOnly={builtInFont}
-              className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-0 ${
+              className={`w-full !rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-0 ${
                 builtInFont
                   ? "border-zinc-200 bg-zinc-50 text-zinc-600"
                   : "border-zinc-300 text-zinc-900"
@@ -151,7 +151,7 @@ export function EditorFontSettingsForm({
               type="text"
               value={font.cssFamily}
               onChange={(e) => updateFont(index, { cssFamily: e.target.value })}
-              className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-0 ${
+              className={`w-full !rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-0 ${
                 builtInFont
                   ? "border-zinc-300 bg-white text-zinc-900"
                   : "border-zinc-300 text-zinc-900"
@@ -181,7 +181,7 @@ export function EditorFontSettingsForm({
                 }
                 updateFont(index, patch);
               }}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-0"
+              className="w-full !rounded-md border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-0"
               placeholder="Google Fonts CSS URL (e.g. https://fonts.googleapis.com/css2?family=Limelight&display=swap)"
             />
           </div>
@@ -191,7 +191,7 @@ export function EditorFontSettingsForm({
             <button
               type="button"
               onClick={() => removeFont(index)}
-              className="rounded-md px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+              className="!rounded-md px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
               title="Remove font"
             >
               Remove
