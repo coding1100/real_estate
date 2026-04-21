@@ -182,6 +182,9 @@ export function PageEditor({
   const [ctaForwardingRules, setCtaForwardingRules] = useState<CtaForwardingRule[]>(
     initialCtaForwardingRules,
   );
+  const [pageToastThemeOverride, setPageToastThemeOverride] = useState<
+    PageToastThemeOverride | null
+  >(initialToastThemeOverride as PageToastThemeOverride | null);
   const [saving, startSaving] = useTransition();
   const [activeSaveAction, setActiveSaveAction] = useState<
     "save-draft" | "unpublish" | "publish" | null
@@ -371,8 +374,8 @@ export function PageEditor({
             );
           }
         }
-        // Always persist the latest CTA rules into hero props so publish/save
-        // never overwrites CTA Management edits with stale sections state.
+        // Always persist the latest CTA rules + local toast override into hero
+        // props so publish/save never overwrites CTA/Toast edits with stale sections.
         if (Array.isArray(sections)) {
           const heroIndex = sections.findIndex((s) => s?.kind === "hero");
           if (heroIndex >= 0) {
@@ -384,6 +387,9 @@ export function PageEditor({
                     props: {
                       ...(heroSection?.props || {}),
                       ctaForwardingRules,
+                      ...(pageToastThemeOverride
+                        ? { toastThemeOverride: pageToastThemeOverride }
+                        : { toastThemeOverride: undefined }),
                     },
                   }
                 : s,
@@ -394,7 +400,12 @@ export function PageEditor({
               {
                 id: "hero",
                 kind: "hero",
-                props: { ctaForwardingRules },
+                props: {
+                  ctaForwardingRules,
+                  ...(pageToastThemeOverride
+                    ? { toastThemeOverride: pageToastThemeOverride }
+                    : {}),
+                },
               } as any,
             ];
           }
@@ -2042,7 +2053,7 @@ export function PageEditor({
                 }}
               />
               <PageToastSettingsForm
-                initialValue={initialToastThemeOverride as PageToastThemeOverride | null}
+                initialValue={pageToastThemeOverride}
                 onSave={async (toastThemeOverride) => {
                   const res = await fetch(`/api/admin/pages/${initialPage.dbId}`, {
                     method: "PATCH",
@@ -2058,6 +2069,40 @@ export function PageEditor({
                         "Failed to save local toast settings.",
                     );
                   }
+                  setPageToastThemeOverride(
+                    (toastThemeOverride as PageToastThemeOverride | null) ?? null,
+                  );
+                  setPage((prev) => {
+                    const currentSections = Array.isArray(prev.sections)
+                      ? [...prev.sections]
+                      : [];
+                    const heroIndex = currentSections.findIndex(
+                      (section) => section?.kind === "hero",
+                    );
+                    if (heroIndex >= 0) {
+                      const heroSection = currentSections[heroIndex] as any;
+                      const nextProps = { ...(heroSection?.props || {}) } as Record<
+                        string,
+                        unknown
+                      >;
+                      if (toastThemeOverride) {
+                        nextProps.toastThemeOverride = toastThemeOverride;
+                      } else {
+                        delete nextProps.toastThemeOverride;
+                      }
+                      currentSections[heroIndex] = {
+                        ...heroSection,
+                        props: nextProps,
+                      } as any;
+                    } else if (toastThemeOverride) {
+                      currentSections.push({
+                        id: "hero",
+                        kind: "hero",
+                        props: { toastThemeOverride },
+                      } as any);
+                    }
+                    return { ...prev, sections: currentSections };
+                  });
                 }}
               />
             </div>
