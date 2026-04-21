@@ -280,21 +280,21 @@ export async function POST(req: NextRequest) {
       hasCtaText: typeof mergedFormData._ctaText === "string",
     });
 
-    // Fire notification delivery in background so submit response is not blocked.
-    // Queue still provides durable retry if this immediate attempt fails.
-    void sendLeadNotifications(lead.id, { throwOnFailure: true })
-      .then(async () => {
-        await markLeadDispatchJobDoneByType(lead.id, "notifications");
-        console.log("[leads] Immediate notifications send succeeded", {
-          leadId: lead.id,
-        });
-      })
-      .catch((notificationError) => {
-        console.error("[leads] Immediate notification send failed; queue retry will continue", {
-          leadId: lead.id,
-          error: notificationError,
-        });
+    // Reliability first: in live/serverless, fire-and-forget can be terminated
+    // after response. Await immediate notifications send here so delivery is not lost.
+    // Queue remains the durable retry fallback if this attempt fails.
+    try {
+      await sendLeadNotifications(lead.id, { throwOnFailure: true });
+      await markLeadDispatchJobDoneByType(lead.id, "notifications");
+      console.log("[leads] Immediate notifications send succeeded", {
+        leadId: lead.id,
       });
+    } catch (notificationError) {
+      console.error("[leads] Immediate notification send failed; queue retry will continue", {
+        leadId: lead.id,
+        error: notificationError,
+      });
+    }
 
     // Fire and forget non-critical integrations so submit response returns fast.
     // This preserves lead capture reliability while reducing user-facing latency.
