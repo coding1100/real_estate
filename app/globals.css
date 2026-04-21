@@ -609,3 +609,6 @@ margin-left: 0px;
     background-position: 250% 0, 250% 0;
   }
 }
+.grecaptcha-badge{
+  z-index: 1000 !important;
+}
