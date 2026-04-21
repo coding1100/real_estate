@@ -9,12 +9,6 @@ import {
   markLeadDispatchJobDoneByType,
   processLeadDispatchQueue,
 } from "@/lib/leadDispatchQueue";
-import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
-import {
-  buildEmailRequiredValidationMessage,
-  resolveCtaRuleForSubmission,
-  ruleHasConfiguredCtaForwardingExtras,
-} from "@/lib/ctaForwardingValidation";
 import type { Prisma } from "@prisma/client";
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -116,21 +110,6 @@ function findNameInAnyField(input: unknown): string | null {
     (typeof (input as any).fullname === "string" && (input as any).fullname.trim());
   if (direct) return String(direct).trim();
   return null;
-}
-
-function readPageCtaRulesFromSections(sections: unknown): CtaForwardingRule[] {
-  const items = Array.isArray(sections) ? sections : [];
-  const heroSection = items.find((entry) => {
-    if (!entry || typeof entry !== "object") return false;
-    return (entry as { kind?: unknown }).kind === "hero";
-  }) as { props?: unknown } | undefined;
-  const props =
-    heroSection?.props && typeof heroSection.props === "object"
-      ? (heroSection.props as { ctaForwardingRules?: unknown })
-      : null;
-  return Array.isArray(props?.ctaForwardingRules)
-    ? (props.ctaForwardingRules as CtaForwardingRule[])
-    : [];
 }
 
 export async function POST(req: NextRequest) {
@@ -273,49 +252,6 @@ export async function POST(req: NextRequest) {
     if (!("name" in mergedFormData) || !String((mergedFormData as any).name ?? "").trim()) {
       const name = findNameInAnyField(mergedFormData);
       if (name) mergedFormData = { ...mergedFormData, name };
-    }
-
-    const submittedStepSlug =
-      typeof mergedFormData._stepSlug === "string" && mergedFormData._stepSlug.trim()
-        ? mergedFormData._stepSlug.trim()
-        : null;
-    let activeCtaRules = readPageCtaRulesFromSections(page.sections);
-    if (submittedStepSlug) {
-      const stepPage = await prisma.landingPage.findFirst({
-        where: {
-          slug: submittedStepSlug,
-          status: "published",
-          domainId: domainRow.id,
-        },
-        select: {
-          sections: true,
-        },
-      });
-      if (stepPage) {
-        const stepRules = readPageCtaRulesFromSections(stepPage.sections);
-        if (stepRules.length > 0) {
-          activeCtaRules = stepRules;
-        }
-      }
-    }
-    const submittedCtaText =
-      typeof mergedFormData._ctaText === "string" ? mergedFormData._ctaText : "";
-    const ctaRuleResolution = resolveCtaRuleForSubmission(
-      activeCtaRules,
-      submittedCtaText,
-    );
-    const matchedRule = ctaRuleResolution.rule;
-    const hasEmail = !!findEmailInAnyField(mergedFormData);
-    if (ruleHasConfiguredCtaForwardingExtras(matchedRule) && !hasEmail) {
-      return NextResponse.json(
-        {
-          error: buildEmailRequiredValidationMessage({
-            ctaText: submittedCtaText,
-            resolution: ctaRuleResolution,
-          }),
-        },
-        { status: 400 },
-      );
     }
 
     await ensureLeadDispatchTableOnce();
