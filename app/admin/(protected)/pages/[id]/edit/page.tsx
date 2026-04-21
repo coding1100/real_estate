@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageEditor } from "@/components/admin/PageEditor";
 import {
+  DEFAULT_THEME,
   getAdminUiSettings,
   getEnabledEditorFonts,
 } from "@/lib/uiSettings";
@@ -160,7 +161,11 @@ export default async function EditPage({ params }: EditPageProps) {
   const { editorFonts } = await safePrismaRead(
     "edit-page:getAdminUiSettings",
     () => getAdminUiSettings(),
-    { editorFonts: [] as any[] },
+    {
+      settings: {} as any,
+      theme: DEFAULT_THEME,
+      editorFonts: [] as any[],
+    },
   );
 
   return (
