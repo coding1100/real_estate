@@ -283,7 +283,7 @@ export function CtaForwardingSettingsForm({
               ...row,
               [key]:
                 key === "ctaTitle"
-                  ? sanitizeCtaTitle(String(value))
+                  ? String(value)
                   : value,
             }
           : row,
