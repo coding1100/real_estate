@@ -1,4 +1,4 @@
-import { Hr, Section, Text } from "@react-email/components";
+import { Hr, Link, Section, Text } from "@react-email/components";
 import { EmailChrome } from "./EmailChrome";
 import { emailTheme } from "./theme";
 
@@ -21,14 +21,34 @@ export default function NewLeadEmail({
   logoUrl,
   fieldRows,
 }: NewLeadEmailProps) {
+  void logoUrl;
   const previewText = `New ${leadType} lead — ${domainHostname} / ${pageSlug}`;
+  const normalizedBrand = (brandName ?? "").trim().toLowerCase();
+  const normalizedDomain = (domainHostname ?? "").trim().toLowerCase();
+  const subtitleDomain =
+    normalizedBrand && normalizedBrand !== normalizedDomain
+      ? `${brandName} - ${domainHostname}`
+      : domainHostname;
+  const websiteUrl = `https://${domainHostname}`;
 
   return (
     <EmailChrome
       previewText={previewText}
       title={`New ${leadType} lead`}
-      subtitle={`${brandName} · ${domainHostname}`}
-      logoUrl={logoUrl}
+      subtitle={
+        <>
+          Website:{" "}
+          <Link
+            href={websiteUrl}
+            style={{
+              color: "#ffffff",
+              textDecoration: "underline",
+            }}
+          >
+            {subtitleDomain}
+          </Link>
+        </>
+      }
       brandName={brandName}
     >
       <Section

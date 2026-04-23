@@ -20,6 +20,7 @@ export interface CtaForwardingNotifyEmail {
 
 export interface CtaForwardingRule {
   ctaTitle: string;
+  deliveryMode?: "documents_with_notify" | "notify_only_form_data";
   forwardUrl?: string;
   forwardEnabled?: boolean;
   /** Optional Resend template ID (tpl_...) used for CTA document emails. */

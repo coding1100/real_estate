@@ -15,7 +15,7 @@ import { emailTheme } from "./theme";
 type EmailChromeProps = {
   previewText: string;
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   logoUrl?: string;
   brandName?: string;
   children: ReactNode;
