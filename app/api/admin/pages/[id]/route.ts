@@ -73,14 +73,21 @@ function normalizePageCtaForwardingRules(input: unknown): CtaForwardingRule[] {
       typeof (item as { resendTemplateName?: unknown }).resendTemplateName === "string"
         ? (item as { resendTemplateName: string }).resendTemplateName.trim()
         : "";
+    const deliveryMode =
+      (item as { deliveryMode?: unknown }).deliveryMode === "notify_only_form_data"
+        ? "notify_only_form_data"
+        : "documents_with_notify";
     if (forwardUrl && !/^https?:\/\//i.test(forwardUrl)) continue;
     normalized.push({
       ctaTitle,
+      deliveryMode,
       ...(forwardUrl ? { forwardUrl } : {}),
       ...(forwardEnabled ? { forwardEnabled: true } : { forwardEnabled: false }),
       ...(resendTemplateId ? { resendTemplateId } : {}),
       ...(resendTemplateName ? { resendTemplateName } : {}),
-      documents: Array.isArray((item as { documents?: unknown }).documents)
+      ...(deliveryMode === "documents_with_notify"
+        ? {
+            documents: Array.isArray((item as { documents?: unknown }).documents)
         ? ((item as { documents: unknown[] }).documents
             .filter((doc) => doc && typeof doc === "object")
             .map((doc) => {
@@ -120,6 +127,8 @@ function normalizePageCtaForwardingRules(input: unknown): CtaForwardingRule[] {
                 doc !== null,
             ))
         : [],
+          }
+        : {}),
       notifyEmails: Array.isArray((item as { notifyEmails?: unknown }).notifyEmails)
         ? ((item as { notifyEmails: unknown[] }).notifyEmails
             .filter((email) => email && typeof email === "object")
