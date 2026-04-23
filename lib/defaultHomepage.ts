@@ -199,6 +199,7 @@ export async function getDefaultHomepageButtons(
   );
 
   if (activeCustomButtons.length > 0) {
+    const limitedCustomButtons = activeCustomButtons.slice(0, limit);
     const pageById = new Map(ordered.map((row) => [row.id, row]));
     const slugById = new Map(ordered.map((row) => [row.id, row.slug]));
     const hrefToSlug = (href: string | undefined): string => {
@@ -210,7 +211,7 @@ export async function getDefaultHomepageButtons(
     };
 
     const usedIds = new Set<string>();
-    return activeCustomButtons.map((button, index) => {
+    return limitedCustomButtons.map((button, index) => {
       const linked = button.linkedPageId ? pageById.get(button.linkedPageId) : undefined;
       const href = (button.href ?? "").trim();
       const slugFromHref = hrefToSlug(href);
