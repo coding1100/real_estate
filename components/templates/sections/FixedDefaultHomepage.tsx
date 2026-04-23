@@ -225,17 +225,27 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
   return (
     <div className="custom min-h-[calc(100vh)] bg-[#0f2342] text-white default-homepage" style={pageStyleVars}>
       <header className="border-b border-white bg-white text-zinc-900">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-[10px]">
           <div className="text-sm font-semibold">
             {page.domain.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={page.domain.logoUrl} alt={page.domain.displayName} className="h-10 w-auto max-h-[80px]" />
+              <img src={page.domain.logoUrl} alt={page.domain.displayName} className="w-auto max-h-[65px] max-w-[200px]" />
             ) : (
               <span className="text-lg font-normal text-zinc-900" style={{ fontFamily: 'Source Sans 3' }}>{page.domain.displayName}</span>
             )}
           </div>
           <nav ref={navRef} className="flex items-center gap-5 text-sm text-zinc-700">
-            {(navLinks.length > 0 ? navLinks : [{ label: "Home", href: "#" }]).map((link, idx) => {
+            {navLinks.length === 0 ? (
+              page.domain.rightLogoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={page.domain.rightLogoUrl}
+                  alt={`${page.domain.displayName} right logo`}
+                  className="w-auto max-h-[65px] max-w-[200px]"
+                />
+              ) : null
+            ) : (
+              navLinks.map((link, idx) => {
               const columns = Array.isArray(link.megaMenuColumns)
                 ? link.megaMenuColumns
                 : [];
@@ -316,19 +326,14 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
                   )}
                 </div>
               );
-            })}
+              })
+            )}
           </nav>
         </div>
       </header>
 
       <section
-        className="relative overflow-hidden"
-        style={
-          {
-            height: "calc(100vh - 65px)",
-          }
-        }
-      >
+        className="relative overflow-hidden">
         {backgroundImageUrl && (
           <div
             className="absolute inset-0"
@@ -355,12 +360,18 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
             />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {buttons.map((item) => {
+              {buttons.map((item, index) => {
                 const itemSlug = item.slug || deriveSlugFromHref(item.href);
                 const isSelected = selectedPreviewSlug === itemSlug;
+                const displayTitle =
+                  String(item.title ?? "").trim() ||
+                  String((item as { label?: string }).label ?? "").trim() ||
+                  itemSlug ||
+                  String(item.href ?? "").trim() ||
+                  "Learn more";
                 return (
                   <button
-                  key={item.id}
+                  key={`${item.id}-${index}`}
                   type="button"
                   onClick={() => {
                     const derivedSlug = itemSlug;
@@ -370,12 +381,12 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
                       return;
                     }
                     const href = resolveNavHref(item.href ?? "");
-                    const target = item.target === "_blank" ? "_blank" : "_self";
-                    if (href !== "#") {
+                    const isExternalHttp = /^https?:\/\//i.test(href);
+                    if (href !== "#" && isExternalHttp) {
                       window.open(
                         href,
-                        target,
-                        target === "_blank" ? "noopener,noreferrer" : undefined,
+                        "_blank",
+                        "noopener,noreferrer",
                       );
                     }
                   }}
@@ -389,7 +400,7 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
                     color: isSelected ? ctaColors.activeText : ctaColors.text,
                   }}
                 >
-                  {item.title}
+                  {displayTitle}
                   </button>
                 );
               })}

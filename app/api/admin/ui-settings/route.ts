@@ -230,6 +230,10 @@ export async function PATCH(req: NextRequest) {
         typeof item?.resendTemplateName === "string"
           ? item.resendTemplateName.trim()
           : "";
+      const deliveryMode =
+        item?.deliveryMode === "notify_only_form_data"
+          ? "notify_only_form_data"
+          : "documents_with_notify";
       if (!ctaTitle) {
         continue;
       }
@@ -287,11 +291,14 @@ export async function PATCH(req: NextRequest) {
 
       sanitized.push({
         ctaTitle,
+        deliveryMode,
         forwardEnabled,
         ...(forwardUrl ? { forwardUrl } : {}),
         ...(resendTemplateId ? { resendTemplateId } : {}),
         ...(resendTemplateName ? { resendTemplateName } : {}),
-        ...(documents.length ? { documents } : {}),
+        ...(deliveryMode === "documents_with_notify" && documents.length
+          ? { documents }
+          : {}),
         ...(notifyEmails.length ? { notifyEmails } : {}),
       });
     }

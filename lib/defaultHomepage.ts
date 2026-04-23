@@ -199,6 +199,7 @@ export async function getDefaultHomepageButtons(
   );
 
   if (activeCustomButtons.length > 0) {
+    const limitedCustomButtons = activeCustomButtons.slice(0, limit);
     const pageById = new Map(ordered.map((row) => [row.id, row]));
     const slugById = new Map(ordered.map((row) => [row.id, row.slug]));
     const hrefToSlug = (href: string | undefined): string => {
@@ -209,7 +210,8 @@ export async function getDefaultHomepageButtons(
       return slug;
     };
 
-    return activeCustomButtons.map((button, index) => {
+    const usedIds = new Set<string>();
+    return limitedCustomButtons.map((button, index) => {
       const linked = button.linkedPageId ? pageById.get(button.linkedPageId) : undefined;
       const href = (button.href ?? "").trim();
       const slugFromHref = hrefToSlug(href);
@@ -223,9 +225,15 @@ export async function getDefaultHomepageButtons(
         `Button ${index + 1}`;
       const target = button.target === "_blank" ? "_blank" : "_self";
       const styleMode = button.styleMode === "dark" ? "dark" : "light";
+      const rawId = button.id?.trim() || `custom-${index + 1}`;
+      let id = rawId;
+      if (usedIds.has(id)) {
+        id = `${rawId}-${index + 1}`;
+      }
+      usedIds.add(id);
 
       return {
-        id: button.id?.trim() || `custom-${index + 1}`,
+        id,
         slug,
         title,
         heroImageUrl: linked?.heroImageUrl ?? null,
