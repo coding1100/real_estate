@@ -105,22 +105,23 @@ function SortableHomepageButtonItem({
   };
   return (
     <div ref={setNodeRef} style={style} className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-3">
-      {isEditing ? (
-        <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+      <div className={isEditing ? "flex items-start gap-2" : ""}>
+        {isEditing ? (
           <button
             type="button"
-            className="inline-flex h-7 w-7 cursor-grab items-center justify-center !rounded-md border border-zinc-300 bg-white text-zinc-500 hover:bg-zinc-50 active:cursor-grabbing"
+            className="mt-1 inline-flex h-7 w-7 shrink-0 cursor-grab items-center justify-center !rounded-md border border-zinc-300 bg-white text-zinc-500 hover:bg-zinc-50 active:cursor-grabbing"
             aria-label="Drag button to reorder"
-            title="Drag to reorder"
+            title="Drag"
             {...attributes}
             {...listeners}
           >
             <GripVertical className="h-3.5 w-3.5" />
           </button>
-          Drag to reorder
+        ) : null}
+        <div className="min-w-0 flex-1">
+          {children}
         </div>
-      ) : null}
-      {children}
+      </div>
     </div>
   );
 }
