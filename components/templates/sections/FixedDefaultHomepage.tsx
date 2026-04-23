@@ -333,13 +333,7 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
       </header>
 
       <section
-        className="relative overflow-hidden"
-        style={
-          {
-            minHeight: "calc(100vh - 65px)",
-          }
-        }
-      >
+        className="relative overflow-hidden">
         {backgroundImageUrl && (
           <div
             className="absolute inset-0"
