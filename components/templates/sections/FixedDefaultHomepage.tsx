@@ -336,7 +336,7 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
         className="relative overflow-hidden"
         style={
           {
-            height: "calc(100vh - 65px)",
+            minHeight: "calc(100vh - 65px)",
           }
         }
       >
@@ -366,12 +366,12 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
             />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {buttons.map((item) => {
+              {buttons.map((item, index) => {
                 const itemSlug = item.slug || deriveSlugFromHref(item.href);
                 const isSelected = selectedPreviewSlug === itemSlug;
                 return (
                   <button
-                  key={item.id}
+                  key={`${item.id}-${index}`}
                   type="button"
                   onClick={() => {
                     const derivedSlug = itemSlug;
