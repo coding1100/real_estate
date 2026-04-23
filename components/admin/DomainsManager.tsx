@@ -349,12 +349,13 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
     setDraft((prev) => {
       if (!prev) return prev;
       const nextIndex = prev.defaultHomepageButtons.length + 1;
+      const nextId = `btn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       return {
         ...prev,
         defaultHomepageButtons: [
           ...prev.defaultHomepageButtons,
           {
-            id: `btn-${Date.now()}`,
+            id: nextId,
             label: `Button ${nextIndex}`,
             href: "",
             target: "_self",
