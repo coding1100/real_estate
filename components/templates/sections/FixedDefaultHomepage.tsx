@@ -235,7 +235,17 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
             )}
           </div>
           <nav ref={navRef} className="flex items-center gap-5 text-sm text-zinc-700">
-            {(navLinks.length > 0 ? navLinks : [{ label: "Home", href: "#" }]).map((link, idx) => {
+            {navLinks.length === 0 ? (
+              page.domain.rightLogoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={page.domain.rightLogoUrl}
+                  alt={`${page.domain.displayName} right logo`}
+                  className="h-10 w-auto max-h-[80px]"
+                />
+              ) : null
+            ) : (
+              navLinks.map((link, idx) => {
               const columns = Array.isArray(link.megaMenuColumns)
                 ? link.megaMenuColumns
                 : [];
@@ -316,7 +326,8 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
                   )}
                 </div>
               );
-            })}
+              })
+            )}
           </nav>
         </div>
       </header>
@@ -370,12 +381,12 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
                       return;
                     }
                     const href = resolveNavHref(item.href ?? "");
-                    const target = item.target === "_blank" ? "_blank" : "_self";
-                    if (href !== "#") {
+                    const isExternalHttp = /^https?:\/\//i.test(href);
+                    if (href !== "#" && isExternalHttp) {
                       window.open(
                         href,
-                        target,
-                        target === "_blank" ? "noopener,noreferrer" : undefined,
+                        "_blank",
+                        "noopener,noreferrer",
                       );
                     }
                   }}

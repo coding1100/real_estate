@@ -69,6 +69,25 @@ function isValidUsPhone(value: string): boolean {
   return digits.length === 10 || (digits.length === 11 && digits.startsWith("1"));
 }
 
+function normalizeExternalHttpUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^www\./i.test(trimmed)) return `https://${trimmed}`;
+  return trimmed;
+}
+
+function isValidExternalHttpUrl(value: string): boolean {
+  const normalized = normalizeExternalHttpUrl(value);
+  if (!/^https?:\/\//i.test(normalized)) return false;
+  try {
+    const parsed = new URL(normalized);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function SortableHomepageButtonItem({
   id,
   isEditing,
@@ -480,6 +499,30 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
       toastError(message);
       return;
     }
+    const normalizedButtons = domain.defaultHomepageButtons.map((button) => {
+      if (button.linkedPageId) {
+        return {
+          ...button,
+          href: String(button.href ?? "").trim(),
+        };
+      }
+      return {
+        ...button,
+        href: normalizeExternalHttpUrl(String(button.href ?? "")),
+      };
+    });
+    for (const button of normalizedButtons) {
+      if (button.linkedPageId) continue;
+      const href = String(button.href ?? "").trim();
+      if (!href) continue;
+      if (!isValidExternalHttpUrl(href)) {
+        const label = button.label?.trim() || "Homepage button";
+        const message = `${label}: external link must start with http:// or https://`;
+        setError(message);
+        toastError(message);
+        return;
+      }
+    }
     setSavingId(domain.id || "new");
     startTransition(async () => {
       try {
@@ -491,7 +534,10 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         const res = await fetch(url, {
           method,
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(domain),
+          body: JSON.stringify({
+            ...domain,
+            defaultHomepageButtons: normalizedButtons,
+          }),
           credentials: "include",
         });
         if (!res.ok) throw new Error("Failed to save domain");
@@ -1389,10 +1435,17 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                                         }}
                                       />
                                       <input
-                                        className="w-full !rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-xs read-only"
+                                        className="w-full !rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-xs"
                                         value={btn.href}
-                                        readOnly
-                                        placeholder="/target-slug or https://example.com"
+                                        readOnly={!!btn.linkedPageId}
+                                        onChange={(e) =>
+                                          updateDraftHomepageButton(idx, { href: e.target.value })
+                                        }
+                                        placeholder={
+                                          btn.linkedPageId
+                                            ? "Auto from selected page"
+                                            : "https://example.com"
+                                        }
                                       />
                                     </>
                                   ) : (
