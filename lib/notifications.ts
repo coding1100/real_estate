@@ -62,6 +62,50 @@ function extractLeadEmail(formData: unknown): string | null {
   return exact || firstEmailLikeValue;
 }
 
+function extractLeadPhone(formData: unknown): string | null {
+  const seen = new Set<unknown>();
+  const looksLikePhone = (value: string): boolean => {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed.includes("@")) return false;
+    const digits = trimmed.replace(/\D/g, "");
+    return digits.length === 10 || (digits.length === 11 && digits.startsWith("1"));
+  };
+  const looksLikePhoneKey = (key: string): boolean => {
+    const normalized = key.toLowerCase();
+    return (
+      normalized === "phone" ||
+      normalized.includes("phone") ||
+      normalized.includes("mobile") ||
+      normalized === "tel" ||
+      normalized.includes("telephone")
+    );
+  };
+
+  const visit = (node: unknown): string | null => {
+    if (!node || typeof node !== "object") return null;
+    if (seen.has(node)) return null;
+    seen.add(node);
+    for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+      if (typeof value === "string" && looksLikePhoneKey(key) && looksLikePhone(value)) {
+        return value.trim();
+      }
+      if (value && typeof value === "object") {
+        const nested = visit(value);
+        if (nested) return nested;
+      }
+    }
+    return null;
+  };
+  const keyed = visit(formData);
+  if (keyed) return keyed;
+
+  const values = collectStringValues(formData);
+  for (const value of values) {
+    if (looksLikePhone(value)) return value.trim();
+  }
+  return null;
+}
+
 function resolveFromAddress(): string {
   if (RESEND_FROM_EMAIL) return RESEND_FROM_EMAIL;
   return "leads@no-reply.example.com";
@@ -69,6 +113,30 @@ function resolveFromAddress(): string {
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function collectStringValues(input: unknown, seen = new Set<unknown>()): string[] {
+  if (input == null) return [];
+  if (typeof input === "string") {
+    const s = input.trim();
+    return s ? [s] : [];
+  }
+  if (typeof input === "number" || typeof input === "boolean") {
+    return [String(input)];
+  }
+  if (typeof input !== "object") return [];
+  if (seen.has(input)) return [];
+  seen.add(input);
+
+  if (Array.isArray(input)) {
+    return input.flatMap((entry) => collectStringValues(entry, seen));
+  }
+
+  const out: string[] = [];
+  for (const value of Object.values(input as Record<string, unknown>)) {
+    out.push(...collectStringValues(value, seen));
+  }
+  return out;
 }
 
 function isAbsoluteHttpUrl(value: string): boolean {
@@ -517,6 +585,8 @@ function findCtaRule(
   pageCtaText: string | null | undefined,
   formData: Record<string, unknown>,
 ): CtaForwardingRule | undefined {
+  const stripToAlphaNumeric = (value: string): string =>
+    value.toLowerCase().replace(/[^a-z0-9]/g, "");
   const keys = new Set<string>();
   const pageKey = normalizeCtaTitleKey(pageCtaText ?? "");
   if (pageKey) keys.add(pageKey);
@@ -551,6 +621,23 @@ function findCtaRule(
     }
     return matches[matches.length - 1];
   }
+
+  for (const key of keys) {
+    const relaxedNeedle = stripToAlphaNumeric(key);
+    if (!relaxedNeedle) continue;
+    const relaxedMatch = rules.find((rule) => {
+      const relaxedRuleTitle = stripToAlphaNumeric(
+        normalizeCtaTitleKey(rule.ctaTitle),
+      );
+      return (
+        relaxedRuleTitle.includes(relaxedNeedle) ||
+        relaxedNeedle.includes(relaxedRuleTitle)
+      );
+    });
+    if (relaxedMatch) return relaxedMatch;
+  }
+
+  if (rules.length === 1) return rules[0];
   return undefined;
 }
 
@@ -595,6 +682,18 @@ function getActiveNotifyEmails(
   );
 }
 
+function findLatestRuleWithActiveNotify(
+  rules: CtaForwardingRule[] | undefined,
+): CtaForwardingRule | undefined {
+  const list = rules ?? [];
+  for (let i = list.length - 1; i >= 0; i -= 1) {
+    const rule = list[i];
+    const notify = getActiveNotifyEmails(rule);
+    if (notify.length > 0) return rule;
+  }
+  return undefined;
+}
+
 export async function sendLeadNotifications(
   leadId: string,
   options?: { throwOnFailure?: boolean },
@@ -612,6 +711,13 @@ export async function sendLeadNotifications(
 
   const { domain, page } = lead;
   const formData = (lead.formData as Record<string, unknown>) ?? {};
+  const leadEmail = extractLeadEmail(formData);
+  const leadPhone = extractLeadPhone(formData);
+  const hasFormData = flattenLeadFormDataForEmail(formData).length > 0;
+  const hasEmailOrPhone = Boolean(
+    (leadEmail && leadEmail.includes("@")) || (leadPhone && leadPhone.trim().length > 0),
+  );
+  const shouldSendCtaNotificationEmail = hasFormData && hasEmailOrPhone;
   let ruleSourcePage: typeof page = page;
   let leadAlertSent = false;
   let documentEmailSent = false;
@@ -676,11 +782,13 @@ export async function sendLeadNotifications(
       candidatePageRules.length > 0
         ? candidatePageRules
         : ((settings.ctaForwardingRules ?? []) as CtaForwardingRule[]);
-    const candidateRule = findCtaRule(
+    const matchedRule = findCtaRule(
       candidateRules,
       candidatePage.ctaText,
       formData,
     );
+    const candidateRule =
+      matchedRule ?? findLatestRuleWithActiveNotify(candidateRules);
     if (!candidateRule) continue;
     const candidateNotify = getActiveNotifyEmails(candidateRule);
     ruleSourcePage = candidatePage;
@@ -697,11 +805,35 @@ export async function sendLeadNotifications(
       fallbackPageRules.length > 0
         ? fallbackPageRules
         : ((settings.ctaForwardingRules ?? []) as CtaForwardingRule[]);
-    const fallbackRule = findCtaRule(fallbackRules, page.ctaText, formData);
+    const fallbackMatchedRule = findCtaRule(fallbackRules, page.ctaText, formData);
+    const fallbackRule =
+      fallbackMatchedRule ?? findLatestRuleWithActiveNotify(fallbackRules);
     if (fallbackRule) {
       ruleSourcePage = page;
       resolvedRule = fallbackRule;
       resolvedNotifyEmails = getActiveNotifyEmails(fallbackRule);
+    }
+  }
+
+  if (resolvedRule && resolvedNotifyEmails.length === 0) {
+    const sourcePageRules = readPageCtaForwardingRules(
+      (ruleSourcePage as { sections?: unknown }).sections,
+    );
+    const sourceRules =
+      sourcePageRules.length > 0
+        ? sourcePageRules
+        : ((settings.ctaForwardingRules ?? []) as CtaForwardingRule[]);
+    const notifyFallbackRule = findLatestRuleWithActiveNotify(sourceRules);
+    if (notifyFallbackRule) {
+      resolvedNotifyEmails = getActiveNotifyEmails(notifyFallbackRule);
+      console.log("[notifications] Applied notify fallback rule", {
+        leadId: lead.id,
+        entryPageSlug: page.slug,
+        ruleSourcePageSlug: ruleSourcePage.slug,
+        originalRuleCtaTitle: resolvedRule.ctaTitle,
+        fallbackRuleCtaTitle: notifyFallbackRule.ctaTitle,
+        notifyRecipientsCount: resolvedNotifyEmails.length,
+      });
     }
   }
 
@@ -727,12 +859,14 @@ export async function sendLeadNotifications(
   const hasConfiguredResendTemplate =
     typeof resolvedRule?.resendTemplateId === "string" &&
     resolvedRule.resendTemplateId.trim().length > 0;
+  const resolvedDeliveryMode =
+    resolvedRule?.deliveryMode === "notify_only_form_data"
+      ? "notify_only_form_data"
+      : "documents_with_notify";
 
   const leadAlertTask = async (): Promise<boolean> => {
     // Email to agent via Resend (CTA notify recipients only; do not use domain notifyEmail).
-    // When a CTA-specific Resend template is configured, that template email is the priority
-    // path, so skip this default lead alert to avoid duplicate sends.
-    if (!(resend && resolvedNotifyEmails.length > 0 && !hasConfiguredResendTemplate)) {
+    if (!(resend && resolvedNotifyEmails.length > 0 && shouldSendCtaNotificationEmail)) {
       return false;
     }
     try {
@@ -752,7 +886,7 @@ export async function sendLeadNotifications(
       });
 
       const leadAlertRouting = buildDocumentRecipients(
-        null,
+        resolvedDeliveryMode === "notify_only_form_data" ? null : leadEmail,
         resolvedNotifyEmails,
         null,
       );
@@ -798,7 +932,6 @@ export async function sendLeadNotifications(
     // Email documents to lead + CC/BCC from CTA Notification emails
     if (!resend) return false;
     try {
-      const leadEmail = extractLeadEmail(lead.formData);
       if (!leadEmail) {
         console.warn("[notifications] Lead email not found in formData. Will still send docs to configured CC/BCC recipients.", {
           leadId: lead.id,
@@ -807,6 +940,13 @@ export async function sendLeadNotifications(
       }
 
       const rule = resolvedRule;
+      const deliveryMode =
+        rule?.deliveryMode === "notify_only_form_data"
+          ? "notify_only_form_data"
+          : "documents_with_notify";
+      if (deliveryMode === "notify_only_form_data") {
+        return false;
+      }
       if (!rule) {
         const ctaCandidates = collectCtaCandidates(formData);
         console.warn("[notifications] Document email skipped: CTA rule not found", {
