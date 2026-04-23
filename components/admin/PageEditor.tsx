@@ -426,6 +426,9 @@ export function PageEditor({
           seoDescription: page.seo.description,
           canonicalUrl: page.seo.canonicalUrl,
           noIndex: page.seo.noIndex,
+          // Keep CTA rules as a top-level patch field as well, so the API
+          // normalizer always runs and persists deliveryMode reliably.
+          ctaForwardingRules,
         };
         body.multistepStepSlugs =
           effectivePageMode === "multistep" && multistepStepSlugs.length > 0
