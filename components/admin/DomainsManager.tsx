@@ -289,21 +289,19 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
   );
 
   useEffect(() => {
-    setSearchQuery(searchParams.get("q") ?? "");
-    setSelectedDomainId(searchParams.get("domain") ?? "");
-  }, [searchParams]);
-
-  useEffect(() => {
-    const next = new URLSearchParams(searchParams.toString());
-    const trimmed = searchQuery.trim();
-    if (trimmed) next.set("q", trimmed);
-    else next.delete("q");
-    if (selectedDomainId) next.set("domain", selectedDomainId);
-    else next.delete("domain");
-    const currentQuery = searchParams.toString();
-    const nextQuery = next.toString();
-    if (currentQuery === nextQuery) return;
-    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+    const timer = window.setTimeout(() => {
+      const next = new URLSearchParams(searchParams.toString());
+      const trimmed = searchQuery.trim();
+      if (trimmed) next.set("q", trimmed);
+      else next.delete("q");
+      if (selectedDomainId) next.set("domain", selectedDomainId);
+      else next.delete("domain");
+      const currentQuery = searchParams.toString();
+      const nextQuery = next.toString();
+      if (currentQuery === nextQuery) return;
+      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+    }, 200);
+    return () => window.clearTimeout(timer);
   }, [pathname, router, searchParams, searchQuery, selectedDomainId]);
 
   useEffect(() => {
