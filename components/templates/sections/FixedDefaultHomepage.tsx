@@ -225,11 +225,11 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
   return (
     <div className="custom min-h-[calc(100vh)] bg-[#0f2342] text-white default-homepage" style={pageStyleVars}>
       <header className="border-b border-white bg-white text-zinc-900">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <div className="text-sm font-semibold">
             {page.domain.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={page.domain.logoUrl} alt={page.domain.displayName} className="h-10 w-auto max-h-[80px]" />
+              <img src={page.domain.logoUrl} alt={page.domain.displayName} className="w-auto max-h-[65px] max-w-[200px]" />
             ) : (
               <span className="text-lg font-normal text-zinc-900" style={{ fontFamily: 'Source Sans 3' }}>{page.domain.displayName}</span>
             )}
@@ -241,7 +241,7 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
                 <img
                   src={page.domain.rightLogoUrl}
                   alt={`${page.domain.displayName} right logo`}
-                  className="h-10 w-auto max-h-[80px]"
+                  className="w-auto max-h-[65px] max-w-[200px]"
                 />
               ) : null
             ) : (
