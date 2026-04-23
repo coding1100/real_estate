@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Dialog } from "@/components/ui/Dialog";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Pencil, Check, X, Trash2, Plus, GripVertical, Search } from "lucide-react";
+import { Pencil, Check, X, Trash2, Plus, GripVertical, Search, ChevronDown } from "lucide-react";
 import { useAdminToast } from "@/components/admin/useAdminToast";
 
 interface DomainRow {
@@ -224,7 +225,14 @@ function SearchableHomepageOptionSelector({
 }
 
 export function DomainsManager({ initialDomains }: DomainsManagerProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const initialQueryFromParams = searchParams.get("q") ?? "";
+  const initialDomainFromParams = searchParams.get("domain") ?? "";
   const [domains, setDomains] = useState<DomainRow[]>(initialDomains);
+  const [searchQuery, setSearchQuery] = useState(initialQueryFromParams);
+  const [selectedDomainId, setSelectedDomainId] = useState(initialDomainFromParams);
   const [savingId, setSavingId] = useState<string | "new" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -233,6 +241,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [isBackfillingDefaults, setIsBackfillingDefaults] = useState(false);
   const [addFormError, setAddFormError] = useState<string | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
   const [newDomainForm, setNewDomainForm] = useState<DomainRow>({
     id: "new",
     hostname: "",
@@ -260,6 +269,61 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
     defaultHomepageOptions: [],
     defaultHomepageButtons: [],
   });
+
+  const filteredDomains = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return domains.filter((d) => {
+      if (selectedDomainId && d.id !== selectedDomainId) return false;
+      if (!q) return true;
+      return `${d.hostname} ${d.displayName} ${d.notifyEmail}`
+        .toLowerCase()
+        .includes(q);
+    });
+  }, [domains, searchQuery, selectedDomainId]);
+
+  const selectedDomainLabel = useMemo(
+    () => domains.find((d) => d.id === selectedDomainId)?.hostname ?? "",
+    [domains, selectedDomainId],
+  );
+
+  useEffect(() => {
+    setSearchQuery(searchParams.get("q") ?? "");
+    setSelectedDomainId(searchParams.get("domain") ?? "");
+  }, [searchParams]);
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams.toString());
+    const trimmed = searchQuery.trim();
+    if (trimmed) next.set("q", trimmed);
+    else next.delete("q");
+    if (selectedDomainId) next.set("domain", selectedDomainId);
+    else next.delete("domain");
+    const currentQuery = searchParams.toString();
+    const nextQuery = next.toString();
+    if (currentQuery === nextQuery) return;
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams, searchQuery, selectedDomainId]);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "k") return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable ||
+          (target.tagName === "INPUT" && target !== searchRef.current))
+      ) {
+        return;
+      }
+      event.preventDefault();
+      searchRef.current?.focus();
+      searchRef.current?.select();
+    }
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
+  }, []);
   const { success: toastSuccess, error: toastError } = useAdminToast();
   const homepageButtonsSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -885,6 +949,68 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         </button>
         </div>
       </div>
+      <div className="rounded-2xl border border-[#E9ECEF] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#ADB5BD]" />
+            <input
+              ref={searchRef}
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search pages, slugs, or keywords…"
+              className="w-full rounded-xl border border-[#fff] bg-[#fff] py-2.5 !border-0 pl-10 pr-4 text-sm text-[#212529] placeholder:text-[#ADB5BD] focus:border-[#fff] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#fff]"
+            />
+           
+          </div>
+          <div className="flex h-px w-full shrink-0 bg-[#E9ECEF] lg:h-8 lg:w-px" />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <select
+                aria-label="Domain filter"
+                value={selectedDomainId}
+                onChange={(e) => setSelectedDomainId(e.target.value)}
+                className="min-w-[140px] appearance-none rounded-xl bg-white py-2 pl-3 pr-8 text-sm font-medium text-[#212529] focus:border-[#fff] focus:outline-none focus:ring-2 focus:ring-[#fff]"
+              >
+                <option value="">All domains</option>
+                {domains.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.hostname}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#ADB5BD]" />
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {searchQuery.trim().length > 0 && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="mt-2 inline-flex items-center gap-1 !rounded-full border border-[#C5DCF7] bg-[#E7F1FF] px-2.5 py-1 text-xs font-semibold text-[#1864AB] hover:bg-[#d8eaff]"
+            >
+              Search: {searchQuery.trim()}
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {selectedDomainLabel && (
+            <button
+              type="button"
+              onClick={() => setSelectedDomainId("")}
+              className="mt-2 inline-flex items-center gap-1 !rounded-full border border-[#DEE2E6] bg-[#F8F9FA] px-2.5 py-1 text-xs font-semibold text-[#495057] hover:bg-[#edf0f2]"
+            >
+              Domain: {selectedDomainLabel}
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#212529]">
+          Showing {filteredDomains.length} result{filteredDomains.length === 1 ? "" : "s"}{" "}
+        </p>
+      </div>
 
       <Dialog
         open={addDialogOpen}
@@ -1062,14 +1188,14 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
       )}
 
       <div className="space-y-3">
-        {domains.map((d: DomainRow) => {
+        {filteredDomains.map((d: DomainRow) => {
           const isEditing = editingId === d.id;
           const current = isEditing && draft && draft.id === d.id ? draft : d;
 
           return (
             <div
               key={d.id}
-              className="rounded-sm bg-white p-4 shadow-sm ring-1 ring-zinc-100"
+              className="!rounded-md bg-white p-4 shadow-sm ring-1 ring-zinc-100"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-2 flex-1">
@@ -1685,6 +1811,11 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         {domains.length === 0 && (
           <p className="py-8 text-center text-md text-zinc-500">
             No domains yet. Click &quot;+ Add domain&quot; to create one.
+          </p>
+        )}
+        {domains.length > 0 && filteredDomains.length === 0 && (
+          <p className="py-8 text-center text-md text-zinc-500">
+            No domains match your search.
           </p>
         )}
       </div>
