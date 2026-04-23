@@ -47,6 +47,8 @@
     "@tiptap/extension-underline": "^3.20.1",
     "@tiptap/react": "^3.20.1",
     "@tiptap/starter-kit": "^3.20.1",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.9.0",
     "embla-carousel-react": "^8.6.0",

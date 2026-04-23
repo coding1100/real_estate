@@ -19,6 +19,8 @@ import {
   resolveTenantHostname,
 } from "@/lib/hostnames";
 import TopLoader from "@/components/shared/TopLoader";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const headingFont = Source_Sans_3({
@@ -142,6 +144,8 @@ export default async function RootLayout({
           <TopLoader />
         </Suspense>
         {children}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
