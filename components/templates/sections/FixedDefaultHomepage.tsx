@@ -369,6 +369,12 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
               {buttons.map((item, index) => {
                 const itemSlug = item.slug || deriveSlugFromHref(item.href);
                 const isSelected = selectedPreviewSlug === itemSlug;
+                const displayTitle =
+                  String(item.title ?? "").trim() ||
+                  String((item as { label?: string }).label ?? "").trim() ||
+                  itemSlug ||
+                  String(item.href ?? "").trim() ||
+                  "Learn more";
                 return (
                   <button
                   key={`${item.id}-${index}`}
@@ -400,7 +406,7 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
                     color: isSelected ? ctaColors.activeText : ctaColors.text,
                   }}
                 >
-                  {item.title}
+                  {displayTitle}
                   </button>
                 );
               })}
