@@ -20,6 +20,7 @@ interface CtaForwardingRow extends CtaForwardingRule {
   id: string;
   forwardUrl: string;
   forwardEnabled: boolean;
+  deliveryMode: "documents_with_notify" | "notify_only_form_data";
 }
 
 type ResendTemplateOption = {
@@ -38,11 +39,13 @@ function SearchableTemplateSelector({
   templates,
   value,
   loading,
+  disabled = false,
   onSelect,
 }: {
   templates: ResendTemplateOption[];
   value: string;
   loading: boolean;
+  disabled?: boolean;
   onSelect: (nextTemplateId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -82,17 +85,26 @@ function SearchableTemplateSelector({
         type="text"
         className="h-9 w-full !rounded-md border border-zinc-300 bg-white py-1.5 pl-7 pr-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
         value={displayValue}
-        placeholder={loading ? "Loading templates..." : "Use default template logic"}
+        placeholder={
+          disabled
+            ? "Disabled for this delivery mode"
+            : loading
+              ? "Loading templates..."
+              : "Use default template logic"
+        }
+        disabled={disabled}
         onFocus={() => {
+          if (disabled) return;
           setOpen(true);
           setQuery("");
         }}
         onChange={(e) => {
+          if (disabled) return;
           setOpen(true);
           setQuery(e.target.value);
         }}
       />
-      {open && (
+      {open && !disabled && (
         <div className="absolute z-30 mt-1 max-h-56 w-full overflow-auto !rounded-md border border-zinc-200 bg-white shadow-lg">
           <button
             type="button"
@@ -138,6 +150,10 @@ function createRow(id: string, rule?: Partial<CtaForwardingRule>): CtaForwarding
   return {
     id,
     ctaTitle: sanitizeCtaTitle(rule?.ctaTitle ?? ""),
+    deliveryMode:
+      rule?.deliveryMode === "notify_only_form_data"
+        ? "notify_only_form_data"
+        : "documents_with_notify",
     forwardUrl,
     forwardEnabled: rule?.forwardEnabled ?? !!forwardUrl,
     resendTemplateId: rule?.resendTemplateId?.trim() ?? "",
@@ -184,6 +200,11 @@ export function CtaForwardingSettingsForm({
   const [templatesLoading, setTemplatesLoading] = useState(false);
   const [templatesReason, setTemplatesReason] =
     useState<TemplatesFetchReason>(null);
+
+  useEffect(() => {
+    setRows(initialRules.map((rule, index) => createRow(`rule-${index}`, rule)));
+    setNextId(initialRules.length);
+  }, [initialRules]);
 
   useEffect(() => {
     let ignore = false;
@@ -257,18 +278,29 @@ export function CtaForwardingSettingsForm({
         (entry) => entry.email?.trim().length,
       );
       const docsRequireEmails =
-        docs.length > 0 && emails.length === 0
+        row.deliveryMode === "documents_with_notify" &&
+        docs.length > 0 &&
+        emails.length === 0
           ? "Add at least one notification email because a document is configured."
           : "";
       const emailsRequireDocs =
-        emails.length > 0 && docs.length === 0
+        row.deliveryMode === "documents_with_notify" &&
+        emails.length > 0 &&
+        docs.length === 0
           ? "Add at least one document because notification emails are configured."
           : "";
-      return { docsRequireEmails, emailsRequireDocs };
+      const notifyOnlyRequiresEmails =
+        row.deliveryMode === "notify_only_form_data" && emails.length === 0
+          ? "Add at least one notification email for 'send form data without document' mode."
+          : "";
+      return { docsRequireEmails, emailsRequireDocs, notifyOnlyRequiresEmails };
     });
   }, [rows]);
   const hasDependencyErrors = dependencyErrors.some(
-    (item) => !!item.docsRequireEmails || !!item.emailsRequireDocs,
+    (item) =>
+      !!item.docsRequireEmails ||
+      !!item.emailsRequireDocs ||
+      !!item.notifyOnlyRequiresEmails,
   );
 
   function updateRow(
@@ -345,6 +377,9 @@ export function CtaForwardingSettingsForm({
       const hasDocsWithoutEmails = dependencyErrors.some(
         (item) => !!item.docsRequireEmails,
       );
+      const hasNotifyOnlyWithoutEmails = dependencyErrors.some(
+        (item) => !!item.notifyOnlyRequiresEmails,
+      );
       const hasEmailsWithoutDocs = dependencyErrors.some(
         (item) => !!item.emailsRequireDocs,
       );
@@ -354,9 +389,14 @@ export function CtaForwardingSettingsForm({
           "Documents are configured for one or more CTA rules, so add at least one Notification email (BCC/CC).",
         );
       }
+      if (hasNotifyOnlyWithoutEmails) {
+        dependencyMessages.push(
+          "For 'send form data without document' mode, add at least one Notification email (BCC/CC).",
+        );
+      }
       if (hasEmailsWithoutDocs) {
         dependencyMessages.push(
-          "Notification emails are configured for one or more CTA rules, so add at least one Document to send.",
+          "Notification emails are configured for one or more CTA rules, so add at least one document.",
         );
       }
       error(dependencyMessages.join(" "), "Unable to update");
@@ -368,6 +408,7 @@ export function CtaForwardingSettingsForm({
       );
       const base: CtaForwardingRule = {
         ctaTitle: sanitizeCtaTitle(row.ctaTitle),
+        deliveryMode: row.deliveryMode,
         forwardEnabled: row.forwardEnabled,
         ...(row.forwardUrl.trim()
           ? { forwardUrl: row.forwardUrl.trim() }
@@ -398,7 +439,9 @@ export function CtaForwardingSettingsForm({
         }));
       return {
         ...base,
-        ...(docs.length ? { documents: docs } : {}),
+        ...(row.deliveryMode === "documents_with_notify" && docs.length
+          ? { documents: docs }
+          : {}),
         ...(emails.length ? { notifyEmails: emails } : {}),
       };
     });
@@ -564,6 +607,45 @@ export function CtaForwardingSettingsForm({
               </div>
             </div>
             <hr className="mt-4 !mb-8 border-zinc-200 !w-full"/>      
+            <div className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-600">
+                Delivery mode
+              </p>
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="inline-flex items-center gap-2 text-xs text-zinc-700">
+                  <input
+                    type="checkbox"
+                    checked={row.deliveryMode === "documents_with_notify"}
+                    onChange={() =>
+                      setRows((prev) =>
+                        prev.map((item) =>
+                          item.id === row.id
+                            ? { ...item, deliveryMode: "documents_with_notify" }
+                            : item,
+                        ),
+                      )
+                    }
+                  />
+                  Send documents to notification emails
+                </label>
+                <label className="inline-flex items-center gap-2 text-xs text-zinc-700">
+                  <input
+                    type="checkbox"
+                    checked={row.deliveryMode === "notify_only_form_data"}
+                    onChange={() =>
+                      setRows((prev) =>
+                        prev.map((item) =>
+                          item.id === row.id
+                            ? { ...item, deliveryMode: "notify_only_form_data" }
+                            : item,
+                        ),
+                      )
+                    }
+                  />
+                  Send form data without document
+                </label>
+              </div>
+            </div>
             <div className="grid gap-3 md:grid-cols-3 md:items-start">
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
@@ -574,7 +656,11 @@ export function CtaForwardingSettingsForm({
                     Optional PDFs, guides, or policies for this CTA.
                   </span> */}
                 </div>
-                {(row.documents ?? []).length === 0 ? (
+                {row.deliveryMode !== "documents_with_notify" ? (
+                  <p className="!rounded-md border border-dashed border-zinc-200 p-2 text-xs text-zinc-500">
+                    Disabled in "send form data without document" mode.
+                  </p>
+                ) : (row.documents ?? []).length === 0 ? (
                   <p className="!rounded-md border border-dashed border-zinc-200 p-2 text-xs text-zinc-500">
                     No documents added. Use Add document to link guides, privacy
                     policies, etc.
@@ -805,13 +891,14 @@ export function CtaForwardingSettingsForm({
                 )}
                 <button
                   type="button"
+                  disabled={row.deliveryMode !== "documents_with_notify"}
                   onClick={() =>
                     updateDocuments(row.id, (docs) => [
                       ...docs,
                       { name: "", url: "", autoSend: true },
                     ])
                   }
-                  className="mt-1 !rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
+                  className="mt-1 !rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Add document
                 </button>
@@ -941,6 +1028,11 @@ export function CtaForwardingSettingsForm({
                 >
                   Add email
                 </button>
+                {dependencyErrors[index]?.notifyOnlyRequiresEmails ? (
+                  <p className="text-xs text-red-600">
+                    {dependencyErrors[index].notifyOnlyRequiresEmails}
+                  </p>
+                ) : null}
                 {dependencyErrors[index]?.emailsRequireDocs ? (
                   <p className="text-xs text-red-600">
                     {dependencyErrors[index].emailsRequireDocs}
@@ -948,14 +1040,27 @@ export function CtaForwardingSettingsForm({
                 ) : null}
               </div>
 
-              <div className="flex h-full flex-col">
-                <label className="mb-1 block min-h-5 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-600">
+              <div
+                className={`flex h-full flex-col ${
+                  row.deliveryMode !== "documents_with_notify"
+                    ? "pointer-events-none opacity-60"
+                    : ""
+                }`}
+              >
+                <label
+                  className={`mb-1 block min-h-5 text-xs font-semibold uppercase tracking-[0.12em] ${
+                    row.deliveryMode !== "documents_with_notify"
+                      ? "text-zinc-400"
+                      : "text-zinc-600"
+                  }`}
+                >
                   Resend template (for this CTA document email)
                 </label>
                 <SearchableTemplateSelector
                   templates={templates}
                   value={row.resendTemplateId ?? ""}
                   loading={templatesLoading}
+                  disabled={row.deliveryMode !== "documents_with_notify"}
                   onSelect={(nextTemplateId) =>
                     setRows((prev) =>
                       prev.map((item) =>
@@ -971,7 +1076,11 @@ export function CtaForwardingSettingsForm({
                     )
                   }
                 />
-                {row.resendTemplateId ? (
+                {row.deliveryMode !== "documents_with_notify" ? (
+                  <p className="mt-1 min-h-8 text-[11px] text-zinc-500">
+                    Disabled in "send form data without document" mode. Default template logic will be used.
+                  </p>
+                ) : row.resendTemplateId ? (
                   <p className="mt-1 min-h-8 text-[11px] text-zinc-500">
                     Selected template ID:{" "}
                     <span className="font-mono">{row.resendTemplateId}</span>
@@ -981,7 +1090,9 @@ export function CtaForwardingSettingsForm({
                     No template selected. Existing document email rendering will be used.
                   </p>
                 )}
-                {!templatesLoading && templates.length === 0 && (
+                {row.deliveryMode === "documents_with_notify" &&
+                  !templatesLoading &&
+                  templates.length === 0 && (
                   <p className="mt-1 text-[11px] text-amber-700">
                     {templatesReason === "missing_api_key"
                       ? "RESEND_API_KEY is missing on the server."

@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Dialog } from "@/components/ui/Dialog";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Pencil, Check, X, Trash2, Plus, GripVertical, Search } from "lucide-react";
+import { Pencil, Check, X, Trash2, Plus, GripVertical, Search, ChevronDown } from "lucide-react";
 import { useAdminToast } from "@/components/admin/useAdminToast";
 
 interface DomainRow {
@@ -69,6 +70,25 @@ function isValidUsPhone(value: string): boolean {
   return digits.length === 10 || (digits.length === 11 && digits.startsWith("1"));
 }
 
+function normalizeExternalHttpUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^www\./i.test(trimmed)) return `https://${trimmed}`;
+  return trimmed;
+}
+
+function isValidExternalHttpUrl(value: string): boolean {
+  const normalized = normalizeExternalHttpUrl(value);
+  if (!/^https?:\/\//i.test(normalized)) return false;
+  try {
+    const parsed = new URL(normalized);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function SortableHomepageButtonItem({
   id,
   isEditing,
@@ -85,22 +105,23 @@ function SortableHomepageButtonItem({
   };
   return (
     <div ref={setNodeRef} style={style} className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-3">
-      {isEditing ? (
-        <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+      <div className={isEditing ? "flex items-start gap-2" : ""}>
+        {isEditing ? (
           <button
             type="button"
-            className="inline-flex h-7 w-7 cursor-grab items-center justify-center !rounded-md border border-zinc-300 bg-white text-zinc-500 hover:bg-zinc-50 active:cursor-grabbing"
+            className="mt-1 inline-flex h-7 w-7 shrink-0 cursor-grab items-center justify-center !rounded-md border border-zinc-300 bg-white text-zinc-500 hover:bg-zinc-50 active:cursor-grabbing"
             aria-label="Drag button to reorder"
-            title="Drag to reorder"
+            title="Drag"
             {...attributes}
             {...listeners}
           >
             <GripVertical className="h-3.5 w-3.5" />
           </button>
-          Drag to reorder
+        ) : null}
+        <div className="min-w-0 flex-1">
+          {children}
         </div>
-      ) : null}
-      {children}
+      </div>
     </div>
   );
 }
@@ -205,7 +226,14 @@ function SearchableHomepageOptionSelector({
 }
 
 export function DomainsManager({ initialDomains }: DomainsManagerProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const initialQueryFromParams = searchParams.get("q") ?? "";
+  const initialDomainFromParams = searchParams.get("domain") ?? "";
   const [domains, setDomains] = useState<DomainRow[]>(initialDomains);
+  const [searchQuery, setSearchQuery] = useState(initialQueryFromParams);
+  const [selectedDomainId, setSelectedDomainId] = useState(initialDomainFromParams);
   const [savingId, setSavingId] = useState<string | "new" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -214,6 +242,8 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [isBackfillingDefaults, setIsBackfillingDefaults] = useState(false);
   const [addFormError, setAddFormError] = useState<string | null>(null);
+  const [homepageButtonFieldErrors, setHomepageButtonFieldErrors] = useState<Record<string, string>>({});
+  const searchRef = useRef<HTMLInputElement | null>(null);
   const [newDomainForm, setNewDomainForm] = useState<DomainRow>({
     id: "new",
     hostname: "",
@@ -241,6 +271,59 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
     defaultHomepageOptions: [],
     defaultHomepageButtons: [],
   });
+
+  const filteredDomains = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return domains.filter((d) => {
+      if (selectedDomainId && d.id !== selectedDomainId) return false;
+      if (!q) return true;
+      return `${d.hostname} ${d.displayName} ${d.notifyEmail}`
+        .toLowerCase()
+        .includes(q);
+    });
+  }, [domains, searchQuery, selectedDomainId]);
+
+  const selectedDomainLabel = useMemo(
+    () => domains.find((d) => d.id === selectedDomainId)?.hostname ?? "",
+    [domains, selectedDomainId],
+  );
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const next = new URLSearchParams(searchParams.toString());
+      const trimmed = searchQuery.trim();
+      if (trimmed) next.set("q", trimmed);
+      else next.delete("q");
+      if (selectedDomainId) next.set("domain", selectedDomainId);
+      else next.delete("domain");
+      const currentQuery = searchParams.toString();
+      const nextQuery = next.toString();
+      if (currentQuery === nextQuery) return;
+      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+    }, 200);
+    return () => window.clearTimeout(timer);
+  }, [pathname, router, searchParams, searchQuery, selectedDomainId]);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "k") return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable ||
+          (target.tagName === "INPUT" && target !== searchRef.current))
+      ) {
+        return;
+      }
+      event.preventDefault();
+      searchRef.current?.focus();
+      searchRef.current?.select();
+    }
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
+  }, []);
   const { success: toastSuccess, error: toastError } = useAdminToast();
   const homepageButtonsSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -250,12 +333,14 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
     setEditingId(domain.id);
     setDraft({ ...domain });
     setError(null);
+    setHomepageButtonFieldErrors({});
   }
 
   function cancelEdit() {
     setEditingId(null);
     setDraft(null);
     setError(null);
+    setHomepageButtonFieldErrors({});
   }
 
   function updateDraft(patch: Partial<DomainRow>) {
@@ -265,13 +350,15 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
   function addDraftHomepageButton() {
     setDraft((prev) => {
       if (!prev) return prev;
+      if (prev.defaultHomepageButtons.length >= prev.defaultHomepageButtonLimit) return prev;
       const nextIndex = prev.defaultHomepageButtons.length + 1;
+      const nextId = `btn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       return {
         ...prev,
         defaultHomepageButtons: [
           ...prev.defaultHomepageButtons,
           {
-            id: `btn-${Date.now()}`,
+            id: nextId,
             label: `Button ${nextIndex}`,
             href: "",
             target: "_self",
@@ -287,6 +374,21 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         ],
       };
     });
+  }
+
+  function validateHomepageButtons(buttons: DomainRow["defaultHomepageButtons"]) {
+    const errors: Record<string, string> = {};
+    for (let index = 0; index < buttons.length; index += 1) {
+      const button = buttons[index];
+      if (button.linkedPageId) continue;
+      const href = String(button.href ?? "").trim();
+      if (!href) continue;
+      if (!isValidExternalHttpUrl(href)) {
+        errors[`idx-${index}`] =
+          `Button ${index + 1}: external link must start with http:// or https://`;
+      }
+    }
+    return errors;
   }
 
   function updateDraftHomepageButton(
@@ -465,6 +567,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
 
   async function saveDomain(domain: DomainRow) {
     setError(null);
+    setHomepageButtonFieldErrors({});
     const notifyEmail = domain.notifyEmail?.trim() ?? "";
     const notifySms = domain.notifySms?.trim() ?? "";
     if (!isValidEmail(notifyEmail)) {
@@ -480,6 +583,38 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
       toastError(message);
       return;
     }
+    const normalizedButtons = domain.defaultHomepageButtons.map((button) => {
+      if (button.linkedPageId) {
+        return {
+          ...button,
+          href: String(button.href ?? "").trim(),
+        };
+      }
+      return {
+        ...button,
+        href: normalizeExternalHttpUrl(String(button.href ?? "")),
+      };
+    });
+    for (const button of normalizedButtons) {
+      if (button.linkedPageId) continue;
+      const href = String(button.href ?? "").trim();
+      if (!href) continue;
+      if (!isValidExternalHttpUrl(href)) {
+        const label = button.label?.trim() || "Homepage button";
+        const message = `${label}: external link must start with http:// or https://`;
+        setError(message);
+        toastError(message);
+        return;
+      }
+    }
+    const buttonErrors = validateHomepageButtons(normalizedButtons);
+    if (Object.keys(buttonErrors).length > 0) {
+      setHomepageButtonFieldErrors(buttonErrors);
+      const firstMessage = Object.values(buttonErrors)[0];
+      setError(firstMessage);
+      toastError(firstMessage);
+      return;
+    }
     setSavingId(domain.id || "new");
     startTransition(async () => {
       try {
@@ -491,7 +626,10 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         const res = await fetch(url, {
           method,
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(domain),
+          body: JSON.stringify({
+            ...domain,
+            defaultHomepageButtons: normalizedButtons,
+          }),
           credentials: "include",
         });
         if (!res.ok) throw new Error("Failed to save domain");
@@ -601,6 +739,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         });
         setEditingId(null);
         setDraft(null);
+        setHomepageButtonFieldErrors({});
         toastSuccess(isNew ? "Domain created successfully." : "Domain updated successfully.");
       } catch (e: any) {
         console.error(e);
@@ -839,6 +978,68 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         </button>
         </div>
       </div>
+      <div className="rounded-2xl border border-[#E9ECEF] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#ADB5BD]" />
+            <input
+              ref={searchRef}
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search pages, slugs, or keywords…"
+              className="w-full rounded-xl border border-[#fff] bg-[#fff] py-2.5 !border-0 pl-10 pr-4 text-sm text-[#212529] placeholder:text-[#ADB5BD] focus:border-[#fff] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#fff]"
+            />
+           
+          </div>
+          <div className="flex h-px w-full shrink-0 bg-[#E9ECEF] lg:h-8 lg:w-px" />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <select
+                aria-label="Domain filter"
+                value={selectedDomainId}
+                onChange={(e) => setSelectedDomainId(e.target.value)}
+                className="min-w-[140px] appearance-none rounded-xl bg-white py-2 pl-3 pr-8 text-sm font-medium text-[#212529] focus:border-[#fff] focus:outline-none focus:ring-2 focus:ring-[#fff]"
+              >
+                <option value="">All domains</option>
+                {domains.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.hostname}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#ADB5BD]" />
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {searchQuery.trim().length > 0 && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="mt-2 inline-flex items-center gap-1 !rounded-full border border-[#C5DCF7] bg-[#E7F1FF] px-2.5 py-1 text-xs font-semibold text-[#1864AB] hover:bg-[#d8eaff]"
+            >
+              Search: {searchQuery.trim()}
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {selectedDomainLabel && (
+            <button
+              type="button"
+              onClick={() => setSelectedDomainId("")}
+              className="mt-2 inline-flex items-center gap-1 !rounded-full border border-[#DEE2E6] bg-[#F8F9FA] px-2.5 py-1 text-xs font-semibold text-[#495057] hover:bg-[#edf0f2]"
+            >
+              Domain: {selectedDomainLabel}
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#212529]">
+          Showing {filteredDomains.length} result{filteredDomains.length === 1 ? "" : "s"}{" "}
+        </p>
+      </div>
 
       <Dialog
         open={addDialogOpen}
@@ -1016,14 +1217,14 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
       )}
 
       <div className="space-y-3">
-        {domains.map((d: DomainRow) => {
+        {filteredDomains.map((d: DomainRow) => {
           const isEditing = editingId === d.id;
           const current = isEditing && draft && draft.id === d.id ? draft : d;
 
           return (
             <div
               key={d.id}
-              className="rounded-sm bg-white p-4 shadow-sm ring-1 ring-zinc-100"
+              className="!rounded-md bg-white p-4 shadow-sm ring-1 ring-zinc-100"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-2 flex-1">
@@ -1224,11 +1425,21 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                                 <button
                                   type="button"
                                   onClick={addDraftHomepageButton}
+                                  disabled={
+                                    current.defaultHomepageButtons.length >=
+                                    current.defaultHomepageButtonLimit
+                                  }
                                   className="inline-flex items-center gap-1 !rounded-md border border-zinc-300 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 shadow-sm hover:bg-zinc-100"
                                 >
                                   <Plus className="h-3 w-3" />
                                   Add button
                                 </button>
+                                {current.defaultHomepageButtons.length >=
+                                current.defaultHomepageButtonLimit ? (
+                                  <span className="text-[11px] font-medium text-amber-700">
+                                    Limit reached ({current.defaultHomepageButtonLimit})
+                                  </span>
+                                ) : null}
                               </div>
                             )}
                           </div>
@@ -1388,12 +1599,31 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                                           });
                                         }}
                                       />
-                                      <input
-                                        className="w-full !rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-xs read-only"
-                                        value={btn.href}
-                                        readOnly
-                                        placeholder="/target-slug or https://example.com"
-                                      />
+                                      <div className="space-y-1">
+                                        <input
+                                          className="w-full !rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-xs"
+                                          value={btn.href}
+                                          readOnly={!!btn.linkedPageId}
+                                          onChange={(e) => {
+                                            updateDraftHomepageButton(idx, { href: e.target.value });
+                                            setHomepageButtonFieldErrors((prev) => {
+                                              const next = { ...prev };
+                                              delete next[`idx-${idx}`];
+                                              return next;
+                                            });
+                                          }}
+                                          placeholder={
+                                            btn.linkedPageId
+                                              ? "Auto from selected page"
+                                              : "https://example.com"
+                                          }
+                                        />
+                                        {!btn.linkedPageId && homepageButtonFieldErrors[`idx-${idx}`] ? (
+                                          <p className="text-[11px] text-red-600">
+                                            {homepageButtonFieldErrors[`idx-${idx}`]}
+                                          </p>
+                                        ) : null}
+                                      </div>
                                     </>
                                   ) : (
                                     <>
@@ -1632,6 +1862,11 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         {domains.length === 0 && (
           <p className="py-8 text-center text-md text-zinc-500">
             No domains yet. Click &quot;+ Add domain&quot; to create one.
+          </p>
+        )}
+        {domains.length > 0 && filteredDomains.length === 0 && (
+          <p className="py-8 text-center text-md text-zinc-500">
+            No domains match your search.
           </p>
         )}
       </div>
