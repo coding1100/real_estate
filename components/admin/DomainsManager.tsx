@@ -241,6 +241,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [isBackfillingDefaults, setIsBackfillingDefaults] = useState(false);
   const [addFormError, setAddFormError] = useState<string | null>(null);
+  const [homepageButtonFieldErrors, setHomepageButtonFieldErrors] = useState<Record<string, string>>({});
   const searchRef = useRef<HTMLInputElement | null>(null);
   const [newDomainForm, setNewDomainForm] = useState<DomainRow>({
     id: "new",
@@ -333,12 +334,14 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
     setEditingId(domain.id);
     setDraft({ ...domain });
     setError(null);
+    setHomepageButtonFieldErrors({});
   }
 
   function cancelEdit() {
     setEditingId(null);
     setDraft(null);
     setError(null);
+    setHomepageButtonFieldErrors({});
   }
 
   function updateDraft(patch: Partial<DomainRow>) {
@@ -348,6 +351,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
   function addDraftHomepageButton() {
     setDraft((prev) => {
       if (!prev) return prev;
+      if (prev.defaultHomepageButtons.length >= prev.defaultHomepageButtonLimit) return prev;
       const nextIndex = prev.defaultHomepageButtons.length + 1;
       const nextId = `btn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       return {
@@ -371,6 +375,21 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         ],
       };
     });
+  }
+
+  function validateHomepageButtons(buttons: DomainRow["defaultHomepageButtons"]) {
+    const errors: Record<string, string> = {};
+    for (let index = 0; index < buttons.length; index += 1) {
+      const button = buttons[index];
+      if (button.linkedPageId) continue;
+      const href = String(button.href ?? "").trim();
+      if (!href) continue;
+      if (!isValidExternalHttpUrl(href)) {
+        errors[`idx-${index}`] =
+          `Button ${index + 1}: external link must start with http:// or https://`;
+      }
+    }
+    return errors;
   }
 
   function updateDraftHomepageButton(
@@ -549,6 +568,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
 
   async function saveDomain(domain: DomainRow) {
     setError(null);
+    setHomepageButtonFieldErrors({});
     const notifyEmail = domain.notifyEmail?.trim() ?? "";
     const notifySms = domain.notifySms?.trim() ?? "";
     if (!isValidEmail(notifyEmail)) {
@@ -587,6 +607,14 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         toastError(message);
         return;
       }
+    }
+    const buttonErrors = validateHomepageButtons(normalizedButtons);
+    if (Object.keys(buttonErrors).length > 0) {
+      setHomepageButtonFieldErrors(buttonErrors);
+      const firstMessage = Object.values(buttonErrors)[0];
+      setError(firstMessage);
+      toastError(firstMessage);
+      return;
     }
     setSavingId(domain.id || "new");
     startTransition(async () => {
@@ -712,6 +740,7 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
         });
         setEditingId(null);
         setDraft(null);
+        setHomepageButtonFieldErrors({});
         toastSuccess(isNew ? "Domain created successfully." : "Domain updated successfully.");
       } catch (e: any) {
         console.error(e);
@@ -1397,11 +1426,21 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                                 <button
                                   type="button"
                                   onClick={addDraftHomepageButton}
+                                  disabled={
+                                    current.defaultHomepageButtons.length >=
+                                    current.defaultHomepageButtonLimit
+                                  }
                                   className="inline-flex items-center gap-1 !rounded-md border border-zinc-300 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 shadow-sm hover:bg-zinc-100"
                                 >
                                   <Plus className="h-3 w-3" />
                                   Add button
                                 </button>
+                                {current.defaultHomepageButtons.length >=
+                                current.defaultHomepageButtonLimit ? (
+                                  <span className="text-[11px] font-medium text-amber-700">
+                                    Limit reached ({current.defaultHomepageButtonLimit})
+                                  </span>
+                                ) : null}
                               </div>
                             )}
                           </div>
@@ -1561,19 +1600,31 @@ export function DomainsManager({ initialDomains }: DomainsManagerProps) {
                                           });
                                         }}
                                       />
-                                      <input
-                                        className="w-full !rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-xs"
-                                        value={btn.href}
-                                        readOnly={!!btn.linkedPageId}
-                                        onChange={(e) =>
-                                          updateDraftHomepageButton(idx, { href: e.target.value })
-                                        }
-                                        placeholder={
-                                          btn.linkedPageId
-                                            ? "Auto from selected page"
-                                            : "https://example.com"
-                                        }
-                                      />
+                                      <div className="space-y-1">
+                                        <input
+                                          className="w-full !rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-xs"
+                                          value={btn.href}
+                                          readOnly={!!btn.linkedPageId}
+                                          onChange={(e) => {
+                                            updateDraftHomepageButton(idx, { href: e.target.value });
+                                            setHomepageButtonFieldErrors((prev) => {
+                                              const next = { ...prev };
+                                              delete next[`idx-${idx}`];
+                                              return next;
+                                            });
+                                          }}
+                                          placeholder={
+                                            btn.linkedPageId
+                                              ? "Auto from selected page"
+                                              : "https://example.com"
+                                          }
+                                        />
+                                        {!btn.linkedPageId && homepageButtonFieldErrors[`idx-${idx}`] ? (
+                                          <p className="text-[11px] text-red-600">
+                                            {homepageButtonFieldErrors[`idx-${idx}`]}
+                                          </p>
+                                        ) : null}
+                                      </div>
                                     </>
                                   ) : (
                                     <>
