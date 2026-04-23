@@ -225,7 +225,7 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
   return (
     <div className="custom min-h-[calc(100vh)] bg-[#0f2342] text-white default-homepage" style={pageStyleVars}>
       <header className="border-b border-white bg-white text-zinc-900">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-[10px]">
           <div className="text-sm font-semibold">
             {page.domain.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
