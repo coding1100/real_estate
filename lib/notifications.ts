@@ -318,6 +318,41 @@ function flattenLeadFormDataForEmail(
   return lines;
 }
 
+function ensureEmailPhoneRows(
+  rows: Array<{ label: string; value: string }>,
+  leadEmail: string | null,
+  leadPhone: string | null,
+): Array<{ label: string; value: string }> {
+  const hasEmailRow = rows.some((row) => {
+    const normalized = row.label.trim().toLowerCase();
+    return (
+      normalized === "email" ||
+      normalized.endsWith(".email") ||
+      normalized.includes("email")
+    );
+  });
+  const hasPhoneRow = rows.some((row) => {
+    const normalized = row.label.trim().toLowerCase();
+    return (
+      normalized === "phone" ||
+      normalized.endsWith(".phone") ||
+      normalized.includes("phone") ||
+      normalized.includes("mobile") ||
+      normalized.includes("telephone") ||
+      normalized === "tel"
+    );
+  });
+
+  const prefixedRows: Array<{ label: string; value: string }> = [];
+  if (!hasEmailRow) {
+    prefixedRows.push({ label: "EMAIL", value: leadEmail?.trim() ?? "" });
+  }
+  if (!hasPhoneRow) {
+    prefixedRows.push({ label: "PHONE", value: leadPhone?.trim() ?? "" });
+  }
+  return [...prefixedRows, ...rows];
+}
+
 function normalizeTemplateVariableKey(raw: string): string {
   const normalized = String(raw ?? "")
     .trim()
@@ -863,17 +898,25 @@ export async function sendLeadNotifications(
     resolvedRule?.deliveryMode === "notify_only_form_data"
       ? "notify_only_form_data"
       : "documents_with_notify";
+  const shouldSendLeadAlertEmail =
+    resolvedDeliveryMode === "notify_only_form_data"
+      ? true
+      : shouldSendCtaNotificationEmail;
 
   const leadAlertTask = async (): Promise<boolean> => {
     // Email to agent via Resend (CTA notify recipients only; do not use domain notifyEmail).
-    if (!(resend && resolvedNotifyEmails.length > 0 && shouldSendCtaNotificationEmail)) {
+    if (!(resend && resolvedNotifyEmails.length > 0 && shouldSendLeadAlertEmail)) {
       return false;
     }
     try {
       const subject = `[New ${lead.type} lead] ${domain.hostname} / ${ruleSourcePage.slug}`;
       const data = (lead.formData as Record<string, unknown>) ?? {};
       const lines = flattenLeadFormDataForEmail(data);
-      const fieldRows = formLinesToFieldRows(lines);
+      const baseFieldRows = formLinesToFieldRows(lines);
+      const fieldRows =
+        resolvedDeliveryMode === "notify_only_form_data"
+          ? ensureEmailPhoneRows(baseFieldRows, leadEmail, leadPhone)
+          : baseFieldRows;
       const brandName = (domain.displayName ?? domain.hostname).trim() || domain.hostname;
 
       const { html, text } = await renderNewLeadEmailHtml({
