@@ -144,12 +144,21 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
     () => page.defaultHomepageButtons ?? [],
     [page.defaultHomepageButtons],
   );
-  const globalCtaStyleMode = useMemo<"light" | "dark">(
-    () => (buttons[0]?.styleMode === "dark" ? "dark" : "light"),
+  const firstInternalButton = useMemo(
+    () =>
+      buttons.find((button) => {
+        const slug = String(button.slug ?? "").trim();
+        if (slug.length > 0) return true;
+        return deriveSlugFromHref(button.href).length > 0;
+      }) ?? null,
     [buttons],
   );
-  const ctaColors = useMemo(() => {
-    const defaults =
+  const globalCtaStyleMode = useMemo<"light" | "dark">(
+    () => (firstInternalButton?.styleMode === "dark" ? "dark" : "light"),
+    [firstInternalButton],
+  );
+  const defaultCtaColors = useMemo(
+    () =>
       globalCtaStyleMode === "dark"
         ? {
             bg: "#18181b",
@@ -162,27 +171,39 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
             text: "#111827",
             activeBg: "#f0cd72",
             activeText: "#111827",
-          };
+          },
+    [globalCtaStyleMode],
+  );
+  const ctaColors = useMemo(() => {
     return {
-      bg: normalizeHexColor(buttons[0]?.ctaBgColor, defaults.bg),
-      text: normalizeHexColor(buttons[0]?.ctaTextColor, defaults.text),
-      activeBg: normalizeHexColor(buttons[0]?.ctaActiveBgColor, defaults.activeBg),
-      activeText: normalizeHexColor(buttons[0]?.ctaActiveTextColor, defaults.activeText),
+      bg: normalizeHexColor(firstInternalButton?.ctaBgColor, defaultCtaColors.bg),
+      text: normalizeHexColor(firstInternalButton?.ctaTextColor, defaultCtaColors.text),
+      activeBg: normalizeHexColor(
+        firstInternalButton?.ctaActiveBgColor,
+        defaultCtaColors.activeBg,
+      ),
+      activeText: normalizeHexColor(
+        firstInternalButton?.ctaActiveTextColor,
+        defaultCtaColors.activeText,
+      ),
     };
-  }, [buttons, globalCtaStyleMode]);
-  const initialButton = useMemo(
-    () => buttons[0],
-    [buttons],
+  }, [firstInternalButton, defaultCtaColors]);
+  const firstInternalSlug = useMemo(
+    () =>
+      String(firstInternalButton?.slug ?? "").trim() ||
+      deriveSlugFromHref(firstInternalButton?.href) ||
+      "",
+    [firstInternalButton],
   );
   const [selectedSlug, setSelectedSlug] = useState<string>(
-    initialButton?.slug || deriveSlugFromHref(initialButton?.href) || "",
+    firstInternalSlug,
   );
   const [previewLoading, setPreviewLoading] = useState(true);
   const [openMegaIndex, setOpenMegaIndex] = useState<number | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
   const selectedPreviewSlug = useMemo(
-    () => selectedSlug || buttons[0]?.slug || "",
-    [selectedSlug, buttons],
+    () => selectedSlug || firstInternalSlug || "",
+    [selectedSlug, firstInternalSlug],
   );
   const blockquoteStyle = (hero.blockquoteStyle ?? {}) as {
     bg?: string;
@@ -208,6 +229,12 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
       "noopener,noreferrer",
     );
   }
+
+  useEffect(() => {
+    if (selectedSlug.trim()) return;
+    if (!firstInternalSlug) return;
+    setSelectedSlug(firstInternalSlug);
+  }, [selectedSlug, firstInternalSlug]);
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
@@ -363,6 +390,8 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
               {buttons.map((item, index) => {
                 const itemSlug = item.slug || deriveSlugFromHref(item.href);
                 const isSelected = selectedPreviewSlug === itemSlug;
+                const hasLinkedPage = String(item.slug ?? "").trim().length > 0;
+                const buttonColors = ctaColors;
                 const displayTitle =
                   String(item.title ?? "").trim() ||
                   String((item as { label?: string }).label ?? "").trim() ||
@@ -396,8 +425,8 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
                       : "hover:opacity-95"
                   }`}
                   style={{
-                    backgroundColor: isSelected ? ctaColors.activeBg : ctaColors.bg,
-                    color: isSelected ? ctaColors.activeText : ctaColors.text,
+                    backgroundColor: isSelected ? buttonColors.activeBg : buttonColors.bg,
+                    color: isSelected ? buttonColors.activeText : buttonColors.text,
                   }}
                 >
                   {displayTitle}
