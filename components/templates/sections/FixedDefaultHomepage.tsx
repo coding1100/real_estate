@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Eye, Loader2 } from "lucide-react";
+import { ChevronDown, Eye, ExternalLink, Loader2 } from "lucide-react";
 import type { LandingPageContent } from "@/lib/types/page";
 import type { CSSProperties } from "react";
 import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
@@ -390,6 +390,9 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
               {buttons.map((item, index) => {
                 const itemSlug = item.slug || deriveSlugFromHref(item.href);
                 const isSelected = selectedPreviewSlug === itemSlug;
+                const resolvedButtonHref = resolveNavHref(item.href ?? "");
+                const isExternalHttp =
+                  !itemSlug && /^https?:\/\//i.test(resolvedButtonHref);
                 const hasLinkedPage = String(item.slug ?? "").trim().length > 0;
                 const buttonColors = ctaColors;
                 const displayTitle =
@@ -409,8 +412,7 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
                       setSelectedSlug(derivedSlug);
                       return;
                     }
-                    const href = resolveNavHref(item.href ?? "");
-                    const isExternalHttp = /^https?:\/\//i.test(href);
+                    const href = resolvedButtonHref;
                     if (href !== "#" && isExternalHttp) {
                       window.open(
                         href,
@@ -429,7 +431,10 @@ export function FixedDefaultHomepage({ page }: { page: LandingPageContent }) {
                     color: isSelected ? buttonColors.activeText : buttonColors.text,
                   }}
                 >
-                  {displayTitle}
+                  <span className="inline-flex items-center justify-center gap-1.5">
+                    <span>{displayTitle}</span>
+                    {isExternalHttp ? <ExternalLink className="h-4 w-4" aria-hidden /> : null}
+                  </span>
                   </button>
                 );
               })}
