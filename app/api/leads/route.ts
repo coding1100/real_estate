@@ -11,10 +11,6 @@ import {
 } from "@/lib/leadDispatchQueue";
 import type { Prisma } from "@prisma/client";
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !Array.isArray(value);
-}
-
 function collectStringValues(input: unknown, seen = new Set<unknown>()): string[] {
   if (input == null) return [];
   if (typeof input === "string") {
@@ -103,13 +99,58 @@ function findPhoneInAnyField(input: unknown): string | null {
 }
 
 function findNameInAnyField(input: unknown): string | null {
-  if (!isPlainObject(input)) return null;
-  const direct =
-    (typeof input.name === "string" && input.name.trim()) ||
-    (typeof (input as any).fullName === "string" && (input as any).fullName.trim()) ||
-    (typeof (input as any).fullname === "string" && (input as any).fullname.trim());
-  if (direct) return String(direct).trim();
-  return null;
+  const likelyNameKey = (key: string): boolean => {
+    const normalized = key.trim().toLowerCase();
+    return (
+      normalized === "name" ||
+      normalized === "fullname" ||
+      normalized === "full_name" ||
+      normalized === "full-name" ||
+      normalized === "firstname" ||
+      normalized === "first_name" ||
+      normalized === "first-name" ||
+      normalized === "lastname" ||
+      normalized === "last_name" ||
+      normalized === "last-name" ||
+      normalized === "n"
+    );
+  };
+  const looksLikePersonName = (value: string): boolean => {
+    const normalized = value.replace(/\s+/g, " ").trim();
+    if (!normalized) return false;
+    if (normalized.length > 80) return false;
+    if (/@/.test(normalized)) return false;
+    if (/\d/.test(normalized)) return false;
+    return /[A-Za-z]/.test(normalized);
+  };
+
+  const seen = new Set<unknown>();
+  const visit = (node: unknown): string | null => {
+    if (!node || typeof node !== "object") return null;
+    if (seen.has(node)) return null;
+    seen.add(node);
+
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        const nested = visit(item);
+        if (nested) return nested;
+      }
+      return null;
+    }
+
+    for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+      if (typeof value === "string" && likelyNameKey(key) && looksLikePersonName(value)) {
+        return value.trim();
+      }
+      if (value && typeof value === "object") {
+        const nested = visit(value);
+        if (nested) return nested;
+      }
+    }
+    return null;
+  };
+
+  return visit(input);
 }
 
 export async function POST(req: NextRequest) {
@@ -280,21 +321,21 @@ export async function POST(req: NextRequest) {
       hasCtaText: typeof mergedFormData._ctaText === "string",
     });
 
-    // Reliability first: in live/serverless, fire-and-forget can be terminated
-    // after response. Await immediate notifications send here so delivery is not lost.
-    // Queue remains the durable retry fallback if this attempt fails.
-    try {
-      await sendLeadNotifications(lead.id, { throwOnFailure: true });
-      await markLeadDispatchJobDoneByType(lead.id, "notifications");
-      console.log("[leads] Immediate notifications send succeeded", {
-        leadId: lead.id,
+    // Keep submit fast: notifications are handled by the durable queue.
+    // We still attempt an opportunistic async send, but never block response.
+    void sendLeadNotifications(lead.id, { throwOnFailure: true })
+      .then(async () => {
+        await markLeadDispatchJobDoneByType(lead.id, "notifications");
+        console.log("[leads] Immediate notifications send succeeded", {
+          leadId: lead.id,
+        });
+      })
+      .catch((notificationError) => {
+        console.error("[leads] Immediate notification send failed; queue retry will continue", {
+          leadId: lead.id,
+          error: notificationError,
+        });
       });
-    } catch (notificationError) {
-      console.error("[leads] Immediate notification send failed; queue retry will continue", {
-        leadId: lead.id,
-        error: notificationError,
-      });
-    }
 
     // Fire and forget non-critical integrations so submit response returns fast.
     // This preserves lead capture reliability while reducing user-facing latency.
