@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyRecaptchaToken } from "@/lib/captcha";
-import { dispatchLeadToWebhooks } from "@/lib/webhooks";
 import { sendLeadNotifications } from "@/lib/notifications";
 import {
   enqueueLeadDispatchJobsTx,
@@ -336,15 +335,6 @@ export async function POST(req: NextRequest) {
           error: notificationError,
         });
       });
-
-    // Fire and forget non-critical integrations so submit response returns fast.
-    // This preserves lead capture reliability while reducing user-facing latency.
-    void Promise.allSettled([dispatchLeadToWebhooks(lead.id)]).catch((dispatchError) => {
-      console.error("[leads] Async dispatch failure", {
-        leadId: lead.id,
-        error: dispatchError,
-      });
-    });
 
     // Opportunistically run one queued dispatch immediately.
     // If the process exits early, the persisted queue guarantees retry.
