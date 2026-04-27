@@ -22,7 +22,8 @@ const TABLE_NAME = '"LeadDispatchJob"';
 const JOB_TYPE_FUB: JobType = "followupboss";
 const JOB_TYPE_NOTIFICATIONS: JobType = "notifications";
 const JOB_TYPE_WEBHOOKS: JobType = "webhooks";
-const LOCK_STALE_MINUTES = 5;
+const FUB_LOCK_STALE_SECONDS = 90;
+const DEFAULT_LOCK_STALE_MINUTES = 5;
 const BASE_RETRY_DELAY_MS = 5000;
 const MAX_RETRY_DELAY_MS = 5 * 60 * 1000;
 
@@ -134,8 +135,13 @@ export async function enqueueLeadDispatchJobsTx(
   );
 }
 
-async function claimDispatchJobs(maxJobs: number, workerId: string): Promise<JobRow[]> {
+async function claimDispatchJobs(
+  maxJobs: number,
+  workerId: string,
+  options?: { onlyJobType?: JobType },
+): Promise<JobRow[]> {
   await ensureLeadDispatchTableOnce();
+  const onlyJobType = options?.onlyJobType ?? null;
   return withPrismaRetry(() =>
     prisma.$queryRawUnsafe<JobRow[]>(
       `WITH picked AS (
@@ -148,10 +154,16 @@ async function claimDispatchJobs(maxJobs: number, workerId: string): Promise<Job
              )
              OR (
                "status" = 'processing'
-               AND "lockedAt" < (CURRENT_TIMESTAMP - INTERVAL '${LOCK_STALE_MINUTES} minutes')
+              AND "lockedAt" < (
+                CURRENT_TIMESTAMP - CASE
+                  WHEN "jobType" = 'followupboss' THEN ($3 * INTERVAL '1 second')
+                  ELSE ($4 * INTERVAL '1 minute')
+                END
+              )
              )
            )
            AND "attemptCount" < "maxAttempts"
+          AND ($5::text IS NULL OR "jobType" = $5)
         ORDER BY
           CASE
             WHEN "jobType" = 'followupboss' THEN 0
@@ -178,6 +190,9 @@ async function claimDispatchJobs(maxJobs: number, workerId: string): Promise<Job
          j."maxAttempts"`,
       maxJobs,
       workerId,
+      FUB_LOCK_STALE_SECONDS,
+      DEFAULT_LOCK_STALE_MINUTES,
+      onlyJobType,
     ),
   );
 }
@@ -257,10 +272,18 @@ export async function processLeadDispatchQueue(options?: {
   const maxJobs = Math.min(50, Math.max(1, Math.floor(options?.maxJobs ?? 10)));
   const workerId = options?.workerId?.trim() || `worker-${randomUUID()}`;
 
-  const jobs = await claimDispatchJobs(maxJobs, workerId);
+  const fubJobs = await claimDispatchJobs(maxJobs, workerId, {
+    onlyJobType: JOB_TYPE_FUB,
+  });
+  const remainingSlots = Math.max(0, maxJobs - fubJobs.length);
+  const otherJobs =
+    remainingSlots > 0 ? await claimDispatchJobs(remainingSlots, workerId) : [];
+  const jobs = [...fubJobs, ...otherJobs];
   console.log("[lead-dispatch-queue] Claimed jobs", {
     workerId,
     requestedMaxJobs: maxJobs,
+    fubClaimed: fubJobs.length,
+    nonFubClaimed: otherJobs.length,
     claimed: jobs.length,
     jobIds: jobs.map((j) => j.id),
   });
