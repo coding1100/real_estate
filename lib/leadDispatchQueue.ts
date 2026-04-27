@@ -4,9 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { withPrismaRetry } from "@/lib/prismaRetry";
 import { dispatchLeadToFollowUpBoss } from "@/lib/followupboss";
 import { sendLeadNotifications } from "@/lib/notifications";
+import { dispatchLeadToWebhooks } from "@/lib/webhooks";
 
 type JobStatus = "pending" | "processing" | "done" | "failed";
-type JobType = "followupboss" | "notifications";
+type JobType = "followupboss" | "notifications" | "webhooks";
 
 type JobRow = {
   id: string;
@@ -20,6 +21,7 @@ type JobRow = {
 const TABLE_NAME = '"LeadDispatchJob"';
 const JOB_TYPE_FUB: JobType = "followupboss";
 const JOB_TYPE_NOTIFICATIONS: JobType = "notifications";
+const JOB_TYPE_WEBHOOKS: JobType = "webhooks";
 const LOCK_STALE_MINUTES = 5;
 const BASE_RETRY_DELAY_MS = 5000;
 const MAX_RETRY_DELAY_MS = 5 * 60 * 1000;
@@ -95,6 +97,7 @@ async function enqueueJob(leadId: string, jobType: JobType) {
 export async function enqueueLeadDispatchJobs(leadId: string) {
   await ensureLeadDispatchTableOnce();
   await enqueueJob(leadId, JOB_TYPE_FUB);
+  await enqueueJob(leadId, JOB_TYPE_WEBHOOKS);
   await enqueueJob(leadId, JOB_TYPE_NOTIFICATIONS);
 }
 
@@ -103,7 +106,16 @@ export async function enqueueLeadDispatchJobsTx(
   leadId: string,
 ) {
   const fubJobId = randomUUID();
+  const webhookJobId = randomUUID();
   const notificationsJobId = randomUUID();
+  await tx.$executeRawUnsafe(
+    `INSERT INTO ${TABLE_NAME} ("id", "leadId", "jobType", "status", "attemptCount", "maxAttempts", "nextRunAt", "createdAt", "updatedAt")
+     VALUES ($1, $2, $3, 'pending', 0, 8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+     ON CONFLICT ("leadId", "jobType") DO NOTHING`,
+    webhookJobId,
+    leadId,
+    JOB_TYPE_WEBHOOKS,
+  );
   await tx.$executeRawUnsafe(
     `INSERT INTO ${TABLE_NAME} ("id", "leadId", "jobType", "status", "attemptCount", "maxAttempts", "nextRunAt", "createdAt", "updatedAt")
      VALUES ($1, $2, $3, 'pending', 0, 8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
@@ -229,6 +241,10 @@ async function runSingleJob(job: JobRow): Promise<void> {
   }
   if (job.jobType === JOB_TYPE_NOTIFICATIONS) {
     await sendLeadNotifications(job.leadId, { throwOnFailure: true });
+    return;
+  }
+  if (job.jobType === JOB_TYPE_WEBHOOKS) {
+    await dispatchLeadToWebhooks(job.leadId, { throwOnFailure: true });
     return;
   }
   throw new Error(`Unsupported dispatch job type: ${job.jobType}`);
