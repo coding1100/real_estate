@@ -18,11 +18,13 @@ function getResponseErrorText(body: string): string {
   if (!trimmed) return "No response body";
   try {
     const parsed = JSON.parse(trimmed) as Record<string, unknown>;
-    const message =
-      (typeof parsed.message === "string" && parsed.message) ||
-      (typeof parsed.error === "string" && parsed.error) ||
-      (typeof parsed.hint === "string" && parsed.hint);
-    return message ?? trimmed;
+    const candidates = [parsed.message, parsed.error, parsed.hint];
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim()) {
+        return candidate;
+      }
+    }
+    return trimmed;
   } catch {
     return trimmed;
   }
