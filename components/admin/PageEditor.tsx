@@ -350,30 +350,30 @@ export function PageEditor({
           normalizedTitle.length > 0
             ? normalizedTitle
             : ((page as any).title ?? page.headline ?? "").trim();
-        let sections = page.sections;
-        const blocks =
-          tab === "layout" && layoutGetBlocksRef.current
-            ? layoutGetBlocksRef.current()
-            : page.blocks;
-        if (tab === "layout" && layoutGetBlocksRef.current) {
-          setPage((prev) => ({ ...prev, blocks }));
+      let sections = page.sections;
+      const blocks =
+        tab === "layout" && layoutGetBlocksRef.current
+          ? layoutGetBlocksRef.current()
+          : page.blocks;
+      if (tab === "layout" && layoutGetBlocksRef.current) {
+        setPage((prev) => ({ ...prev, blocks }));
+      }
+      if (tab === "layout" && layoutGetHeroElementsRef.current) {
+        const heroElements = layoutGetHeroElementsRef.current();
+        if (heroElements && Array.isArray(sections)) {
+          sections = sections.map((s) =>
+            s.kind === "hero"
+              ? {
+                ...s,
+                props: {
+                  ...(s.props || {}),
+                  heroElements,
+                },
+              }
+              : s,
+          );
         }
-        if (tab === "layout" && layoutGetHeroElementsRef.current) {
-          const heroElements = layoutGetHeroElementsRef.current();
-          if (heroElements && Array.isArray(sections)) {
-            sections = sections.map((s) =>
-              s.kind === "hero"
-                ? {
-                    ...s,
-                    props: {
-                      ...(s.props || {}),
-                      heroElements,
-                    },
-                  }
-                : s,
-            );
-          }
-        }
+      }
         // Always persist the latest CTA rules + local toast override into hero
         // props so publish/save never overwrites CTA/Toast edits with stale sections.
         if (Array.isArray(sections)) {
@@ -410,57 +410,57 @@ export function PageEditor({
             ];
           }
         }
-        const body: any = {
+      const body: any = {
           title: effectiveTitle.length > 0 ? effectiveTitle : null,
           headline: effectiveTitle.length > 0 ? effectiveTitle : page.headline,
-          subheadline: page.subheadline,
-          heroImageUrl: page.heroImageUrl,
-          ctaText: page.ctaText,
-          successMessage: page.successMessage,
-          footerHtml: (page as any).footerHtml ?? null,
-          sections,
-          blocks,
-          formSchema,
-          socialOverrides,
-          seoTitle: page.seo.title,
-          seoDescription: page.seo.description,
-          canonicalUrl: page.seo.canonicalUrl,
-          noIndex: page.seo.noIndex,
+        subheadline: page.subheadline,
+        heroImageUrl: page.heroImageUrl,
+        ctaText: page.ctaText,
+        successMessage: page.successMessage,
+        footerHtml: (page as any).footerHtml ?? null,
+        sections,
+        blocks,
+        formSchema,
+        socialOverrides,
+        seoTitle: page.seo.title,
+        seoDescription: page.seo.description,
+        canonicalUrl: page.seo.canonicalUrl,
+        noIndex: page.seo.noIndex,
           // Keep CTA rules as a top-level patch field as well, so the API
           // normalizer always runs and persists deliveryMode reliably.
           ctaForwardingRules,
-        };
-        body.multistepStepSlugs =
+      };
+      body.multistepStepSlugs =
           effectivePageMode === "multistep" && multistepStepSlugs.length > 0
-            ? multistepStepSlugs
-            : null;
+          ? multistepStepSlugs
+          : null;
 
-        const getLayout = layoutGetLayoutRef.current;
+      const getLayout = layoutGetLayoutRef.current;
         if (!isFixedDefaultHomepage && getLayout) {
-          const raw = getLayout();
-          if (Array.isArray(raw) && raw.length > 0) {
-            body.layoutData = raw.map((item: { i: string; x: number; y: number; w: number; h: number; minW?: number; minH?: number; static?: boolean; hidden?: boolean }) => ({
-              i: item.i,
-              x: item.x,
-              y: item.y,
-              w: item.w,
-              h: item.h,
-              ...(item.minW != null && { minW: item.minW }),
-              ...(item.minH != null && { minH: item.minH }),
-              ...(item.static != null && { static: item.static }),
-              ...(item.hidden === true && { hidden: true }),
-            }));
-          }
+        const raw = getLayout();
+        if (Array.isArray(raw) && raw.length > 0) {
+          body.layoutData = raw.map((item: { i: string; x: number; y: number; w: number; h: number; minW?: number; minH?: number; static?: boolean; hidden?: boolean }) => ({
+            i: item.i,
+            x: item.x,
+            y: item.y,
+            w: item.w,
+            h: item.h,
+            ...(item.minW != null && { minW: item.minW }),
+            ...(item.minH != null && { minH: item.minH }),
+            ...(item.static != null && { static: item.static }),
+            ...(item.hidden === true && { hidden: true }),
+          }));
         }
+      }
         if (nextStatus) {
           body.status = nextStatus;
-        }
-        const res = await fetch(`/api/admin/pages/${initialPage.dbId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        if (!res.ok) {
+      }
+      const res = await fetch(`/api/admin/pages/${initialPage.dbId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
           const data = (await res.json().catch(() => null)) as
             | { error?: string }
             | null;
@@ -469,27 +469,27 @@ export function PageEditor({
             "Failed to save";
           setMessage(errorMessage);
           errorToast(errorMessage, "Unable to save page");
-          return;
-        }
-        // Keep local page state in sync with what we just saved so
-        // switching tabs does not resurrect older data.
-        setPage((prev) => ({
-          ...prev,
+        return;
+      }
+      // Keep local page state in sync with what we just saved so
+      // switching tabs does not resurrect older data.
+      setPage((prev) => ({
+        ...prev,
           title: body.title,
           headline: body.headline,
-          sections,
-          blocks,
-          formSchema,
-          socialOverrides,
-          ...(body.layoutData
-            ? {
-                pageLayout: {
-                  ...(prev.pageLayout ?? {}),
-                  layoutData: body.layoutData,
-                } as any,
-              }
-            : {}),
-        }));
+        sections,
+        blocks,
+        formSchema,
+        socialOverrides,
+        ...(body.layoutData
+          ? {
+            pageLayout: {
+              ...(prev.pageLayout ?? {}),
+              layoutData: body.layoutData,
+            } as any,
+          }
+          : {}),
+      }));
         // Save buttons also commit pending title edits (without requiring check icon).
         setIsEditingTitle(false);
         setTitleDraft(body.title ?? body.headline ?? "");
@@ -501,25 +501,25 @@ export function PageEditor({
         setMessage(
           isPublishing ? "Published" : isUnpublishing ? "Unpublished" : "Saved",
         );
-        successToast(
+      successToast(
           isPublishing
             ? "Page published."
             : isUnpublishing
               ? "Page moved to draft."
               : "Draft saved.",
           isPublishing ? "Published" : isUnpublishing ? "Unpublished" : "Saved",
-        );
+      );
 
-        // Refresh preview iframe so changes are visible - with cache busting
-        setTimeout(() => {
-          const iframe = document.getElementById(
-            "page-preview",
-          ) as HTMLIFrameElement | null;
-          if (iframe) {
-            // Add timestamp to force fresh fetch
+      // Refresh preview iframe so changes are visible - with cache busting
+      setTimeout(() => {
+        const iframe = document.getElementById(
+          "page-preview",
+        ) as HTMLIFrameElement | null;
+        if (iframe) {
+          // Add timestamp to force fresh fetch
             iframe.src = `/${encodeURIComponent(page.slug)}?preview=1&domain=${encodeURIComponent(page.domain.hostname)}&t=${Date.now()}`;
-          }
-        }, 100);
+        }
+      }, 100);
       } finally {
         setActiveSaveAction(null);
       }
@@ -1270,8 +1270,8 @@ export function PageEditor({
                                     : 0.58;
                                   return normalized.toFixed(2);
                                 })()}
-                              </div>
-                            </div>
+                        </div>
+                      </div>
                             <input
                               type="range"
                               min="0.2"
@@ -1371,7 +1371,7 @@ export function PageEditor({
                               </option>
                             <option value="team-showcase">
                               Team showcase (image-led hero with integrated form)
-                            </option>
+                              </option>
                           </select>
                         </div>
                         <div className="space-y-3">
@@ -1403,16 +1403,16 @@ export function PageEditor({
                             />
                           </div>
                         {(heroLayout.formStyle as string) !== "team-showcase" && (
-                          <RichTextEditor
-                            label="Form intro text (right column, rich text)"
-                            value={heroLayout.formIntro ?? ""}
-                            onChange={(html) =>
-                              updateHeroLayout({ formIntro: html as any })
-                            }
-                            placeholder="Explain what the visitor receives after submitting the form."
-                            height={286}
-                            fontOptions={editorFonts}
-                          />
+                        <RichTextEditor
+                          label="Form intro text (right column, rich text)"
+                          value={heroLayout.formIntro ?? ""}
+                          onChange={(html) =>
+                            updateHeroLayout({ formIntro: html as any })
+                          }
+                          placeholder="Explain what the visitor receives after submitting the form."
+                          height={286}
+                          fontOptions={editorFonts}
+                        />
                         )}
                       </div>
                     </div>
@@ -1483,7 +1483,7 @@ export function PageEditor({
                               updateHeroLayout({ teamImageUrl: url ?? undefined })
                             }
                           />
-                        </div>
+                  </div>
                       </div>
                     )}
                   </div>
@@ -1571,38 +1571,38 @@ export function PageEditor({
                   {(heroLayout.formStyle as string) === "detailed-perspective" && (
                     <div className="space-y-2.5 !rounded-md border border-zinc-200 bg-white p-3 shadow-sm">
                       <div className="space-y-0.5">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
-                          Detailed Perspective – profile column
-                        </p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                        Detailed Perspective – profile column
+                      </p>
                         <p className="text-[11px] leading-snug text-zinc-500">
                           Profile image only as wide as its content; Image layout uses the remaining width on that row.
                         </p>
                       </div>
                       <div className="grid gap-3 md:grid-cols-2 md:items-start md:gap-3">
                         <div className="min-w-0 !rounded-md border border-zinc-200 bg-zinc-50/80 p-2">
-                          <RichTextEditor
-                            label="Profile content (rich text)"
-                            value={(heroLayout.profileSectionHtml as string) ?? ""}
-                            onChange={(html) =>
-                              updateHeroLayout({ profileSectionHtml: html as string })
-                            }
-                            placeholder="Optional: rich text for the profile block (name, title, role, phone, email, etc.). When set, this is shown instead of the fields below."
-                            fontOptions={editorFonts}
+                        <RichTextEditor
+                          label="Profile content (rich text)"
+                          value={(heroLayout.profileSectionHtml as string) ?? ""}
+                          onChange={(html) =>
+                            updateHeroLayout({ profileSectionHtml: html as string })
+                          }
+                          placeholder="Optional: rich text for the profile block (name, title, role, phone, email, etc.). When set, this is shown instead of the fields below."
+                          fontOptions={editorFonts}
                             height={220}
-                          />
+                        />
                         </div>
                         <div className="min-w-0 !rounded-md border border-zinc-200 bg-zinc-50/80 p-2">
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
                             <div className="w-full shrink-0 !rounded-md border border-zinc-200 bg-white p-2 sm:w-fit sm:max-w-full">
-                              <ImageUploader
+                        <ImageUploader
                                 compact
-                                label="Profile image"
-                                value={(heroLayout.profileImageUrl as string) ?? null}
-                                onChange={(url) =>
-                                  updateHeroLayout({ profileImageUrl: url ?? undefined })
-                                }
-                              />
-                            </div>
+                          label="Profile image"
+                          value={(heroLayout.profileImageUrl as string) ?? null}
+                          onChange={(url) =>
+                            updateHeroLayout({ profileImageUrl: url ?? undefined })
+                          }
+                        />
+                        </div>
                             <div className="min-w-0 flex-1 space-y-1.5 !rounded-md border border-zinc-200 bg-white p-2">
                               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-600">
                                 Image layout
@@ -1646,7 +1646,7 @@ export function PageEditor({
                                       <span className="text-[11px] tabular-nums text-zinc-500">
                                         {clamped}
                                       </span>
-                                    </div>
+                        </div>
                                     <input
                                       type="range"
                                       min={-200}
@@ -1693,7 +1693,7 @@ export function PageEditor({
                                 <p className="text-[10px] leading-tight text-zinc-500">
                                   Public page width; default 240px.
                                 </p>
-                              </div>
+                      </div>
                             </div>
                           </div>
                         </div>
@@ -1705,25 +1705,25 @@ export function PageEditor({
                         </p>
                         <div className="grid gap-3 md:grid-cols-2">
                           <div className="min-w-0 md:col-span-1">
-                            <RichTextEditor
-                              label="Text after CTA button (rich text)"
-                              value={(heroLayout.formPostCtaText as string) ?? ""}
-                              onChange={(html) =>
-                                updateHeroLayout({ formPostCtaText: html as string })
-                              }
-                              placeholder="Optional text shown directly below the Complete Request button."
-                            />
-                          </div>
+                        <RichTextEditor
+                          label="Text after CTA button (rich text)"
+                          value={(heroLayout.formPostCtaText as string) ?? ""}
+                          onChange={(html) =>
+                            updateHeroLayout({ formPostCtaText: html as string })
+                          }
+                          placeholder="Optional text shown directly below the Complete Request button."
+                        />
+                        </div>
                           <div className="min-w-0 md:col-span-1">
-                            <RichTextEditor
-                              label="Text below form area overall (rich text)"
-                              value={(heroLayout.formFooterText as string) ?? ""}
-                              onChange={(html) =>
-                                updateHeroLayout({ formFooterText: html as string })
-                              }
-                              placeholder="Optional text shown below the entire form panel (e.g. disclaimer, attribution)."
-                            />
-                          </div>
+                        <RichTextEditor
+                          label="Text below form area overall (rich text)"
+                          value={(heroLayout.formFooterText as string) ?? ""}
+                          onChange={(html) =>
+                            updateHeroLayout({ formFooterText: html as string })
+                          }
+                          placeholder="Optional text shown below the entire form panel (e.g. disclaimer, attribution)."
+                        />
+                        </div>
                         </div>
                       </div>
                     </div>
@@ -1992,15 +1992,15 @@ export function PageEditor({
                       val.canonicalUrl ?? "",
                     );
                     return {
-                      ...prev,
+                    ...prev,
                       ...(derivedSlug ? { slug: derivedSlug } : {}),
-                      seo: {
-                        ...prev.seo,
-                        title: val.seoTitle,
-                        description: val.seoDescription,
-                        canonicalUrl: val.canonicalUrl,
-                        noIndex: val.noIndex,
-                      },
+                    seo: {
+                      ...prev.seo,
+                      title: val.seoTitle,
+                      description: val.seoDescription,
+                      canonicalUrl: val.canonicalUrl,
+                      noIndex: val.noIndex,
+                    },
                     };
                   })
                 }
@@ -2108,7 +2108,7 @@ export function PageEditor({
                   });
                 }}
               />
-            </div>
+        </div>
           )}
         </div>
         <div className="h-[588px] overflow-hidden !rounded-md border border-zinc-200 bg-white shadow-sm md:h-[784px] adj01 mb-[50px]">

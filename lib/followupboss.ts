@@ -74,7 +74,7 @@ type FollowUpBossPerson = {
 type FollowUpBossEventPayload = {
   source: string;
   sourceUrl: string;
-  system: string;
+  system?: string;
   type: "General Inquiry" | "Seller Inquiry";
   message: string;
   person: FollowUpBossPerson;
@@ -325,13 +325,16 @@ function findNameCandidate(fields: FlattenedField[]): string | null {
     "fullname",
     "firstName",
     "firstname",
+    "first_name",
+    "lastName",
+    "lastname",
+    "last_name",
+    "n",
   ]);
   if (byLikelyKey && looksLikePersonName(byLikelyKey)) {
     return byLikelyKey;
   }
-
-  const fallback = fields.find((f) => looksLikePersonName(f.value));
-  return fallback?.value ?? null;
+  return null;
 }
 
 function extractPerson(formData: unknown): FollowUpBossPerson | null {
@@ -612,27 +615,32 @@ function buildPayload(
   notificationRecipients: string[],
 ): FollowUpBossEventPayload | null {
   const source = normalizeSourceDomain(lead.domain.hostname);
-  const person = extractPerson(lead.formData);
+  const extractedPerson = extractPerson(lead.formData);
   const campaign = buildCampaign(lead, source);
+  const flattened = flattenFormData(lead.formData);
+  const person =
+    extractedPerson ??
+    ({
+      firstName: "Website",
+      lastName: "Lead",
+    } satisfies FollowUpBossPerson);
 
-  if (!person) {
-    const flattened = flattenFormData(lead.formData);
+  if (!extractedPerson) {
     const sampleKeys = [...new Set(flattened.map((f) => f.key))].slice(0, 15);
     console.warn(
-      `[followupboss] Skipping lead ${lead.id}: no identifiable person fields (name/email/phone).`,
+      `[followupboss] Lead ${lead.id} missing person fields; using fallback person for dispatch.`,
       {
         page: lead.page.slug,
         fieldCount: flattened.length,
         sampleKeys,
       },
     );
-    return null;
   }
 
   return {
     source,
     sourceUrl: getSourceUrl(lead),
-    system: config.system,
+    ...(config.system ? { system: config.system } : {}),
     type: getEventType(lead.page.type),
     message: buildMessage(lead, person, config, fieldLabels, notificationRecipients),
     person,
@@ -755,10 +763,10 @@ export async function dispatchLeadToFollowUpBoss(
     return;
   }
 
-  if (!config.apiKey || !config.system || !config.systemKey) {
+  if (!config.apiKey) {
     if (!missingConfigWarned) {
       console.warn(
-        "[followupboss] Integration is enabled but missing FUB_API_KEY, FUB_SYSTEM, or FUB_SYSTEM_KEY. Skipping dispatch.",
+        "[followupboss] Integration is enabled but missing FUB_API_KEY. Skipping dispatch.",
       );
       missingConfigWarned = true;
     }
@@ -791,13 +799,16 @@ export async function dispatchLeadToFollowUpBoss(
   const payload = buildPayload(lead, config, fieldLabels, notificationRecipients);
   if (!payload) return;
 
+  console.log("payload", payload);
+  console.log("lead", lead);
+
   const endpoint = `${config.baseUrl}${FUB_EVENTS_PATH}`;
-  const headers = {
+  const headers: Record<string, string> = {
     Authorization: toAuthorizationHeader(config.apiKey),
     "Content-Type": "application/json",
-    "X-System": config.system,
-    "X-System-Key": config.systemKey,
   };
+  if (config.system) headers["X-System"] = config.system;
+  if (config.systemKey) headers["X-System-Key"] = config.systemKey;
 
   for (let attempt = 1; attempt <= config.maxAttempts; attempt += 1) {
     let response: Response | null = null;
@@ -813,6 +824,7 @@ export async function dispatchLeadToFollowUpBoss(
       });
 
       const body = await response.text();
+      console.log("body", body);
 
       if (response.status === 200 || response.status === 201) {
         console.log(
