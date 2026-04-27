@@ -1,5 +1,4 @@
 import { Resend } from "resend";
-import twilio from "twilio";
 import { prisma } from "./prisma";
 import { getAdminUiSettings } from "./uiSettings";
 import {
@@ -16,14 +15,6 @@ import {
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESEND_FROM_EMAIL = (process.env.RESEND_FROM_EMAIL ?? "").trim();
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
-
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const TWILIO_FROM_NUMBER = process.env.TWILIO_FROM_NUMBER;
-const twilioClient =
-  TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN
-    ? twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-    : null;
 
 function extractLeadEmail(formData: unknown): string | null {
   const seen = new Set<unknown>();
@@ -1181,20 +1172,6 @@ export async function sendLeadNotifications(
     documentEmailSent = documentEmailResult.value;
   } else if (throwOnFailure) {
     throw documentEmailResult.reason;
-  }
-
-  // SMS to agent via Twilio
-  if (twilioClient && TWILIO_FROM_NUMBER && domain.notifySms) {
-    try {
-      await twilioClient.messages.create({
-        from: TWILIO_FROM_NUMBER,
-        to: domain.notifySms,
-        body: `New ${lead.type} lead from ${domain.hostname} / ${page.slug}`,
-      });
-    } catch (e) {
-      console.error("[notifications] Failed to send SMS", e);
-      if (throwOnFailure) throw e;
-    }
   }
 
   if (throwOnFailure && !leadAlertSent && !documentEmailSent) {

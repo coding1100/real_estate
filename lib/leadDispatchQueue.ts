@@ -140,7 +140,12 @@ async function claimDispatchJobs(maxJobs: number, workerId: string): Promise<Job
              )
            )
            AND "attemptCount" < "maxAttempts"
-         ORDER BY "nextRunAt" ASC
+        ORDER BY
+          CASE
+            WHEN "jobType" = 'followupboss' THEN 0
+            ELSE 1
+          END ASC,
+          "nextRunAt" ASC
          LIMIT $1
          FOR UPDATE SKIP LOCKED
        )
