@@ -81,6 +81,14 @@ type FollowUpBossEventPayload = {
   campaign?: FollowUpBossCampaign;
 };
 
+type FubDispatchAttemptResult = {
+  ok: boolean;
+  status: number;
+  body: string;
+  error?: string;
+  ignoredByLeadFlow?: boolean;
+};
+
 let missingConfigWarned = false;
 
 function parseBoolean(value: string | undefined, defaultValue: boolean): boolean {
@@ -686,6 +694,43 @@ function toAuthorizationHeader(apiKey: string): string {
   return `Basic ${Buffer.from(`${apiKey}:`).toString("base64")}`;
 }
 
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function buildFallbackAliasEmail(originalEmail: string, leadId: string): string | null {
+  const trimmed = originalEmail.trim().toLowerCase();
+  if (!isValidEmail(trimmed)) return null;
+  const atIndex = trimmed.lastIndexOf("@");
+  if (atIndex <= 0 || atIndex >= trimmed.length - 1) return null;
+  const local = trimmed.slice(0, atIndex).replace(/[^a-z0-9._%+-]/gi, "");
+  const domain = trimmed.slice(atIndex + 1).replace(/[^a-z0-9.-]/gi, "");
+  if (!local || !domain) return null;
+  const suffix = leadId.replace(/[^a-z0-9]/gi, "").slice(0, 12).toLowerCase();
+  const aliasLocal = `${local}+relead${suffix ? `-${suffix}` : ""}`;
+  return `${aliasLocal}@${domain}`;
+}
+
+function buildPayloadWithAliasEmail(
+  payload: FollowUpBossEventPayload,
+  leadId: string,
+): { payload: FollowUpBossEventPayload; originalEmail: string; aliasEmail: string } | null {
+  const originalEmail = payload.person.emails?.[0]?.value?.trim();
+  if (!originalEmail || !isValidEmail(originalEmail)) return null;
+  const aliasEmail = buildFallbackAliasEmail(originalEmail, leadId);
+  if (!aliasEmail || aliasEmail.toLowerCase() === originalEmail.toLowerCase()) return null;
+
+  const aliasPayload: FollowUpBossEventPayload = {
+    ...payload,
+    message: `${payload.message}\n\nOriginal submitted email: ${originalEmail}`,
+    person: {
+      ...payload.person,
+      emails: [{ value: aliasEmail }],
+    },
+  };
+  return { payload: aliasPayload, originalEmail, aliasEmail };
+}
+
 async function buildFieldLabelsForLead(
   lead: NonNullable<LeadRecord>,
 ): Promise<Record<string, string>> {
@@ -807,70 +852,94 @@ export async function dispatchLeadToFollowUpBoss(
   if (config.system) headers["X-System"] = config.system;
   if (config.systemKey) headers["X-System-Key"] = config.systemKey;
 
-  for (let attempt = 1; attempt <= config.maxAttempts; attempt += 1) {
-    let response: Response | null = null;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
-
-    try {
-      response = await fetch(endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-
-      const body = await response.text();
-
-      if (response.status === 200 || response.status === 201) {
-        console.log(
-          `[followupboss] Lead ${lead.id} synced (status=${response.status}, attempt=${attempt}).`,
-        );
-        return;
-      }
-
-      if (response.status === 204) {
+  const sendWithRetries = async (
+    currentPayload: FollowUpBossEventPayload,
+    label: "primary" | "email-alias-fallback",
+  ): Promise<FubDispatchAttemptResult> => {
+    for (let attempt = 1; attempt <= config.maxAttempts; attempt += 1) {
+      let response: Response | null = null;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
+      try {
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(currentPayload),
+          signal: controller.signal,
+        });
+        const body = await response.text();
+        if (response.status === 200 || response.status === 201) {
+          console.log(
+            `[followupboss] Lead ${lead.id} synced via ${label} (status=${response.status}, attempt=${attempt}).`,
+          );
+          return { ok: true, status: response.status, body };
+        }
+        if (response.status === 204) {
+          console.warn(
+            `[followupboss] Lead ${lead.id} ignored by lead flow via ${label} (status=204).`,
+          );
+          return { ok: false, status: response.status, body, ignoredByLeadFlow: true };
+        }
+        if (!RETRYABLE_STATUS_CODES.has(response.status)) {
+          return { ok: false, status: response.status, body };
+        }
+        if (attempt >= config.maxAttempts) {
+          return { ok: false, status: response.status, body };
+        }
+        const delayMs = getRetryDelayMs(attempt, response, config.initialBackoffMs);
         console.warn(
-          `[followupboss] Lead ${lead.id} ignored by lead flow (status=204). Check source lead flow in FUB.`,
+          `[followupboss] Retryable response for lead ${lead.id} via ${label} (status=${response.status}). Retrying in ${delayMs}ms.`,
         );
-        return;
-      }
-
-      if (!RETRYABLE_STATUS_CODES.has(response.status)) {
-        fail(
-          `[followupboss] Lead ${lead.id} failed (status=${response.status}): ${getErrorMessage(body)}`,
+        await sleep(delayMs);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : String(error ?? "Unknown error");
+        if (!isRetryableError(error) || attempt >= config.maxAttempts) {
+          return { ok: false, status: response?.status ?? 0, body: "", error: message };
+        }
+        const delayMs = getRetryDelayMs(attempt, response, config.initialBackoffMs);
+        console.warn(
+          `[followupboss] Transient error for lead ${lead.id} via ${label}. Retrying in ${delayMs}ms.`,
         );
-        return;
+        await sleep(delayMs);
+      } finally {
+        clearTimeout(timeout);
       }
-
-      if (attempt >= config.maxAttempts) {
-        fail(
-          `[followupboss] Lead ${lead.id} failed after ${attempt} attempt(s) (status=${response.status}): ${getErrorMessage(body)}`,
-        );
-        return;
-      }
-
-      const delayMs = getRetryDelayMs(attempt, response, config.initialBackoffMs);
-      console.warn(
-        `[followupboss] Retryable response for lead ${lead.id} (status=${response.status}). Retrying in ${delayMs}ms.`,
-      );
-      await sleep(delayMs);
-    } catch (error) {
-      if (!isRetryableError(error) || attempt >= config.maxAttempts) {
-        fail(
-          `[followupboss] Lead ${lead.id} dispatch error (attempt=${attempt})`,
-          error,
-        );
-        return;
-      }
-
-      const delayMs = getRetryDelayMs(attempt, response, config.initialBackoffMs);
-      console.warn(
-        `[followupboss] Transient error for lead ${lead.id}. Retrying in ${delayMs}ms.`,
-      );
-      await sleep(delayMs);
-    } finally {
-      clearTimeout(timeout);
     }
+    return { ok: false, status: 0, body: "", error: "Retry loop exhausted unexpectedly" };
+  };
+
+  const primaryResult = await sendWithRetries(payload, "primary");
+  if (primaryResult.ok) return;
+
+  const shouldAttemptAliasFallback =
+    primaryResult.ignoredByLeadFlow ||
+    primaryResult.status === 409 ||
+    primaryResult.status === 422;
+  const aliasFallback = shouldAttemptAliasFallback
+    ? buildPayloadWithAliasEmail(payload, lead.id)
+    : null;
+
+  if (aliasFallback) {
+    console.warn(
+      `[followupboss] Retrying lead ${lead.id} with alias email fallback due to primary status=${primaryResult.status}.`,
+      {
+        originalEmail: aliasFallback.originalEmail,
+        aliasEmail: aliasFallback.aliasEmail,
+      },
+    );
+    const fallbackResult = await sendWithRetries(
+      aliasFallback.payload,
+      "email-alias-fallback",
+    );
+    if (fallbackResult.ok) return;
+    fail(
+      `[followupboss] Lead ${lead.id} failed after alias fallback (primaryStatus=${primaryResult.status}, fallbackStatus=${fallbackResult.status}): ${getErrorMessage(fallbackResult.body || fallbackResult.error || "")}`,
+    );
+    return;
   }
+
+  fail(
+    `[followupboss] Lead ${lead.id} failed (status=${primaryResult.status}): ${getErrorMessage(primaryResult.body || primaryResult.error || "")}`,
+  );
 }
