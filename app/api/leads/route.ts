@@ -312,9 +312,13 @@ export async function POST(req: NextRequest) {
 
     // Production-safe dispatch: await integrations before returning response.
     // This avoids serverless runtimes dropping background work after response is sent.
+    let fubDelivered = false;
+    let notificationsDelivered = false;
+
     try {
       console.log("[leads] Dispatch start: FollowUpBoss", { leadId: lead.id });
       await dispatchLeadToFollowUpBoss(lead.id, { throwOnFailure: true });
+      fubDelivered = true;
       console.log("[leads] Dispatch success: FollowUpBoss", { leadId: lead.id });
     } catch (fubError) {
       console.error("[leads] Dispatch failed: FollowUpBoss", {
@@ -326,12 +330,28 @@ export async function POST(req: NextRequest) {
     try {
       console.log("[leads] Dispatch start: Notifications+Docs", { leadId: lead.id });
       await sendLeadNotifications(lead.id, { throwOnFailure: true });
+      notificationsDelivered = true;
       console.log("[leads] Dispatch success: Notifications+Docs", { leadId: lead.id });
     } catch (notificationError) {
       console.error("[leads] Dispatch failed: Notifications+Docs", {
         leadId: lead.id,
         error: notificationError,
       });
+    }
+
+    if (!fubDelivered || !notificationsDelivered) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Lead saved but one or more integrations failed",
+          leadId: lead.id,
+          integrations: {
+            followUpBoss: fubDelivered,
+            notificationsDocs: notificationsDelivered,
+          },
+        },
+        { status: 502 },
+      );
     }
 
     return NextResponse.json({ ok: true }, { status: 200 });

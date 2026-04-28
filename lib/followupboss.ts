@@ -5,10 +5,10 @@ import { normalizeCtaTitleKey, type CtaForwardingRule } from "@/lib/types/ctaFor
 
 const FUB_API_BASE_URL = "https://api.followupboss.com";
 const FUB_EVENTS_PATH = "/v1/events";
-const DEFAULT_TIMEOUT_MS = 8000;
-const DEFAULT_MAX_ATTEMPTS = 3;
-const DEFAULT_INITIAL_BACKOFF_MS = 750;
-const MAX_BACKOFF_MS = 10_000;
+const DEFAULT_TIMEOUT_MS = 15000;
+const DEFAULT_MAX_ATTEMPTS = 5;
+const DEFAULT_INITIAL_BACKOFF_MS = 1000;
+const MAX_BACKOFF_MS = 30_000;
 
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 const SKIPPED_FORM_KEYS = new Set([
@@ -799,9 +799,6 @@ export async function dispatchLeadToFollowUpBoss(
   const payload = buildPayload(lead, config, fieldLabels, notificationRecipients);
   if (!payload) return;
 
-  console.log("payload", payload);
-  console.log("lead", lead);
-
   const endpoint = `${config.baseUrl}${FUB_EVENTS_PATH}`;
   const headers: Record<string, string> = {
     Authorization: toAuthorizationHeader(config.apiKey),
@@ -824,7 +821,6 @@ export async function dispatchLeadToFollowUpBoss(
       });
 
       const body = await response.text();
-      console.log("body", body);
 
       if (response.status === 200 || response.status === 201) {
         console.log(
