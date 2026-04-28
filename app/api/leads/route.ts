@@ -310,30 +310,29 @@ export async function POST(req: NextRequest) {
       hasCtaText: typeof mergedFormData._ctaText === "string",
     });
 
-    // Normal flow order: FUB first, then notification + docs.
-    void (async () => {
-      try {
-        console.log("[leads] Dispatch start: FollowUpBoss", { leadId: lead.id });
-        await dispatchLeadToFollowUpBoss(lead.id, { throwOnFailure: true });
-        console.log("[leads] Dispatch success: FollowUpBoss", { leadId: lead.id });
-      } catch (fubError) {
-        console.error("[leads] Dispatch failed: FollowUpBoss", {
-          leadId: lead.id,
-          error: fubError,
-        });
-      }
+    // Production-safe dispatch: await integrations before returning response.
+    // This avoids serverless runtimes dropping background work after response is sent.
+    try {
+      console.log("[leads] Dispatch start: FollowUpBoss", { leadId: lead.id });
+      await dispatchLeadToFollowUpBoss(lead.id, { throwOnFailure: true });
+      console.log("[leads] Dispatch success: FollowUpBoss", { leadId: lead.id });
+    } catch (fubError) {
+      console.error("[leads] Dispatch failed: FollowUpBoss", {
+        leadId: lead.id,
+        error: fubError,
+      });
+    }
 
-      try {
-        console.log("[leads] Dispatch start: Notifications+Docs", { leadId: lead.id });
-        await sendLeadNotifications(lead.id, { throwOnFailure: true });
-        console.log("[leads] Dispatch success: Notifications+Docs", { leadId: lead.id });
-      } catch (notificationError) {
-        console.error("[leads] Dispatch failed: Notifications+Docs", {
-          leadId: lead.id,
-          error: notificationError,
-        });
-      }
-    })();
+    try {
+      console.log("[leads] Dispatch start: Notifications+Docs", { leadId: lead.id });
+      await sendLeadNotifications(lead.id, { throwOnFailure: true });
+      console.log("[leads] Dispatch success: Notifications+Docs", { leadId: lead.id });
+    } catch (notificationError) {
+      console.error("[leads] Dispatch failed: Notifications+Docs", {
+        leadId: lead.id,
+        error: notificationError,
+      });
+    }
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (error) {
