@@ -12,7 +12,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
     "test:email": "tsx scripts/test-emails.tsx",
-    "dispatch:queue": "tsx scripts/process-lead-dispatch-queue.ts"
+    "test:lead-delivery": "tsx scripts/test-lead-delivery.ts"
   },
   "dependencies": {
     "@ckeditor/ckeditor5-build-classic": "^41.4.2",
