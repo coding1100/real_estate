@@ -863,6 +863,21 @@ export async function sendLeadNotifications(
     }
   }
 
+  // Production-safe fallback: if CTA-specific notify recipients are missing,
+  // fall back to the domain-level notify email so agent notification still sends.
+  if (
+    resolvedNotifyEmails.length === 0 &&
+    typeof domain.notifyEmail === "string" &&
+    domain.notifyEmail.includes("@")
+  ) {
+    resolvedNotifyEmails = [{ email: domain.notifyEmail.trim(), kind: "cc" }];
+    console.log("[notifications] Applied domain notify fallback recipient", {
+      leadId: lead.id,
+      entryPageSlug: page.slug,
+      notifyRecipientsCount: resolvedNotifyEmails.length,
+    });
+  }
+
   console.log("[notifications] CTA resolution", {
     leadId: lead.id,
     entryPageSlug: page.slug,
