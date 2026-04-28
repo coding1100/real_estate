@@ -13,6 +13,10 @@ function isLikelyN8nTestWebhook(url: string): boolean {
   return /\/webhook-test\//i.test(url);
 }
 
+function isN8nWebhookUrl(url: string): boolean {
+  return /(?:^https?:\/\/)?[^/]*n8n[^/]*\//i.test(url);
+}
+
 function getResponseErrorText(body: string): string {
   const trimmed = body.trim();
   if (!trimmed) return "No response body";
@@ -127,6 +131,12 @@ export async function dispatchLeadToWebhooks(
 
   if (webhooks.length) {
     for (const hook of webhooks) {
+      if (isN8nWebhookUrl(hook.url)) {
+        console.warn(
+          `[webhook] Skipping ${hook.name} (${hook.url}) because n8n integration is fully deactivated.`,
+        );
+        continue;
+      }
       if (isLikelyN8nTestWebhook(hook.url)) {
         const err =
           `[webhook] ${hook.name} is configured with an n8n test URL (${hook.url}). ` +

@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyRecaptchaToken } from "@/lib/captcha";
 import { sendLeadNotifications } from "@/lib/notifications";
-import {
-  enqueueLeadDispatchJobsTx,
-  ensureLeadDispatchTableOnce,
-  markLeadDispatchJobDoneByType,
-  processLeadDispatchQueue,
-} from "@/lib/leadDispatchQueue";
+import { dispatchLeadToFollowUpBoss } from "@/lib/followupboss";
 import type { Prisma } from "@prisma/client";
 
 function collectStringValues(input: unknown, seen = new Set<unknown>()): string[] {
@@ -294,23 +289,18 @@ export async function POST(req: NextRequest) {
       if (name) mergedFormData = { ...mergedFormData, name };
     }
 
-    await ensureLeadDispatchTableOnce();
-    const lead = await prisma.$transaction(async (tx) => {
-      const created = await tx.lead.create({
-        data: {
-          domainId: domainRow.id,
-          pageId: page.id,
-          type: String(type),
-          formData: mergedFormData as Prisma.InputJsonValue,
-          utmSource: typeof utm_source === "string" ? utm_source : undefined,
-          utmMedium: typeof utm_medium === "string" ? utm_medium : undefined,
-          utmCampaign: typeof utm_campaign === "string" ? utm_campaign : undefined,
-        },
-      });
-      await enqueueLeadDispatchJobsTx(tx, created.id);
-      return created;
+    const lead = await prisma.lead.create({
+      data: {
+        domainId: domainRow.id,
+        pageId: page.id,
+        type: String(type),
+        formData: mergedFormData as Prisma.InputJsonValue,
+        utmSource: typeof utm_source === "string" ? utm_source : undefined,
+        utmMedium: typeof utm_medium === "string" ? utm_medium : undefined,
+        utmCampaign: typeof utm_campaign === "string" ? utm_campaign : undefined,
+      },
     });
-    console.log("[leads] Lead created and dispatch jobs enqueued", {
+    console.log("[leads] Lead created", {
       leadId: lead.id,
       domain: domainRow.hostname,
       entryPageSlug: page.slug,
@@ -320,40 +310,30 @@ export async function POST(req: NextRequest) {
       hasCtaText: typeof mergedFormData._ctaText === "string",
     });
 
-    // Keep submit fast: notifications are handled by the durable queue.
-    // We still attempt an opportunistic async send, but never block response.
-    void sendLeadNotifications(lead.id, { throwOnFailure: true })
-      .then(async () => {
-        await markLeadDispatchJobDoneByType(lead.id, "notifications");
-        console.log("[leads] Immediate notifications send succeeded", {
+    // Normal flow order: FUB first, then notification + docs.
+    void (async () => {
+      try {
+        console.log("[leads] Dispatch start: FollowUpBoss", { leadId: lead.id });
+        await dispatchLeadToFollowUpBoss(lead.id, { throwOnFailure: true });
+        console.log("[leads] Dispatch success: FollowUpBoss", { leadId: lead.id });
+      } catch (fubError) {
+        console.error("[leads] Dispatch failed: FollowUpBoss", {
           leadId: lead.id,
+          error: fubError,
         });
-      })
-      .catch((notificationError) => {
-        console.error("[leads] Immediate notification send failed; queue retry will continue", {
+      }
+
+      try {
+        console.log("[leads] Dispatch start: Notifications+Docs", { leadId: lead.id });
+        await sendLeadNotifications(lead.id, { throwOnFailure: true });
+        console.log("[leads] Dispatch success: Notifications+Docs", { leadId: lead.id });
+      } catch (notificationError) {
+        console.error("[leads] Dispatch failed: Notifications+Docs", {
           leadId: lead.id,
           error: notificationError,
         });
-      });
-
-    // Opportunistically run one queued dispatch immediately.
-    // If the process exits early, the persisted queue guarantees retry.
-    void processLeadDispatchQueue({
-      maxJobs: 2,
-      workerId: `api-leads-${lead.id}`,
-    })
-      .then((queueResult) => {
-        console.log("[leads] Immediate queue drain completed", {
-          leadId: lead.id,
-          ...queueResult,
-        });
-      })
-      .catch((queueError) => {
-      console.error("[leads] Immediate queue drain failure", {
-        leadId: lead.id,
-        error: queueError,
-      });
-      });
+      }
+    })();
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (error) {

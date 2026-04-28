@@ -32,6 +32,12 @@ function validateWebhookInput(input: {
         "n8n test webhook URLs are temporary. Use the production /webhook/... URL with an active workflow.",
     };
   }
+  if (/(?:^https?:\/\/)?[^/]*n8n[^/]*\//i.test(url)) {
+    return {
+      ok: false,
+      error: "n8n integration is deactivated for this project.",
+    };
+  }
   return { ok: true, name, url, method: method as "POST" | "PUT" | "PATCH" };
 }
 
