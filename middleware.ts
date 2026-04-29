@@ -45,7 +45,14 @@ function getRequestHostname(req: NextRequest): string {
 
 export function middleware(req: NextRequest) {
   const hostname = getRequestHostname(req);
-  if (getPlatformHosts().has(hostname)) {
+  const platformHosts = getPlatformHosts();
+  const allowVercelPreviews =
+    (process.env.ALLOW_VERCEL_PREVIEW_HOSTS ?? "").trim().toLowerCase() === "true";
+
+  const isPreviewVercelHost =
+    allowVercelPreviews && hostname.endsWith(".vercel.app");
+
+  if (platformHosts.has(hostname) || isPreviewVercelHost) {
     return NextResponse.next();
   }
 
