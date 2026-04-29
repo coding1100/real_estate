@@ -223,14 +223,14 @@ export function EditorFontSettingsForm({
             <button
               type="button"
               onClick={addFont}
-              className="inline-flex items-center rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50"
+              className="inline-flex items-center !rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50"
             >
               + Add custom font
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="inline-flex items-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-60"
+              className="inline-flex items-center !rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-60"
             >
               {isPending ? "Saving…" : "Save"}
             </button>
