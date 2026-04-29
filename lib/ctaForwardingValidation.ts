@@ -140,7 +140,3 @@ export function buildEmailRequiredValidationMessage(input: {
   void input;
   return "The document is attached to this form, so an email address is required for delivery";
 }
-
-
-
-
