@@ -148,7 +148,7 @@ export default async function AdminDashboardPage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[14px] font-medium uppercase tracking-[0.18em]">
-                  Domains
+                  Domains yyy
                 </p>
                 <p className="mt-2 text-2xl font-semibold">
                   {domainsCount}
