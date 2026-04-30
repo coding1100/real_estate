@@ -526,10 +526,8 @@ function extractStepSlugFromFormData(formData: Record<string, unknown>): string 
 }
 
 /** Split CTA notification emails into Resend to/cc/bcc. Default kind is cc. */
-function buildDocumentRecipients(
-  leadEmail: string | null | undefined,
+function buildNotifyRecipients(
   notify: Array<{ email: string; kind?: "cc" | "bcc" }>,
-  domainNotify: string | null | undefined,
 ): { to: string[]; cc: string[]; bcc: string[] } | null {
   const norm = (s: string) => s.trim().toLowerCase();
 
@@ -560,19 +558,6 @@ function buildDocumentRecipients(
   const ccOnly = dedupe(rawCc.filter((e) => !bccNorm.has(norm(e))));
   const bccOnly = dedupe(rawBcc);
 
-  const domain =
-    domainNotify && domainNotify.includes("@") ? domainNotify.trim() : null;
-
-  if (leadEmail && leadEmail.includes("@")) {
-    const lead = leadEmail.trim();
-    const ln = norm(lead);
-    return {
-      to: [lead],
-      cc: ccOnly.filter((e) => norm(e) !== ln),
-      bcc: bccOnly.filter((e) => norm(e) !== ln),
-    };
-  }
-
   if (ccOnly.length > 0) {
     const primary = ccOnly[0];
     const pn = norm(primary);
@@ -584,14 +569,6 @@ function buildDocumentRecipients(
   }
 
   if (bccOnly.length > 0) {
-    if (domain) {
-      const dn = norm(domain);
-      return {
-        to: [domain],
-        cc: [],
-        bcc: bccOnly.filter((e) => norm(e) !== dn),
-      };
-    }
     return {
       to: [bccOnly[0]],
       cc: [],
@@ -599,11 +576,28 @@ function buildDocumentRecipients(
     };
   }
 
-  if (domain) {
-    return { to: [domain], cc: [], bcc: [] };
-  }
-
   return null;
+}
+
+function buildRequesterDocumentRecipients(
+  leadEmail: string | null | undefined,
+  notify: Array<{ email: string; kind?: "cc" | "bcc" }>,
+): { to: string[]; cc: string[]; bcc: string[] } | null {
+  if (!leadEmail || !leadEmail.includes("@")) {
+    return null;
+  }
+  const requester = leadEmail.trim();
+  const requesterNorm = requester.toLowerCase();
+  const notifyRouting = buildNotifyRecipients(notify) ?? { to: [], cc: [], bcc: [] };
+  return {
+    to: [requester],
+    cc: [...notifyRouting.to, ...notifyRouting.cc].filter(
+      (email) => email.trim().toLowerCase() !== requesterNorm,
+    ),
+    bcc: notifyRouting.bcc.filter(
+      (email) => email.trim().toLowerCase() !== requesterNorm,
+    ),
+  };
 }
 
 function findCtaRule(
@@ -897,9 +891,6 @@ export async function sendLeadNotifications(
     notifyKinds: resolvedNotifyEmails.map((entry) => entry.kind ?? "cc"),
   });
 
-  const hasConfiguredResendTemplate =
-    typeof resolvedRule?.resendTemplateId === "string" &&
-    resolvedRule.resendTemplateId.trim().length > 0;
   const resolvedDeliveryMode =
     resolvedRule?.deliveryMode === "notify_only_form_data"
       ? "notify_only_form_data"
@@ -934,11 +925,7 @@ export async function sendLeadNotifications(
         fieldRows,
       });
 
-      const leadAlertRouting = buildDocumentRecipients(
-        resolvedDeliveryMode === "notify_only_form_data" ? null : leadEmail,
-        resolvedNotifyEmails,
-        null,
-      );
+      const leadAlertRouting = buildNotifyRecipients(resolvedNotifyEmails);
       if (!leadAlertRouting || leadAlertRouting.to.length === 0) {
         console.warn("[notifications] Lead email skipped: no recipients found", {
           leadId: lead.id,
@@ -1022,11 +1009,7 @@ export async function sendLeadNotifications(
       }
 
       const notify = resolvedNotifyEmails;
-      const routing = buildDocumentRecipients(
-        leadEmail,
-        notify,
-        null,
-      );
+      const routing = buildRequesterDocumentRecipients(leadEmail, notify);
 
       if (!routing || routing.to.length === 0) {
         console.warn("[notifications] Document email skipped: no recipients found", {
