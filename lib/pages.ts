@@ -96,6 +96,13 @@ function pageToContent(
       toastThemeOverride = (hero as any).props.toastThemeOverride;
     }
   }
+  const heroForStepNotify = Array.isArray(sections)
+    ? sections.find((s) => s && s.kind === "hero")
+    : null;
+  const multistepNotifyEachStep = Boolean(
+    (heroForStepNotify as any)?.props?.multistepNotifyEachStep ??
+      (page as { multistepNotifyEachStep?: boolean }).multistepNotifyEachStep,
+  );
 
   return {
     id: page.id,
@@ -146,6 +153,7 @@ function pageToContent(
       customHeadTags: (page.customHeadTags as any) ?? null,
     },
     pageLayout,
+    multistepNotifyEachStep,
   };
 }
 

@@ -12,7 +12,12 @@ import { Search, Trash2, Upload } from "lucide-react";
 
 interface CtaForwardingSettingsFormProps {
   initialRules: CtaForwardingRule[];
-  onSaveRules?: (rules: CtaForwardingRule[]) => Promise<void>;
+  multistepNotifyEachStep?: boolean;
+  onMultistepNotifyEachStepChange?: (enabled: boolean) => void;
+  onSaveRules?: (
+    rules: CtaForwardingRule[],
+    options?: { multistepNotifyEachStep?: boolean },
+  ) => Promise<void>;
   saveButtonLabel?: string;
 }
 
@@ -186,6 +191,8 @@ function isAllowedDocumentFile(file: File) {
 
 export function CtaForwardingSettingsForm({
   initialRules,
+  multistepNotifyEachStep = false,
+  onMultistepNotifyEachStepChange,
   onSaveRules,
   saveButtonLabel = "Save changes",
 }: CtaForwardingSettingsFormProps) {
@@ -448,7 +455,9 @@ export function CtaForwardingSettingsForm({
     startTransition(async () => {
       try {
         if (onSaveRules) {
-          await onSaveRules(payload);
+          await onSaveRules(payload, {
+            multistepNotifyEachStep,
+          });
         } else {
           const res = await fetch("/api/admin/ui-settings", {
             method: "PATCH",
@@ -612,7 +621,7 @@ export function CtaForwardingSettingsForm({
                 Delivery mode
               </p>
               <div className="flex flex-wrap items-center gap-4">
-                <label className="inline-flex items-center gap-2 text-xs text-zinc-700">
+                <label className="inline-flex items-center gap-2 !text-md text-zinc-700">
                   <input
                     type="checkbox"
                     checked={row.deliveryMode === "documents_with_notify"}
@@ -628,7 +637,7 @@ export function CtaForwardingSettingsForm({
                   />
                   Send documents to notification emails
                 </label>
-                <label className="inline-flex items-center gap-2 text-xs text-zinc-700">
+                <label className="inline-flex items-center gap-2 !text-md text-zinc-700">
                   <input
                     type="checkbox"
                     checked={row.deliveryMode === "notify_only_form_data"}
@@ -646,6 +655,7 @@ export function CtaForwardingSettingsForm({
                 </label>
               </div>
             </div>
+            
             <div className="grid gap-3 md:grid-cols-3 md:items-start">
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
@@ -1104,6 +1114,29 @@ export function CtaForwardingSettingsForm({
                   </p>
                 )}
               </div>
+            </div>
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 !rounded border-zinc-300"
+                  checked={multistepNotifyEachStep}
+                  onChange={(e) =>
+                    onMultistepNotifyEachStepChange?.(e.target.checked)
+                  }
+                />
+                <span>
+                  <span className="block text-sm font-medium text-zinc-800">
+                    Multistep: notify on this page's Continue
+                  </span>
+                  <span className="mt-1 block text-xs text-zinc-500">
+                    When this page is a step in a multistep flow (or the home-value
+                    entry step), turning this on sends the CTA Management
+                    notification email each time the visitor clicks this step's CTA
+                    to go forward. Final submit still uses the normal lead flow.
+                  </span>
+                </span>
+              </label>
             </div>
           </div>
         ))}

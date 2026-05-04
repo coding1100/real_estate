@@ -10,6 +10,7 @@ import {
   formLinesToFieldRows,
   renderDocumentDeliveryEmailHtml,
   renderNewLeadEmailHtml,
+  type LeadEmailCtaContext,
 } from "@/lib/email-render";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -285,27 +286,44 @@ function flattenLeadFormDataForEmail(
   path = "",
 ): string[] {
   const lines: string[] = [];
-  for (const [rawKey, value] of Object.entries(input)) {
-    if (isInternalFieldKey(rawKey)) continue;
-    const key = path ? `${path}.${rawKey}` : rawKey;
-    if (value == null || value === "") continue;
-    if (Array.isArray(value)) {
-      const printable = value
-        .map((item) =>
-          typeof item === "string" || typeof item === "number" || typeof item === "boolean"
-            ? String(item)
-            : JSON.stringify(item),
-        )
-        .join(", ");
-      if (printable) lines.push(`${key}: ${printable}`);
-      continue;
+  const seenEntries = new Set<string>();
+  const pushLine = (line: string) => {
+    const key = line.trim().toLowerCase();
+    if (!key || seenEntries.has(key)) return;
+    seenEntries.add(key);
+    lines.push(line);
+  };
+  const visit = (node: Record<string, unknown>, currentPath = "") => {
+    for (const [rawKey, value] of Object.entries(node)) {
+      if (isInternalFieldKey(rawKey)) continue;
+      // Multistep buckets (step0/step1/...) are structural only; render their
+      // inner fields as normal keys instead of exposing step prefixes.
+      const isStepBucket = /^step\d+$/i.test(rawKey.trim());
+      const key = isStepBucket
+        ? currentPath
+        : currentPath
+          ? `${currentPath}.${rawKey}`
+          : rawKey;
+      if (value == null || value === "") continue;
+      if (Array.isArray(value)) {
+        const printable = value
+          .map((item) =>
+            typeof item === "string" || typeof item === "number" || typeof item === "boolean"
+              ? String(item)
+              : JSON.stringify(item),
+          )
+          .join(", ");
+        if (printable) pushLine(`${key}: ${printable}`);
+        continue;
+      }
+      if (isPlainObject(value)) {
+        visit(value, key);
+        continue;
+      }
+      pushLine(`${key}: ${String(value)}`);
     }
-    if (isPlainObject(value)) {
-      lines.push(...flattenLeadFormDataForEmail(value, key));
-      continue;
-    }
-    lines.push(`${key}: ${String(value)}`);
-  }
+  };
+  visit(input, path);
   return lines;
 }
 
@@ -714,6 +732,137 @@ function findLatestRuleWithActiveNotify(
   return undefined;
 }
 
+/**
+ * Sends the lead-style notify email for an intermediate multistep Continue,
+ * using CTA Management rules on the **current step** page only (no DB lead).
+ */
+export async function sendMultistepIntermediateStepNotification(input: {
+  entryPageSlug: string;
+  leadType: string;
+  domain: {
+    hostname: string;
+    displayName: string | null;
+    logoUrl: string | null;
+    notifyEmail: string | null;
+  };
+  stepPage: {
+    slug: string;
+    ctaText: string;
+    sections: unknown;
+    multistepNotifyEachStep: boolean;
+  };
+  mergedFormData: Record<string, unknown>;
+  formCtaLabel: string;
+}): Promise<{ sent: boolean; skippedReason?: string }> {
+  if (!input.stepPage.multistepNotifyEachStep) {
+    return { sent: false, skippedReason: "notify_each_step_disabled" };
+  }
+
+  if (!resend) {
+    return { sent: false, skippedReason: "resend_not_configured" };
+  }
+
+  const { settings } = await getAdminUiSettings();
+  const stepPageRules = readPageCtaForwardingRules(input.stepPage.sections);
+  const rules =
+    stepPageRules.length > 0
+      ? stepPageRules
+      : ((settings.ctaForwardingRules ?? []) as CtaForwardingRule[]);
+
+  const data = { ...input.mergedFormData, _ctaText: input.formCtaLabel };
+  const matched =
+    findCtaRule(rules, input.stepPage.ctaText, data) ??
+    findLatestRuleWithActiveNotify(rules);
+
+  let resolvedNotify = getActiveNotifyEmails(matched);
+  if (resolvedNotify.length === 0 && matched) {
+    const notifyFallback = findLatestRuleWithActiveNotify(stepPageRules);
+    resolvedNotify = getActiveNotifyEmails(notifyFallback);
+  }
+  if (
+    resolvedNotify.length === 0 &&
+    typeof input.domain.notifyEmail === "string" &&
+    input.domain.notifyEmail.includes("@")
+  ) {
+    resolvedNotify = [{ email: input.domain.notifyEmail.trim(), kind: "cc" }];
+  }
+
+  if (resolvedNotify.length === 0) {
+    return { sent: false, skippedReason: "no_notify_recipients" };
+  }
+
+  const deliveryMode =
+    matched?.deliveryMode === "notify_only_form_data"
+      ? "notify_only_form_data"
+      : "documents_with_notify";
+
+  const leadEmail = extractLeadEmail(data);
+  const leadPhone = extractLeadPhone(data);
+  const hasFormData = flattenLeadFormDataForEmail(data).length > 0;
+  const hasEmailOrPhone = Boolean(
+    (leadEmail && leadEmail.includes("@")) || (leadPhone && leadPhone.trim().length > 0),
+  );
+  const shouldSendLeadAlertEmail =
+    deliveryMode === "notify_only_form_data" ? true : hasFormData && hasEmailOrPhone;
+
+  if (!shouldSendLeadAlertEmail) {
+    return { sent: false, skippedReason: "missing_contact_for_notify" };
+  }
+
+  const lines = flattenLeadFormDataForEmail(data);
+  const baseFieldRows = formLinesToFieldRows(lines);
+  const fieldRows =
+    deliveryMode === "notify_only_form_data"
+      ? ensureEmailPhoneRows(baseFieldRows, leadEmail, leadPhone)
+      : baseFieldRows;
+  const brandName =
+    (input.domain.displayName ?? input.domain.hostname).trim() || input.domain.hostname;
+
+  const ctaContext: LeadEmailCtaContext = {
+    entryPageSlug: input.entryPageSlug,
+    stepPageSlug: input.stepPage.slug,
+    formCtaLabel: input.formCtaLabel,
+    ctaManagementTitle: matched?.ctaTitle?.trim() ?? null,
+    phase: "multistep_step",
+  };
+
+  const { html, text } = await renderNewLeadEmailHtml({
+    leadType: input.leadType,
+    domainHostname: input.domain.hostname,
+    pageSlug: input.stepPage.slug,
+    brandName,
+    logoUrl: input.domain.logoUrl ?? null,
+    fieldRows,
+    ctaNotificationContext: ctaContext,
+  });
+
+  const subjectParts = [
+    `[Multistep step]`,
+    `${input.leadType} — ${input.domain.hostname}`,
+    `step: ${input.stepPage.slug}`,
+  ];
+  if (matched?.ctaTitle?.trim()) subjectParts.push(`CTA rule: ${matched.ctaTitle.trim()}`);
+  else if (input.formCtaLabel.trim()) subjectParts.push(`Form CTA: ${input.formCtaLabel.trim()}`);
+  const subject = subjectParts.join(" · ");
+
+  const routing = buildNotifyRecipients(resolvedNotify);
+  if (!routing || routing.to.length === 0) {
+    return { sent: false, skippedReason: "no_routing" };
+  }
+
+  const payload: Parameters<typeof resend.emails.send>[0] = {
+    from: resolveFromAddress(),
+    to: routing.to,
+    subject,
+    html,
+    text,
+  };
+  if (routing.cc.length > 0) payload.cc = routing.cc;
+  if (routing.bcc.length > 0) payload.bcc = routing.bcc;
+  await resend.emails.send(payload);
+  return { sent: true };
+}
+
 export async function sendLeadNotifications(
   leadId: string,
   options?: { throwOnFailure?: boolean },
@@ -906,8 +1055,18 @@ export async function sendLeadNotifications(
       return false;
     }
     try {
-      const subject = `[New ${lead.type} lead] ${domain.hostname} / ${ruleSourcePage.slug}`;
       const data = (lead.formData as Record<string, unknown>) ?? {};
+      let subject = `[New ${lead.type} lead] ${domain.hostname} / ${ruleSourcePage.slug}`;
+      if (multistepStepSlugs.length > 0) {
+        const bits: string[] = [];
+        if (submittedStepSlug) bits.push(`Step: ${submittedStepSlug}`);
+        if (resolvedRule?.ctaTitle?.trim()) {
+          bits.push(`CTA rule: ${resolvedRule.ctaTitle.trim()}`);
+        } else if (typeof data._ctaText === "string" && data._ctaText.trim()) {
+          bits.push(`Form CTA: ${data._ctaText.trim()}`);
+        }
+        if (bits.length) subject += ` — ${bits.join(" · ")}`;
+      }
       const lines = flattenLeadFormDataForEmail(data);
       const baseFieldRows = formLinesToFieldRows(lines);
       const fieldRows =
@@ -916,6 +1075,18 @@ export async function sendLeadNotifications(
           : baseFieldRows;
       const brandName = (domain.displayName ?? domain.hostname).trim() || domain.hostname;
 
+      const ctaNotificationContext: LeadEmailCtaContext | null =
+        multistepStepSlugs.length > 0
+          ? {
+              entryPageSlug: page.slug,
+              stepPageSlug: ruleSourcePage.slug,
+              formCtaLabel:
+                typeof data._ctaText === "string" ? data._ctaText.trim() : "",
+              ctaManagementTitle: resolvedRule?.ctaTitle?.trim() ?? null,
+              phase: "completed_lead",
+            }
+          : null;
+
       const { html, text } = await renderNewLeadEmailHtml({
         leadType: lead.type,
         domainHostname: domain.hostname,
@@ -923,6 +1094,7 @@ export async function sendLeadNotifications(
         brandName,
         logoUrl: domain.logoUrl ?? null,
         fieldRows,
+        ctaNotificationContext,
       });
 
       const leadAlertRouting = buildNotifyRecipients(resolvedNotifyEmails);

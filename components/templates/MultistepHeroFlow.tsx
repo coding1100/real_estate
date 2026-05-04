@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import type { LandingPageContent } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
@@ -10,9 +10,13 @@ import { DynamicForm } from "@/components/forms/DynamicForm";
 import { SocialLinksBar } from "@/components/templates/SocialLinksBar";
 import { useRecaptcha } from "@/components/forms/Captcha";
 import { useToast } from "@/components/ui/use-toast";
-import { PropertyFindingStep } from "@/components/templates/HomeValueMultistepFlow";
+import {
+  PropertyFindingStep,
+  type ZestimateResult,
+} from "@/components/templates/HomeValueMultistepFlow";
 import { HeroBackgroundImage } from "@/components/templates/HeroBackgroundImage";
 import { DetailedPerspectiveProfileColumn } from "@/components/templates/DetailedPerspectiveProfileColumn";
+import { postMultistepStepNotify } from "@/lib/postMultistepStepNotify";
 
 interface LayoutItem {
   i: string;
@@ -93,8 +97,11 @@ export function MultistepHeroFlow({
   const [currentStep, setCurrentStep] = useState(0);
   const [accumulatedData, setAccumulatedData] = useState<Record<string, Record<string, unknown>>>({});
   const [isSubmittingFinal, setIsSubmittingFinal] = useState(false);
+  const [isStepSubmitting, setIsStepSubmitting] = useState(false);
+  const [submittingDotCount, setSubmittingDotCount] = useState(1);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isFinalSubmitted, setIsFinalSubmitted] = useState(false);
+  const [fubPersonId, setFubPersonId] = useState<string | null>(null);
   const { execute } = useRecaptcha();
   const { toast } = useToast();
 
@@ -176,12 +183,75 @@ export function MultistepHeroFlow({
     ? "w-full md:w-auto form-area"
     : "col-span-12 w-full md:col-span-4 md:w-auto";
 
-  const handleNextStep = (values: Record<string, unknown>) => {
-    setAccumulatedData((prev) => ({
-      ...prev,
-      ["step" + currentStep]: values,
-    }));
-    setCurrentStep((i) => i + 1);
+  useEffect(() => {
+    if (!isSubmittingFinal && !isStepSubmitting) {
+      setSubmittingDotCount(1);
+      return;
+    }
+    const timer = setInterval(() => {
+      setSubmittingDotCount((count) => (count % 3) + 1);
+    }, 380);
+    return () => clearInterval(timer);
+  }, [isSubmittingFinal, isStepSubmitting]);
+
+  const handleNextStep = async (
+    values: Record<string, unknown>,
+    propertyContext?: { address: string; result: ZestimateResult | null },
+  ) => {
+      if (isStepSubmitting) return;
+      setIsStepSubmitting(true);
+      try {
+      const mergedValues: Record<string, unknown> = { ...values };
+      if (propertyContext) {
+        const trimmed = propertyContext.address.trim();
+        if (trimmed) mergedValues.searchedAddress = trimmed;
+        if (propertyContext.result?.address) {
+          mergedValues.resolvedAddress = propertyContext.result.address;
+        }
+        if (typeof propertyContext.result?.estimate === "number") {
+          mergedValues.estimate = String(propertyContext.result.estimate);
+        }
+        if (typeof propertyContext.result?.lat === "number") {
+          mergedValues.latitude = String(propertyContext.result.lat);
+        }
+        if (typeof propertyContext.result?.lng === "number") {
+          mergedValues.longitude = String(propertyContext.result.lng);
+        }
+      }
+
+      const shouldNotify =
+        step.multistepNotifyEachStep === true && !isLastStep;
+      if (shouldNotify) {
+        const result = await postMultistepStepNotify({
+          getRecaptchaToken: () => execute("lead_submit"),
+          mainPage,
+          currentStepIndex: currentStep,
+          accumulatedData,
+          stepPage: step,
+          currentValues: mergedValues,
+          utmHiddenFields,
+          fubPersonId,
+        });
+        if (!result.ok) {
+          toast({
+            title: "Could not continue",
+            description: result.error ?? "Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (result.fubPersonId) {
+          setFubPersonId(result.fubPersonId);
+        }
+      }
+      setAccumulatedData((prev) => ({
+        ...prev,
+        ["step" + currentStep]: mergedValues,
+      }));
+      setCurrentStep((i) => i + 1);
+      } finally {
+        setIsStepSubmitting(false);
+      }
   };
 
   const handleFinalSubmitFromNextSteps = async () => {
@@ -201,6 +271,9 @@ export function MultistepHeroFlow({
         _stepSlug: step.slug ?? mainPage.slug,
         website: "",
       };
+      if (fubPersonId) {
+        body._fubPersonId = fubPersonId;
+      }
       if (Object.keys(accumulatedData).length > 0) {
         body._multistepData = JSON.stringify(accumulatedData);
       }
@@ -255,6 +328,9 @@ export function MultistepHeroFlow({
   if (Object.keys(accumulatedData).length > 0) {
     extraHiddenFieldsForSubmit._multistepData = JSON.stringify(accumulatedData);
   }
+  if (fubPersonId) {
+    extraHiddenFieldsForSubmit._fubPersonId = fubPersonId;
+  }
   if (utmHiddenFields) {
     if (utmHiddenFields.utm_source) {
       extraHiddenFieldsForSubmit.utm_source = utmHiddenFields.utm_source;
@@ -287,7 +363,7 @@ export function MultistepHeroFlow({
         page={step}
         layout={propertyLayout}
         formSchema={formSchema}
-        onNextStep={(values) => handleNextStep(values)}
+        onNextStep={(values, ctx) => handleNextStep(values, ctx)}
       />
     );
   }
@@ -342,15 +418,20 @@ export function MultistepHeroFlow({
                   <button
                     type="button"
                     onClick={() => handleNextStep({})}
-                    className="inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800"
+                    disabled={isStepSubmitting}
+                    className="inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
                     style={ctaBgColor ? { backgroundColor: ctaBgColor } : undefined}
                   >
-                    <span
-                      className="cta-text"
-                      dangerouslySetInnerHTML={{
-                        __html: wrapLegalSignsHtml(step.ctaText ?? mainPage.ctaText),
-                      }}
-                    />
+                    {isStepSubmitting ? (
+                      `Submitting${".".repeat(submittingDotCount)}`
+                    ) : (
+                      <span
+                        className="cta-text"
+                        dangerouslySetInnerHTML={{
+                          __html: wrapLegalSignsHtml(step.ctaText ?? mainPage.ctaText),
+                        }}
+                      />
+                    )}
                   </button>
                 ) : null}
 
@@ -517,7 +598,15 @@ export function MultistepHeroFlow({
                             : { backgroundColor: "#a5883b" }
                         }
                       >
-                        <span dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(step.ctaText) }} />
+                        {isSubmittingFinal ? (
+                          `Submitting${".".repeat(submittingDotCount)}`
+                        ) : (
+                          <span
+                            dangerouslySetInnerHTML={{
+                              __html: wrapLegalSignsHtml(step.ctaText),
+                            }}
+                          />
+                        )}
                       </button>
                       <SocialLinksBar
                         base={socialSourcePage.domain}
@@ -628,9 +717,15 @@ export function MultistepHeroFlow({
                                 : undefined
                             }
                           >
-                            <span
-                              dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(step.ctaText) }}
-                            />
+                            {isSubmittingFinal ? (
+                              `Submitting${".".repeat(submittingDotCount)}`
+                            ) : (
+                              <span
+                                dangerouslySetInnerHTML={{
+                                  __html: wrapLegalSignsHtml(step.ctaText),
+                                }}
+                              />
+                            )}
                           </button>
                           <SocialLinksBar
                             base={socialSourcePage.domain}
@@ -761,10 +856,17 @@ export function MultistepHeroFlow({
                   <button
                     type="button"
                     onClick={() => handleNextStep({})}
+                    disabled={isStepSubmitting}
                     className="inline-flex w-full items-center justify-center bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
                     style={ctaBgColor ? { backgroundColor: ctaBgColor } : undefined}
                   >
-                    <span dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(step.ctaText) }} />
+                    {isStepSubmitting ? (
+                      `Submitting${".".repeat(submittingDotCount)}`
+                    ) : (
+                      <span
+                        dangerouslySetInnerHTML={{ __html: wrapLegalSignsHtml(step.ctaText) }}
+                      />
+                    )}
                   </button>
                 ) : null}
 

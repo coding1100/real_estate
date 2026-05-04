@@ -104,6 +104,8 @@ model LandingPage {
 
   // Multistep: entry page lists slugs for step content (e.g. ["market-report-1", "market-report-2", "market-report-3"])
   multistepStepSlugs Json?
+  /// When true and this page is used as a multistep step, Continue sends CTA notify emails for this page before advancing.
+  multistepNotifyEachStep Boolean @default(false)
 
   // Branding overrides
   primaryColor String?

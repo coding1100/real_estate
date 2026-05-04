@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import type { FormSchema } from "@/lib/types/form";
 import { type CtaForwardingRule } from "@/lib/types/ctaForwarding";
@@ -25,7 +25,7 @@ interface DynamicFormProps {
   formStyle?: FormStyle;
   helperText?: string;
   postCtaText?: string;
-  onNextStep?: (values: Record<string, unknown>) => void;
+  onNextStep?: (values: Record<string, unknown>) => void | Promise<void>;
   skipValidationForNextStep?: boolean;
   ctaForwardingRules?: CtaForwardingRule[];
 }
@@ -59,13 +59,27 @@ export function DynamicForm({
   });
 
   const [isPending, startTransition] = useTransition();
+  const [isAdvancing, setIsAdvancing] = useState(false);
+  const [submittingDotCount, setSubmittingDotCount] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { execute } = useRecaptcha();
   const { toast } = useToast();
   const watchedValues = useWatch({ control }) as Record<string, unknown>;
 
-  const handleNextClick = () => {
+  useEffect(() => {
+    const isSubmitting = isPending || isAdvancing;
+    if (!isSubmitting) {
+      setSubmittingDotCount(1);
+      return;
+    }
+    const timer = setInterval(() => {
+      setSubmittingDotCount((count) => (count % 3) + 1);
+    }, 380);
+    return () => clearInterval(timer);
+  }, [isPending, isAdvancing]);
+
+  const handleNextClick = async () => {
     if (!onNextStep) return;
     const values = getValues();
     const honeypot = (values as any).website as string | undefined;
@@ -74,7 +88,12 @@ export function DynamicForm({
       reset();
       return;
     }
-    onNextStep(values as Record<string, unknown>);
+    try {
+      setIsAdvancing(true);
+      await onNextStep(values as Record<string, unknown>);
+    } finally {
+      setIsAdvancing(false);
+    }
   };
 
   const onSubmit = handleSubmit(async (values) => {
@@ -86,7 +105,12 @@ export function DynamicForm({
       return;
     }
     if (onNextStep) {
-      onNextStep(values as Record<string, unknown>);
+      try {
+        setIsAdvancing(true);
+        await onNextStep(values as Record<string, unknown>);
+      } finally {
+        setIsAdvancing(false);
+      }
       return;
     }
     startTransition(async () => {
@@ -196,15 +220,15 @@ export function DynamicForm({
 
         <button
           type={onNextStep && skipValidationForNextStep ? "button" : "submit"}
-          disabled={isPending}
+          disabled={isPending || isAdvancing}
           className={buttonClass}
           style={buttonStyle}
           onClick={
             onNextStep && skipValidationForNextStep ? handleNextClick : undefined
           }
         >
-          {isPending ? (
-            "Submitting..."
+          {isPending || isAdvancing ? (
+            `Submitting${".".repeat(submittingDotCount)}`
           ) : (
             <span
               className="cta-text"
