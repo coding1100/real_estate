@@ -243,6 +243,10 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
   const { id } = await ctx.params;
   const isFixedDefaultHomepage = await isFixedDefaultHomepagePage(id);
   const hasNotesInBody = Object.prototype.hasOwnProperty.call(body, "notes");
+  const hasMultistepNotifyEachStepInBody = Object.prototype.hasOwnProperty.call(
+    body,
+    "multistepNotifyEachStep",
+  );
   let normalizedNotesValue: string | null = null;
 
   if (hasNotesInBody) {
@@ -259,6 +263,14 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     }
     // Save notes through SQL to avoid Prisma client/schema mismatch issues.
     delete body.notes;
+  }
+  if (hasMultistepNotifyEachStepInBody) {
+    if (typeof body.multistepNotifyEachStep !== "boolean") {
+      return NextResponse.json(
+        { error: "multistepNotifyEachStep must be a boolean." },
+        { status: 400 },
+      );
+    }
   }
 
   let existingPage:
@@ -568,6 +580,46 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
         // ignore failures; fall back to saving without social overrides
       }
       delete body.socialOverrides;
+    }
+    if (Object.prototype.hasOwnProperty.call(body, "multistepNotifyEachStep")) {
+      const notifyEachStep = body.multistepNotifyEachStep === true;
+      const existing = await prisma.landingPage.findUnique({
+        where: { id },
+        select: { sections: true },
+      });
+      const rawSections = body.sections ?? existing?.sections;
+      const sections: unknown[] = Array.isArray(rawSections) ? [...rawSections] : [];
+      const heroIdx = sections.findIndex(
+        (section) =>
+          section &&
+          typeof section === "object" &&
+          (section as { kind?: unknown }).kind === "hero",
+      );
+      if (heroIdx !== -1) {
+        const heroSection = sections[heroIdx] as {
+          props?: unknown;
+          [key: string]: unknown;
+        };
+        const heroProps =
+          heroSection.props && typeof heroSection.props === "object"
+            ? (heroSection.props as Record<string, unknown>)
+            : {};
+        sections[heroIdx] = {
+          ...heroSection,
+          props: {
+            ...heroProps,
+            multistepNotifyEachStep: notifyEachStep,
+          },
+        };
+      } else {
+        sections.push({
+          id: "hero",
+          kind: "hero",
+          props: { multistepNotifyEachStep: notifyEachStep },
+        });
+      }
+      body.sections = sections;
+      delete body.multistepNotifyEachStep;
     }
 
     if (Object.prototype.hasOwnProperty.call(body, "ctaForwardingRules")) {

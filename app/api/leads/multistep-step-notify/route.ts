@@ -1,0 +1,273 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { verifyRecaptchaToken } from "@/lib/captcha";
+import { mergeMultistepLeadFormData } from "@/lib/leadPayloadMerge";
+import { sendMultistepIntermediateStepNotification } from "@/lib/notifications";
+import { dispatchFormDataToFollowUpBoss } from "@/lib/followupboss";
+
+function normalizeTopLevelContacts(merged: Record<string, unknown>): Record<string, unknown> {
+  let out = { ...merged };
+  if (!("email" in out) || !String((out as { email?: unknown }).email ?? "").includes("@")) {
+    const email = findEmailInMerged(out);
+    if (email) out = { ...out, email };
+  }
+  if (!("phone" in out) || !String((out as { phone?: unknown }).phone ?? "").trim()) {
+    const phone = findPhoneInMerged(out);
+    if (phone) out = { ...out, phone };
+  }
+  if (!("name" in out) || !String((out as { name?: unknown }).name ?? "").trim()) {
+    const name = findNameInMerged(out);
+    if (name) out = { ...out, name };
+  }
+  return out;
+}
+
+function collectStringValues(input: unknown, seen = new Set<unknown>()): string[] {
+  if (input == null) return [];
+  if (typeof input === "string") {
+    const s = input.trim();
+    return s ? [s] : [];
+  }
+  if (typeof input === "number" || typeof input === "boolean") {
+    return [String(input)];
+  }
+  if (typeof input !== "object") return [];
+  if (seen.has(input)) return [];
+  seen.add(input);
+  if (Array.isArray(input)) {
+    return input.flatMap((v) => collectStringValues(v, seen));
+  }
+  const o: string[] = [];
+  for (const v of Object.values(input as Record<string, unknown>)) {
+    o.push(...collectStringValues(v, seen));
+  }
+  return o;
+}
+
+function findEmailInMerged(input: unknown): string | null {
+  const values = collectStringValues(input);
+  for (const v of values) {
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return v;
+  }
+  return null;
+}
+
+function findPhoneInMerged(input: unknown): string | null {
+  const looksLikePhone = (value: string): boolean => {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed.includes("@")) return false;
+    const digits = trimmed.replace(/\D/g, "");
+    return digits.length === 10 || (digits.length === 11 && digits.startsWith("1"));
+  };
+  const values = collectStringValues(input);
+  for (const v of values) {
+    if (looksLikePhone(v)) return v.trim();
+  }
+  return null;
+}
+
+function findNameInMerged(input: unknown): string | null {
+  const seen = new Set<unknown>();
+  const visit = (node: unknown): string | null => {
+    if (!node || typeof node !== "object") return null;
+    if (seen.has(node)) return null;
+    seen.add(node);
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        const n = visit(item);
+        if (n) return n;
+      }
+      return null;
+    }
+    for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+      const nk = key.trim().toLowerCase();
+      if (
+        typeof value === "string" &&
+        (nk === "name" ||
+          nk === "fullname" ||
+          nk === "first_name" ||
+          nk === "firstname") &&
+        value.trim().length > 0 &&
+        !value.includes("@")
+      ) {
+        return value.trim();
+      }
+      if (value && typeof value === "object") {
+        const n = visit(value);
+        if (n) return n;
+      }
+    }
+    return null;
+  };
+  return visit(input);
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const {
+      domain,
+      slug,
+      type,
+      recaptchaToken,
+      website,
+      ...formData
+    } = body ?? {};
+
+    const honeypotValue =
+      typeof website === "string"
+        ? website.replace(/&nbsp;/gi, " ").replace(/\u00A0/g, " ").trim()
+        : "";
+    if (honeypotValue.length > 0) {
+      return NextResponse.json({ ok: true }, { status: 200 });
+    }
+
+    if (!domain || !slug || !type) {
+      return NextResponse.json({ ok: true }, { status: 200 });
+    }
+
+    const captchaResult = await verifyRecaptchaToken(recaptchaToken ?? null).catch((e) => {
+      console.error("[recaptcha] multistep-step-notify verification error", e);
+      return { ok: false, score: 0, skipped: false } as { ok: boolean };
+    });
+    if (!captchaResult.ok) {
+      return NextResponse.json({ error: "Failed CAPTCHA verification" }, { status: 400 });
+    }
+
+    const entry = await prisma.landingPage.findFirst({
+      where: {
+        slug: String(slug),
+        status: "published",
+        domain: { hostname: String(domain), isActive: true },
+      },
+      include: { domain: true },
+    });
+    if (!entry?.domain) {
+      return NextResponse.json({ ok: true }, { status: 200 });
+    }
+
+    const rawSlugs = entry.multistepStepSlugs as unknown;
+    const stepSlugs = Array.isArray(rawSlugs)
+      ? rawSlugs
+          .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+          .map((x) => x.trim())
+      : [];
+    if (stepSlugs.length === 0) {
+      return NextResponse.json({ error: "Not a multistep entry page" }, { status: 400 });
+    }
+
+    const stepSlugRaw = (formData as { _stepSlug?: unknown })._stepSlug;
+    const stepSlug = typeof stepSlugRaw === "string" ? stepSlugRaw.trim() : "";
+    if (!stepSlug) {
+      return NextResponse.json({ error: "Missing _stepSlug" }, { status: 400 });
+    }
+
+    const ctaRaw = (formData as { _ctaText?: unknown })._ctaText;
+    const formCtaLabel = typeof ctaRaw === "string" ? ctaRaw.trim() : "";
+
+    const isEntryStep = stepSlug === entry.slug;
+    const idxInFlow = stepSlugs.indexOf(stepSlug);
+    if (!isEntryStep && idxInFlow === -1) {
+      return NextResponse.json({ error: "Invalid step for this multistep entry" }, { status: 400 });
+    }
+    if (!isEntryStep && idxInFlow === stepSlugs.length - 1) {
+      return NextResponse.json(
+        { error: "Use the normal form submit on the final step" },
+        { status: 400 },
+      );
+    }
+
+    let merged = mergeMultistepLeadFormData(formData as Record<string, unknown>);
+    merged = normalizeTopLevelContacts(merged);
+
+    const stepPageRow =
+      isEntryStep
+        ? entry
+        : await prisma.landingPage.findFirst({
+            where: {
+              slug: stepSlug,
+              domainId: entry.domainId,
+              status: "published",
+              deletedAt: null,
+            },
+          });
+    if (!stepPageRow) {
+      return NextResponse.json({ error: "Step page not found" }, { status: 400 });
+    }
+
+    const stepHero = Array.isArray(stepPageRow.sections)
+      ? (stepPageRow.sections as Array<{ kind?: string; props?: Record<string, unknown> }>)
+          .find((s) => s?.kind === "hero")
+      : null;
+    const notifyEach = Boolean(
+      stepHero?.props?.multistepNotifyEachStep ??
+        (stepPageRow as { multistepNotifyEachStep?: boolean }).multistepNotifyEachStep,
+    );
+    if (!notifyEach) {
+      return NextResponse.json({ ok: true, skipped: true, reason: "disabled_on_page" });
+    }
+
+    const result = await sendMultistepIntermediateStepNotification({
+      entryPageSlug: entry.slug,
+      leadType: String(type),
+      domain: {
+        hostname: entry.domain.hostname,
+        displayName: entry.domain.displayName,
+        logoUrl: entry.domain.logoUrl,
+        notifyEmail: entry.domain.notifyEmail,
+      },
+      stepPage: {
+        slug: stepPageRow.slug,
+        ctaText: stepPageRow.ctaText,
+        sections: stepPageRow.sections,
+        multistepNotifyEachStep: notifyEach,
+      },
+      mergedFormData: merged,
+      formCtaLabel: formCtaLabel || stepPageRow.ctaText,
+    });
+    const existingFubPersonIdRaw = merged._fubPersonId;
+    const existingFubPersonId =
+      typeof existingFubPersonIdRaw === "string" && existingFubPersonIdRaw.trim()
+        ? existingFubPersonIdRaw.trim()
+        : null;
+    const fubPersonId = await dispatchFormDataToFollowUpBoss({
+      domainHostname: entry.domain.hostname,
+      domainNotifyEmail: entry.domain.notifyEmail,
+      pageSlug: stepPageRow.slug,
+      pageType: String(type),
+      pageCtaText: stepPageRow.ctaText,
+      formData: merged,
+      utmSource:
+        typeof (formData as { utm_source?: unknown }).utm_source === "string"
+          ? (formData as { utm_source?: string }).utm_source ?? null
+          : null,
+      utmMedium:
+        typeof (formData as { utm_medium?: unknown }).utm_medium === "string"
+          ? (formData as { utm_medium?: string }).utm_medium ?? null
+          : null,
+      utmCampaign:
+        typeof (formData as { utm_campaign?: unknown }).utm_campaign === "string"
+          ? (formData as { utm_campaign?: string }).utm_campaign ?? null
+          : null,
+      existingPersonId: existingFubPersonId,
+      throwOnFailure: true,
+    });
+
+    if (!result.sent && result.skippedReason === "missing_contact_for_notify") {
+      return NextResponse.json(
+        { ok: false, error: "Add an email or phone before continuing, or enable notify-only mode on the CTA rule." },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      sent: result.sent,
+      skippedReason: result.skippedReason,
+      fubPersonId,
+    });
+  } catch (e) {
+    console.error("[multistep-step-notify]", e);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

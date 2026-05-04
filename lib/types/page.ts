@@ -82,6 +82,8 @@ export interface LandingPageContent {
   blocks?: BlockConfig[];
   formSchema?: FormSchema | null;
   pageLayout?: any | null;
+  /** When true, intermediate Continue on this page triggers per-step notify (see CTA tab). */
+  multistepNotifyEachStep?: boolean;
   multistepSteps?: LandingPageContent[];
   isFixedDefaultHomepage?: boolean;
   defaultHomepageButtons?: {

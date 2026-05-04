@@ -1,6 +1,9 @@
 import { render } from "@react-email/render";
 import DocumentDeliveryEmail from "@/emails/DocumentDeliveryEmail";
-import NewLeadEmail, { type LeadFieldRow } from "@/emails/NewLeadEmail";
+import NewLeadEmail, {
+  type LeadEmailCtaContext,
+  type LeadFieldRow,
+} from "@/emails/NewLeadEmail";
 
 function resolveAbsoluteEmailAssetUrl(url?: string | null): string | undefined {
   const raw = (url ?? "").trim();
@@ -30,6 +33,8 @@ export function formLinesToFieldRows(lines: string[]): LeadFieldRow[] {
   });
 }
 
+export type { LeadEmailCtaContext };
+
 export async function renderNewLeadEmailHtml(props: {
   leadType: string;
   domainHostname: string;
@@ -37,6 +42,7 @@ export async function renderNewLeadEmailHtml(props: {
   brandName: string;
   logoUrl?: string | null;
   fieldRows: LeadFieldRow[];
+  ctaNotificationContext?: LeadEmailCtaContext | null;
 }): Promise<{ html: string; text: string }> {
   const absoluteLogoUrl = resolveAbsoluteEmailAssetUrl(props.logoUrl);
   const el = (
@@ -47,6 +53,7 @@ export async function renderNewLeadEmailHtml(props: {
       brandName={props.brandName}
       logoUrl={absoluteLogoUrl}
       fieldRows={props.fieldRows}
+      ctaNotificationContext={props.ctaNotificationContext ?? null}
     />
   );
   const [html, text] = await Promise.all([
