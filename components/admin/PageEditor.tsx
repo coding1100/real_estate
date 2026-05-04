@@ -167,6 +167,9 @@ export function PageEditor({
   const [multistepStepSlugs, setMultistepStepSlugs] = useState<string[]>(
     Array.isArray(initialPage.multistepStepSlugs) ? initialPage.multistepStepSlugs : [],
   );
+  const [multistepNotifyEachStep, setMultistepNotifyEachStep] = useState(
+    Boolean((initialPage as { multistepNotifyEachStep?: boolean }).multistepNotifyEachStep),
+  );
   const [pageMode, setPageMode] = useState<"single" | "multistep">(
     Array.isArray(initialPage.multistepStepSlugs) &&
       initialPage.multistepStepSlugs.length > 0
@@ -434,6 +437,7 @@ export function PageEditor({
           effectivePageMode === "multistep" && multistepStepSlugs.length > 0
           ? multistepStepSlugs
           : null;
+      body.multistepNotifyEachStep = multistepNotifyEachStep;
 
       const getLayout = layoutGetLayoutRef.current;
         if (!isFixedDefaultHomepage && getLayout) {
@@ -481,6 +485,7 @@ export function PageEditor({
         blocks,
         formSchema,
         socialOverrides,
+        multistepNotifyEachStep: body.multistepNotifyEachStep,
         ...(body.layoutData
           ? {
             pageLayout: {
@@ -2011,12 +2016,19 @@ export function PageEditor({
             <div className="space-y-4">
               <CtaForwardingSettingsForm
                 initialRules={ctaForwardingRules}
+                multistepNotifyEachStep={multistepNotifyEachStep}
+                onMultistepNotifyEachStepChange={setMultistepNotifyEachStep}
                 saveButtonLabel="Save page CTA rules"
-                onSaveRules={async (rules) => {
+                onSaveRules={async (rules, options) => {
+                  const nextMultistepNotifyEachStep =
+                    options?.multistepNotifyEachStep ?? multistepNotifyEachStep;
                   const res = await fetch(`/api/admin/pages/${initialPage.dbId}`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ ctaForwardingRules: rules }),
+                    body: JSON.stringify({
+                      ctaForwardingRules: rules,
+                      multistepNotifyEachStep: nextMultistepNotifyEachStep,
+                    }),
                   });
                   const data = (await res.json().catch(() => null)) as
                     | { error?: string }
@@ -2028,6 +2040,7 @@ export function PageEditor({
                     );
                   }
                   setCtaForwardingRules(rules);
+                  setMultistepNotifyEachStep(nextMultistepNotifyEachStep);
                   setPage((prev) => {
                     const currentSections = Array.isArray(prev.sections)
                       ? [...prev.sections]
@@ -2051,7 +2064,11 @@ export function PageEditor({
                         props: { ctaForwardingRules: rules },
                       } as any);
                     }
-                    return { ...prev, sections: currentSections };
+                    return {
+                      ...prev,
+                      sections: currentSections,
+                      multistepNotifyEachStep: nextMultistepNotifyEachStep,
+                    };
                   });
                 }}
               />

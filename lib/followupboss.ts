@@ -16,6 +16,7 @@ const SKIPPED_FORM_KEYS = new Set([
   "website",
   "multistepdata",
   "ctatext",
+  "fubpersonid",
 ]);
 const CONTACT_FIELD_KEYS = new Set([
   "name",
@@ -65,6 +66,7 @@ type FollowUpBossCampaign = {
 };
 
 type FollowUpBossPerson = {
+  id?: string | number;
   firstName?: string;
   lastName?: string;
   emails?: Array<{ value: string }>;
@@ -85,6 +87,7 @@ type FubDispatchAttemptResult = {
   ok: boolean;
   status: number;
   body: string;
+  personId?: string | null;
   error?: string;
   ignoredByLeadFlow?: boolean;
 };
@@ -656,6 +659,66 @@ function buildPayload(
   };
 }
 
+function parseFubPersonIdFromBody(body: string): string | null {
+  if (!body) return null;
+  try {
+    const parsed = JSON.parse(body) as Record<string, unknown>;
+    const direct = parsed.id;
+    if (typeof direct === "string" || typeof direct === "number") {
+      return String(direct);
+    }
+    const person = parsed.person as Record<string, unknown> | undefined;
+    const personId = person?.id;
+    if (typeof personId === "string" || typeof personId === "number") {
+      return String(personId);
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return null;
+}
+
+function buildMessageFromSubmission(input: {
+  leadType: string;
+  domainHostname: string;
+  pageSlug: string;
+  formData: Record<string, unknown>;
+  config: FollowUpBossConfig;
+  notificationRecipients: string[];
+}): string {
+  const lines: string[] = [
+    `New ${input.leadType === "seller" ? "Seller Inquiry" : "General Inquiry"}`,
+    "",
+    `Captured At (UTC): ${new Date().toISOString()}`,
+    `Source: ${normalizeSourceDomain(input.domainHostname)}`,
+    `Page: ${input.pageSlug}`,
+  ];
+  if (input.notificationRecipients.length > 0) {
+    lines.push(
+      "",
+      `Notification recipients: ${input.notificationRecipients.join(", ")}`,
+    );
+  }
+  const person =
+    extractPerson(input.formData) ??
+    ({
+      firstName: "Website",
+      lastName: "Lead",
+    } satisfies FollowUpBossPerson);
+  const contactLines = formatContactSummary(person);
+  if (contactLines.length > 0) {
+    lines.push("", "Contact:", ...contactLines);
+  }
+  const answerLines = formatAnswerGroups(input.formData, person, {});
+  if (answerLines.length > 0) {
+    lines.push("", "Answers:", ...answerLines);
+  }
+  if (input.config.includeRawJson) {
+    lines.push("", "Raw Form Data (JSON):", serializeFormData(input.formData));
+  }
+  return lines.join("\n");
+}
+
 function getRetryDelayMs(
   attempt: number,
   response: Response | null,
@@ -787,11 +850,14 @@ function getErrorMessage(body: string): string {
   }
 }
 
-export async function dispatchLeadToFollowUpBoss(
-  leadId: string,
-  options?: { throwOnFailure?: boolean },
-): Promise<void> {
-  const throwOnFailure = options?.throwOnFailure === true;
+async function sendPayloadToFollowUpBoss(input: {
+  payload: FollowUpBossEventPayload;
+  config: FollowUpBossConfig;
+  logLabel: string;
+  throwOnFailure: boolean;
+  aliasSeed: string;
+}): Promise<string | null> {
+  const { payload, config, logLabel, throwOnFailure, aliasSeed } = input;
   const fail = (message: string, error?: unknown): never | void => {
     if (error) {
       console.error(message, error);
@@ -802,48 +868,6 @@ export async function dispatchLeadToFollowUpBoss(
       throw new Error(message);
     }
   };
-  const config = getConfig();
-
-  if (!config.enabled) {
-    return;
-  }
-
-  if (!config.apiKey) {
-    if (!missingConfigWarned) {
-      console.warn(
-        "[followupboss] Integration is enabled but missing FUB_API_KEY. Skipping dispatch.",
-      );
-      missingConfigWarned = true;
-    }
-    return;
-  }
-
-  const lead = await prisma.lead.findUnique({
-    where: { id: leadId },
-    include: {
-      domain: true,
-      page: true,
-    },
-  });
-
-  if (!lead) {
-    console.warn(`[followupboss] Lead not found: ${leadId}`);
-    return;
-  }
-
-  const fieldLabels = await buildFieldLabelsForLead(lead);
-  const { settings } = await getAdminUiSettings().catch(() => ({ settings: { ctaForwardingRules: [] as any } as any }));
-  const rules = (settings.ctaForwardingRules ?? []) as CtaForwardingRule[];
-  const notificationRecipients = resolveNotificationRecipientsForLead({
-    rules,
-    pageCtaText: lead.page.ctaText,
-    formData: lead.formData,
-    domainNotifyEmail: lead.domain.notifyEmail,
-  });
-
-  const payload = buildPayload(lead, config, fieldLabels, notificationRecipients);
-  if (!payload) return;
-
   const endpoint = `${config.baseUrl}${FUB_EVENTS_PATH}`;
   const headers: Record<string, string> = {
     Authorization: toAuthorizationHeader(config.apiKey),
@@ -870,13 +894,18 @@ export async function dispatchLeadToFollowUpBoss(
         const body = await response.text();
         if (response.status === 200 || response.status === 201) {
           console.log(
-            `[followupboss] Lead ${lead.id} synced via ${label} (status=${response.status}, attempt=${attempt}).`,
+            `[followupboss] ${logLabel} synced via ${label} (status=${response.status}, attempt=${attempt}).`,
           );
-          return { ok: true, status: response.status, body };
+          return {
+            ok: true,
+            status: response.status,
+            body,
+            personId: parseFubPersonIdFromBody(body),
+          };
         }
         if (response.status === 204) {
           console.warn(
-            `[followupboss] Lead ${lead.id} ignored by lead flow via ${label} (status=204).`,
+            `[followupboss] ${logLabel} ignored by lead flow via ${label} (status=204).`,
           );
           return { ok: false, status: response.status, body, ignoredByLeadFlow: true };
         }
@@ -888,7 +917,7 @@ export async function dispatchLeadToFollowUpBoss(
         }
         const delayMs = getRetryDelayMs(attempt, response, config.initialBackoffMs);
         console.warn(
-          `[followupboss] Retryable response for lead ${lead.id} via ${label} (status=${response.status}). Retrying in ${delayMs}ms.`,
+          `[followupboss] Retryable response for ${logLabel} via ${label} (status=${response.status}). Retrying in ${delayMs}ms.`,
         );
         await sleep(delayMs);
       } catch (error) {
@@ -899,7 +928,7 @@ export async function dispatchLeadToFollowUpBoss(
         }
         const delayMs = getRetryDelayMs(attempt, response, config.initialBackoffMs);
         console.warn(
-          `[followupboss] Transient error for lead ${lead.id} via ${label}. Retrying in ${delayMs}ms.`,
+          `[followupboss] Transient error for ${logLabel} via ${label}. Retrying in ${delayMs}ms.`,
         );
         await sleep(delayMs);
       } finally {
@@ -910,19 +939,21 @@ export async function dispatchLeadToFollowUpBoss(
   };
 
   const primaryResult = await sendWithRetries(payload, "primary");
-  if (primaryResult.ok) return;
+  if (primaryResult.ok) {
+    return primaryResult.personId ?? null;
+  }
 
   const shouldAttemptAliasFallback =
     primaryResult.ignoredByLeadFlow ||
     primaryResult.status === 409 ||
     primaryResult.status === 422;
   const aliasFallback = shouldAttemptAliasFallback
-    ? buildPayloadWithAliasEmail(payload, lead.id)
+    ? buildPayloadWithAliasEmail(payload, aliasSeed)
     : null;
 
   if (aliasFallback) {
     console.warn(
-      `[followupboss] Retrying lead ${lead.id} with alias email fallback due to primary status=${primaryResult.status}.`,
+      `[followupboss] Retrying ${logLabel} with alias email fallback due to primary status=${primaryResult.status}.`,
       {
         originalEmail: aliasFallback.originalEmail,
         aliasEmail: aliasFallback.aliasEmail,
@@ -932,14 +963,144 @@ export async function dispatchLeadToFollowUpBoss(
       aliasFallback.payload,
       "email-alias-fallback",
     );
-    if (fallbackResult.ok) return;
+    if (fallbackResult.ok) return fallbackResult.personId ?? null;
     fail(
-      `[followupboss] Lead ${lead.id} failed after alias fallback (primaryStatus=${primaryResult.status}, fallbackStatus=${fallbackResult.status}): ${getErrorMessage(fallbackResult.body || fallbackResult.error || "")}`,
+      `[followupboss] ${logLabel} failed after alias fallback (primaryStatus=${primaryResult.status}, fallbackStatus=${fallbackResult.status}): ${getErrorMessage(fallbackResult.body || fallbackResult.error || "")}`,
     );
-    return;
+    return null;
   }
 
   fail(
-    `[followupboss] Lead ${lead.id} failed (status=${primaryResult.status}): ${getErrorMessage(primaryResult.body || primaryResult.error || "")}`,
+    `[followupboss] ${logLabel} failed (status=${primaryResult.status}): ${getErrorMessage(primaryResult.body || primaryResult.error || "")}`,
   );
+  return null;
+}
+
+export async function dispatchFormDataToFollowUpBoss(input: {
+  domainHostname: string;
+  domainNotifyEmail?: string | null;
+  pageSlug: string;
+  pageType: string;
+  pageCtaText?: string | null;
+  formData: Record<string, unknown>;
+  utmSource?: string | null;
+  utmMedium?: string | null;
+  utmCampaign?: string | null;
+  existingPersonId?: string | null;
+  throwOnFailure?: boolean;
+}): Promise<string | null> {
+  const config = getConfig();
+  if (!config.enabled) return null;
+  if (!config.apiKey) {
+    if (!missingConfigWarned) {
+      console.warn(
+        "[followupboss] Integration is enabled but missing FUB_API_KEY. Skipping dispatch.",
+      );
+      missingConfigWarned = true;
+    }
+    return null;
+  }
+  const extractedPerson = extractPerson(input.formData);
+  const person: FollowUpBossPerson =
+    extractedPerson ??
+    ({
+      firstName: "Website",
+      lastName: "Lead",
+    } satisfies FollowUpBossPerson);
+  if (input.existingPersonId) {
+    person.id = input.existingPersonId;
+  }
+  const { settings } = await getAdminUiSettings().catch(() => ({
+    settings: { ctaForwardingRules: [] as any } as any,
+  }));
+  const rules = (settings.ctaForwardingRules ?? []) as CtaForwardingRule[];
+  const notificationRecipients = resolveNotificationRecipientsForLead({
+    rules,
+    pageCtaText: input.pageCtaText,
+    formData: input.formData,
+    domainNotifyEmail: input.domainNotifyEmail,
+  });
+  const sourceDomain = normalizeSourceDomain(input.domainHostname);
+  const campaign =
+    input.utmSource || input.utmMedium || input.utmCampaign
+      ? {
+          source: normalizeSourceDomain(input.utmSource ?? sourceDomain),
+          ...(input.utmMedium ? { medium: input.utmMedium } : {}),
+          ...(input.utmCampaign ? { name: input.utmCampaign } : {}),
+        }
+      : undefined;
+  const payload: FollowUpBossEventPayload = {
+    source: sourceDomain,
+    sourceUrl: `https://${sourceDomain}/${input.pageSlug}`,
+    ...(config.system ? { system: config.system } : {}),
+    type: getEventType(input.pageType),
+    message: buildMessageFromSubmission({
+      leadType: input.pageType,
+      domainHostname: input.domainHostname,
+      pageSlug: input.pageSlug,
+      formData: input.formData,
+      config,
+      notificationRecipients,
+    }),
+    person,
+    ...(campaign ? { campaign } : {}),
+  };
+  return sendPayloadToFollowUpBoss({
+    payload,
+    config,
+    logLabel: `submission ${input.pageSlug}`,
+    throwOnFailure: input.throwOnFailure === true,
+    aliasSeed: `${input.pageSlug}-${Date.now()}`,
+  });
+}
+
+export async function dispatchLeadToFollowUpBoss(
+  leadId: string,
+  options?: { throwOnFailure?: boolean; existingPersonId?: string | null },
+): Promise<string | null> {
+  const config = getConfig();
+  if (!config.enabled) return null;
+  if (!config.apiKey) {
+    if (!missingConfigWarned) {
+      console.warn(
+        "[followupboss] Integration is enabled but missing FUB_API_KEY. Skipping dispatch.",
+      );
+      missingConfigWarned = true;
+    }
+    return null;
+  }
+  const lead = await prisma.lead.findUnique({
+    where: { id: leadId },
+    include: {
+      domain: true,
+      page: true,
+    },
+  });
+  if (!lead) {
+    console.warn(`[followupboss] Lead not found: ${leadId}`);
+    return null;
+  }
+  const fieldLabels = await buildFieldLabelsForLead(lead);
+  const { settings } = await getAdminUiSettings().catch(() => ({
+    settings: { ctaForwardingRules: [] as any } as any,
+  }));
+  const rules = (settings.ctaForwardingRules ?? []) as CtaForwardingRule[];
+  const notificationRecipients = resolveNotificationRecipientsForLead({
+    rules,
+    pageCtaText: lead.page.ctaText,
+    formData: lead.formData,
+    domainNotifyEmail: lead.domain.notifyEmail,
+  });
+  const payload = buildPayload(lead, config, fieldLabels, notificationRecipients);
+  if (!payload) return null;
+  if (options?.existingPersonId) {
+    payload.person = { ...payload.person, id: options.existingPersonId };
+  }
+  return sendPayloadToFollowUpBoss({
+    payload,
+    config,
+    logLabel: `lead ${lead.id}`,
+    throwOnFailure: options?.throwOnFailure === true,
+    aliasSeed: lead.id,
+  });
 }

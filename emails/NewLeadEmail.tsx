@@ -4,6 +4,14 @@ import { emailTheme } from "./theme";
 
 export type LeadFieldRow = { label: string; value: string };
 
+export type LeadEmailCtaContext = {
+  entryPageSlug: string;
+  stepPageSlug: string;
+  formCtaLabel: string;
+  ctaManagementTitle: string | null;
+  phase: "multistep_step" | "completed_lead";
+};
+
 export type NewLeadEmailProps = {
   leadType: string;
   domainHostname: string;
@@ -11,6 +19,8 @@ export type NewLeadEmailProps = {
   brandName: string;
   logoUrl?: string;
   fieldRows: LeadFieldRow[];
+  /** When set, shows which multistep step / CTA rule produced this email. */
+  ctaNotificationContext?: LeadEmailCtaContext | null;
 };
 
 export default function NewLeadEmail({
@@ -20,6 +30,7 @@ export default function NewLeadEmail({
   brandName,
   logoUrl,
   fieldRows,
+  ctaNotificationContext,
 }: NewLeadEmailProps) {
   void logoUrl;
   const previewText = `New ${leadType} lead — ${domainHostname} / ${pageSlug}`;
@@ -51,6 +62,48 @@ export default function NewLeadEmail({
       }
       brandName={brandName}
     >
+      {ctaNotificationContext ? (
+        <Section
+          style={{
+            backgroundColor: "#1e3a5f",
+            borderRadius: "8px",
+            padding: "14px 16px",
+            marginBottom: "16px",
+          }}
+        >
+          <Text
+            style={{
+              margin: 0,
+              fontSize: "12px",
+              fontWeight: 700,
+              color: "#e2e8f0",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            {ctaNotificationContext.phase === "multistep_step"
+              ? "Multistep — intermediate step"
+              : "Lead submission — CTA source"}
+          </Text>
+          <Text style={{ margin: "8px 0 0", fontSize: "14px", color: "#f8fafc", lineHeight: 1.5 }}>
+            <strong style={{ color: "#94a3b8" }}>Entry URL page</strong>{" "}
+            <span style={{ fontFamily: "ui-monospace, monospace" }}>
+              {ctaNotificationContext.entryPageSlug}
+            </span>
+          </Text>
+          <Text style={{ margin: "4px 0 0", fontSize: "14px", color: "#f8fafc", lineHeight: 1.5 }}>
+            <strong style={{ color: "#94a3b8" }}>This step page</strong>{" "}
+            <span style={{ fontFamily: "ui-monospace, monospace" }}>
+              {ctaNotificationContext.stepPageSlug}
+            </span>
+          </Text>
+          <Text style={{ margin: "4px 0 0", fontSize: "14px", color: "#f8fafc", lineHeight: 1.5 }}>
+            <strong style={{ color: "#94a3b8" }}>CTA Management rule</strong>{" "}
+            {ctaNotificationContext.ctaManagementTitle?.trim() || "—"}
+          </Text>
+        </Section>
+      ) : null}
+
       <Section
         style={{
           backgroundColor: emailTheme.accentSoft,

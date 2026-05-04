@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyRecaptchaToken } from "@/lib/captcha";
 import { sendLeadNotifications } from "@/lib/notifications";
+import { mergeMultistepLeadFormData } from "@/lib/leadPayloadMerge";
 import { dispatchLeadToFollowUpBoss } from "@/lib/followupboss";
 import type { Prisma } from "@prisma/client";
 
@@ -159,6 +160,9 @@ export async function POST(req: NextRequest) {
       website, // honeypot from DynamicForm
       ...formData
     } = body ?? {};
+    const hadMultistepPayload =
+      typeof (formData as { _multistepData?: unknown })._multistepData === "string" ||
+      typeof (formData as { _multistepData?: unknown })._multistepData === "object";
 
     const honeypotValue =
       typeof website === "string"
@@ -248,30 +252,8 @@ export async function POST(req: NextRequest) {
     const page = pageWithDomain;
     const domainRow = pageWithDomain.domain;
 
-    const { utm_source, utm_medium, utm_campaign, _multistepData, ...restForm } = formData as Record<string, unknown>;
-    let mergedFormData: Record<string, unknown> = restForm;
-    if (typeof _multistepData === "string") {
-      try {
-        const parsed = JSON.parse(_multistepData) as Record<string, unknown>;
-        const lastStepKey = "step" + (Object.keys(parsed).length);
-        mergedFormData = { ...parsed, [lastStepKey]: restForm };
-      } catch {
-        // ignore invalid JSON
-      }
-    } else if (_multistepData && typeof _multistepData === "object") {
-      const parsed = _multistepData as Record<string, unknown>;
-      const lastStepKey = "step" + (Object.keys(parsed).length);
-      mergedFormData = { ...parsed, [lastStepKey]: restForm };
-    }
-
-    // Keep critical multistep routing keys at top-level for downstream
-    // notification/template/rule resolution.
-    if (typeof restForm._ctaText === "string" && restForm._ctaText.trim()) {
-      mergedFormData._ctaText = restForm._ctaText.trim();
-    }
-    if (typeof restForm._stepSlug === "string" && restForm._stepSlug.trim()) {
-      mergedFormData._stepSlug = restForm._stepSlug.trim();
-    }
+    const { utm_source, utm_medium, utm_campaign } = formData as Record<string, unknown>;
+    let mergedFormData = mergeMultistepLeadFormData(formData as Record<string, unknown>);
 
     // Normalize core contact fields at the top-level so integrations (e.g. FUB)
     // can always identify the person, even if the form uses compact IDs or
@@ -305,7 +287,7 @@ export async function POST(req: NextRequest) {
       domain: domainRow.hostname,
       entryPageSlug: page.slug,
       type: lead.type,
-      hasMultistepData: !!_multistepData,
+      hasMultistepData: hadMultistepPayload,
       hasStepSlug: typeof mergedFormData._stepSlug === "string",
       hasCtaText: typeof mergedFormData._ctaText === "string",
     });
@@ -317,7 +299,15 @@ export async function POST(req: NextRequest) {
 
     try {
       console.log("[leads] Dispatch start: FollowUpBoss", { leadId: lead.id });
-      await dispatchLeadToFollowUpBoss(lead.id, { throwOnFailure: true });
+      const existingFubPersonId =
+        typeof mergedFormData._fubPersonId === "string" &&
+        mergedFormData._fubPersonId.trim().length > 0
+          ? mergedFormData._fubPersonId.trim()
+          : null;
+      await dispatchLeadToFollowUpBoss(lead.id, {
+        throwOnFailure: true,
+        existingPersonId: existingFubPersonId,
+      });
       fubDelivered = true;
       console.log("[leads] Dispatch success: FollowUpBoss", { leadId: lead.id });
     } catch (fubError) {
