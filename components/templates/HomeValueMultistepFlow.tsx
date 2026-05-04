@@ -55,6 +55,7 @@ interface HeroLayoutConfig {
   profileEmail?: string;
   formPostCtaText?: string;
   formFooterText?: string;
+  heroImageBrightness?: number;
 }
 
 type SearchState = "idle" | "found" | "error";
@@ -715,6 +716,22 @@ export function HomeValueMultistepFlow({
 
   const isLastStep = isOverallLastStep;
 
+  const normalizeBrightness = (value: unknown, fallback: number): number => {
+    const parsed =
+      typeof value === "number"
+        ? value
+        : typeof value === "string"
+          ? Number(value)
+          : Number.NaN;
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.min(1, Math.max(0.2, parsed));
+  };
+  const isTeamShowcaseStep = layout?.formStyle === "team-showcase";
+  const heroBackgroundBrightness = normalizeBrightness(
+    layout?.heroImageBrightness,
+    isTeamShowcaseStep ? 0.58 : 0.65,
+  );
+
   return (
     <section className="relative text-white min-h-[calc(100vh_-_85px)] pt-[120px] max-[768px]:pt-20">
       {(mainPage.heroImageUrl || step.heroImageUrl) && (
@@ -723,7 +740,8 @@ export function HomeValueMultistepFlow({
             src={(step.heroImageUrl || mainPage.heroImageUrl) as string}
             alt={step.headline}
             priority
-            className="object-cover filter brightness-65 max-h-[1000px]"
+            className="object-cover max-h-[1000px]"
+            style={{ filter: `brightness(${heroBackgroundBrightness})` }}
           />
         </div>
       )}
