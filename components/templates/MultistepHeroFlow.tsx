@@ -223,7 +223,7 @@ export function MultistepHeroFlow({
         step.multistepNotifyEachStep === true && !isLastStep;
       if (shouldNotify) {
         const result = await postMultistepStepNotify({
-          getRecaptchaToken: () => execute("lead_submit"),
+          getRecaptchaToken: () => execute("lead_step_notify"),
           mainPage,
           currentStepIndex: currentStep,
           accumulatedData,

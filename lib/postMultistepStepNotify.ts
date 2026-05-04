@@ -11,6 +11,13 @@ export async function postMultistepStepNotify(input: {
   fubPersonId?: string | null;
 }): Promise<{ ok: boolean; error?: string; fubPersonId?: string | null }> {
   const token = await input.getRecaptchaToken();
+  if (!token || !token.trim()) {
+    return {
+      ok: false,
+      error:
+        "Security verification could not be completed. Please try again.",
+    };
+  }
   const prevJson =
     input.currentStepIndex === 0
       ? undefined
@@ -24,7 +31,7 @@ export async function postMultistepStepNotify(input: {
     _ctaText: input.stepPage.ctaText ?? input.mainPage.ctaText ?? "",
     ...(prevJson ? { _multistepData: prevJson } : {}),
     ...(input.fubPersonId ? { _fubPersonId: input.fubPersonId } : {}),
-    recaptchaToken: token ?? "",
+    recaptchaToken: token,
     website: "",
   };
   const utm = input.utmHiddenFields;
