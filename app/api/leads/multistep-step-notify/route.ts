@@ -126,11 +126,46 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
-    const captchaResult = await verifyRecaptchaToken(recaptchaToken ?? null).catch((e) => {
+    const captchaResult = await verifyRecaptchaToken(recaptchaToken ?? null, {
+      minScore: 0.3,
+      expectedAction: "lead_step_notify",
+    }).catch((e) => {
       console.error("[recaptcha] multistep-step-notify verification error", e);
-      return { ok: false, score: 0, skipped: false } as { ok: boolean };
+      return {
+        ok: false,
+        score: 0,
+        skipped: false,
+        action: null as string | null,
+        reason: "verification_error" as const,
+        raw: null as unknown,
+      };
     });
+    try {
+      const errorCodes =
+        captchaResult && "raw" in captchaResult && captchaResult.raw && "error-codes" in (captchaResult.raw as Record<string, unknown>)
+          ? (((captchaResult.raw as Record<string, unknown>)["error-codes"] as string[] | undefined) ?? [])
+          : [];
+      console.log("[recaptcha] multistep-step-notify verification", {
+        ok: captchaResult.ok,
+        score: captchaResult.score,
+        action: captchaResult.action ?? null,
+        reason: captchaResult.reason,
+        errorCodes,
+      });
+    } catch {
+      // ignore logging failures
+    }
     if (!captchaResult.ok) {
+      if (
+        captchaResult.reason === "low_score" ||
+        captchaResult.reason === "action_mismatch"
+      ) {
+        return NextResponse.json({
+          ok: true,
+          sent: false,
+          skippedReason: `recaptcha_${captchaResult.reason}`,
+        });
+      }
       return NextResponse.json({ error: "Failed CAPTCHA verification" }, { status: 400 });
     }
 

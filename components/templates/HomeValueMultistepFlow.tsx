@@ -529,7 +529,7 @@ export function HomeValueMultistepFlow({
         stepForNotify.multistepNotifyEachStep === true && !isOverallLastStep;
       if (shouldNotify) {
         const result = await postMultistepStepNotify({
-          getRecaptchaToken: () => execute("lead_submit"),
+          getRecaptchaToken: () => execute("lead_step_notify"),
           mainPage,
           currentStepIndex: currentStep,
           accumulatedData,
