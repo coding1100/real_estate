@@ -2,14 +2,33 @@ import { NextRequest } from "next/server";
 
 const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY;
 
-export async function verifyRecaptchaToken(token: string | null) {
+export async function verifyRecaptchaToken(
+  token: string | null,
+  options?: { minScore?: number; expectedAction?: string },
+) {
+  const minScore =
+    typeof options?.minScore === "number" && Number.isFinite(options.minScore)
+      ? options.minScore
+      : 0.5;
   // If no secret configured, skip verification (dev mode)
   if (!RECAPTCHA_SECRET_KEY) {
-    return { ok: true, score: 1, skipped: true };
+    return {
+      ok: true,
+      score: 1,
+      skipped: true,
+      action: null as string | null,
+      reason: "secret_missing" as const,
+    };
   }
 
   if (!token) {
-    return { ok: false, score: 0, skipped: false };
+    return {
+      ok: false,
+      score: 0,
+      skipped: false,
+      action: null as string | null,
+      reason: "missing_token" as const,
+    };
   }
 
   const params = new URLSearchParams();
@@ -32,10 +51,23 @@ export async function verifyRecaptchaToken(token: string | null) {
   };
 
   const score = data.score ?? 0;
+  const action = typeof data.action === "string" ? data.action : null;
+  const actionMatches =
+    !options?.expectedAction || !action
+      ? true
+      : action === options.expectedAction;
 
   return {
-    ok: data.success && score >= 0.5,
+    ok: data.success && score >= minScore && actionMatches,
     score,
+    action,
+    reason: !data.success
+      ? ("google_rejected" as const)
+      : !actionMatches
+        ? ("action_mismatch" as const)
+        : score < minScore
+          ? ("low_score" as const)
+          : ("ok" as const),
     skipped: false,
     raw: data,
   };
