@@ -95,6 +95,13 @@ export default async function EditPage({ params }: EditPageProps) {
   }
 
   const sections = (page.sections as any) ?? [];
+  const heroForStepNotify = Array.isArray(sections)
+    ? sections.find((s) => s && s.kind === "hero")
+    : null;
+  const multistepNotifyEachStep = Boolean(
+    (heroForStepNotify as any)?.props?.multistepNotifyEachStep ??
+      (page as { multistepNotifyEachStep?: boolean }).multistepNotifyEachStep,
+  );
 
   // Derive per-page social overrides from hero section props, if present
   let socialOverrides: any = null;
@@ -120,6 +127,7 @@ export default async function EditPage({ params }: EditPageProps) {
     slug: page.slug,
     status: page.status,
     multistepStepSlugs: (page as any).multistepStepSlugs ?? null,
+    multistepNotifyEachStep,
     isFixedDefaultHomepage: fixedDefaultHomepage,
     type: page.type as "buyer" | "seller",
     headline: page.headline,
