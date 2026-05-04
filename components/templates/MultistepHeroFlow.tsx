@@ -141,7 +141,14 @@ export function MultistepHeroFlow({
     if (!Number.isFinite(parsed)) return fallback;
     return Math.min(1, Math.max(0.2, parsed));
   };
-  const heroBrightness = normalizeBrightness(layout?.heroImageBrightness, 0.58);
+  const teamHeroBrightness = normalizeBrightness(
+    layout?.heroImageBrightness,
+    0.58,
+  );
+  const defaultHeroBrightness = normalizeBrightness(
+    layout?.heroImageBrightness,
+    0.65,
+  );
 
   const textLayout = stepLayoutData?.find(
     (l) => l.i === "text-container" && !l.hidden,
@@ -293,7 +300,7 @@ export function MultistepHeroFlow({
             <HeroBackgroundImage
               src={(step.heroImageUrl || mainPage.heroImageUrl) as string}
               alt={step.headline}
-              style={{ filter: `brightness(${heroBrightness})` }}
+              style={{ filter: `brightness(${teamHeroBrightness})` }}
               className="object-cover"
             />
           </div>
@@ -407,7 +414,8 @@ export function MultistepHeroFlow({
             src={(step.heroImageUrl || mainPage.heroImageUrl) as string}
             alt={step.headline}
             priority
-            className="object-cover filter brightness-65"
+            className="object-cover"
+            style={{ filter: `brightness(${defaultHeroBrightness})` }}
           />
         </div>
       )}
