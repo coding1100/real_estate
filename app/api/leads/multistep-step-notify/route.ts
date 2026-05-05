@@ -115,6 +115,7 @@ export async function POST(req: NextRequest) {
       type,
       recaptchaToken,
       captchaSessionToken,
+      fubPersonId,
       website,
       ...formData
     } = body ?? {};
@@ -280,7 +281,10 @@ export async function POST(req: NextRequest) {
       mergedFormData: merged,
       formCtaLabel: formCtaLabel || stepPageRow.ctaText,
     });
-    const existingFubPersonIdRaw = merged._fubPersonId;
+    const existingFubPersonIdRaw =
+      typeof fubPersonId === "string" && fubPersonId.trim().length > 0
+        ? fubPersonId
+        : merged._fubPersonId;
     const existingFubPersonId =
       typeof existingFubPersonIdRaw === "string" && existingFubPersonIdRaw.trim()
         ? existingFubPersonIdRaw.trim()
