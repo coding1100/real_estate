@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { LandingPageContent } from "@/lib/types/page";
 import type { FormSchema } from "@/lib/types/form";
@@ -17,6 +17,7 @@ import {
 import { HeroBackgroundImage } from "@/components/templates/HeroBackgroundImage";
 import { DetailedPerspectiveProfileColumn } from "@/components/templates/DetailedPerspectiveProfileColumn";
 import { postMultistepStepNotify } from "@/lib/postMultistepStepNotify";
+import { trackDataLayerEvent } from "@/lib/tracking";
 
 interface LayoutItem {
   i: string;
@@ -102,6 +103,7 @@ export function MultistepHeroFlow({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isFinalSubmitted, setIsFinalSubmitted] = useState(false);
   const [fubPersonId, setFubPersonId] = useState<string | null>(null);
+  const trackedStepViewKeys = useRef<Set<string>>(new Set());
   const { execute } = useRecaptcha();
   const { toast } = useToast();
 
@@ -194,6 +196,23 @@ export function MultistepHeroFlow({
     return () => clearInterval(timer);
   }, [isSubmittingFinal, isStepSubmitting]);
 
+  useEffect(() => {
+    const stepSlug = String(step?.slug ?? mainPage.slug ?? "");
+    const key = `${stepSlug}:${currentStep}`;
+    if (trackedStepViewKeys.current.has(key)) return;
+    trackedStepViewKeys.current.add(key);
+    trackDataLayerEvent("lead_step_view", {
+      entry_slug: String(mainPage.slug ?? ""),
+      step_slug: stepSlug,
+      step_index: currentStep + 1,
+      is_last_step: isLastStep,
+      flow_type: "multistep",
+      page_type: String(mainPage.type ?? ""),
+      domain_host: String(mainPage.domain?.hostname ?? ""),
+      cta_title: String(step?.ctaText ?? ""),
+    });
+  }, [currentStep, isLastStep, mainPage.domain?.hostname, mainPage.slug, mainPage.type, step]);
+
   const handleNextStep = async (
     values: Record<string, unknown>,
     propertyContext?: { address: string; result: ZestimateResult | null },
@@ -248,6 +267,16 @@ export function MultistepHeroFlow({
         ...prev,
         ["step" + currentStep]: mergedValues,
       }));
+      trackDataLayerEvent("lead_step_continue", {
+        entry_slug: String(mainPage.slug ?? ""),
+        step_slug: String(step?.slug ?? mainPage.slug ?? ""),
+        step_index: currentStep + 1,
+        is_last_step: isLastStep,
+        flow_type: "multistep",
+        page_type: String(mainPage.type ?? ""),
+        domain_host: String(mainPage.domain?.hostname ?? ""),
+        cta_title: String(step?.ctaText ?? ""),
+      });
       setCurrentStep((i) => i + 1);
       } finally {
         setIsStepSubmitting(false);
@@ -296,6 +325,16 @@ export function MultistepHeroFlow({
       } else {
         setIsFinalSubmitted(true);
         setSubmitError(null);
+        trackDataLayerEvent("generate_lead", {
+          entry_slug: String(mainPage.slug ?? ""),
+          step_slug: String(step?.slug ?? mainPage.slug ?? ""),
+          step_index: currentStep + 1,
+          is_last_step: true,
+          flow_type: "multistep",
+          page_type: String(mainPage.type ?? ""),
+          domain_host: String(mainPage.domain?.hostname ?? ""),
+          cta_title: String(step?.ctaText ?? ""),
+        });
         const plainSuccess =
           (mainPage.successMessage &&
             mainPage.successMessage.replace(/<[^>]+>/g, "").trim()) ||
