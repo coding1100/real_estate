@@ -606,15 +606,35 @@ function buildRequesterDocumentRecipients(
   }
   const requester = leadEmail.trim();
   const requesterNorm = requester.toLowerCase();
-  const notifyRouting = buildNotifyRecipients(notify) ?? { to: [], cc: [], bcc: [] };
+  const norm = (value: string) => value.trim().toLowerCase();
+  const dedupe = (values: string[]) => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const raw of values) {
+      const trimmed = raw.trim();
+      const key = norm(trimmed);
+      if (!trimmed || seen.has(key)) continue;
+      seen.add(key);
+      out.push(trimmed);
+    }
+    return out;
+  };
+  const rawCc: string[] = [];
+  const rawBcc: string[] = [];
+  for (const entry of notify) {
+    const email = String(entry?.email ?? "").trim();
+    if (!email.includes("@")) continue;
+    if (norm(email) === requesterNorm) continue;
+    if ((entry.kind ?? "cc") === "bcc") rawBcc.push(email);
+    else rawCc.push(email);
+  }
+  const bccNorm = new Set(rawBcc.map(norm));
+  const cc = dedupe(rawCc.filter((email) => !bccNorm.has(norm(email))));
+  const bcc = dedupe(rawBcc);
   return {
     to: [requester],
-    cc: [...notifyRouting.to, ...notifyRouting.cc].filter(
-      (email) => email.trim().toLowerCase() !== requesterNorm,
-    ),
-    bcc: notifyRouting.bcc.filter(
-      (email) => email.trim().toLowerCase() !== requesterNorm,
-    ),
+    cc,
+    bcc,
   };
 }
 
