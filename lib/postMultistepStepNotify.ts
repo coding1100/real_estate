@@ -38,7 +38,7 @@ export async function postMultistepStepNotify(input: {
     _stepSlug: input.stepPage.slug ?? input.mainPage.slug,
     _ctaText: input.stepPage.ctaText ?? input.mainPage.ctaText ?? "",
     ...(prevJson ? { _multistepData: prevJson } : {}),
-    ...(input.fubPersonId ? { _fubPersonId: input.fubPersonId } : {}),
+    ...(input.fubPersonId ? { fubPersonId: input.fubPersonId } : {}),
     ...(token && token.trim() ? { recaptchaToken: token } : {}),
     ...(input.captchaSessionToken
       ? { captchaSessionToken: input.captchaSessionToken }

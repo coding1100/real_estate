@@ -644,6 +644,10 @@ function buildLeadAlertRecipients(
   return buildNotifyRecipients(notify);
 }
 
+function buildRequesterLeadSubject(brandName: string): string {
+  return `We received your request - ${brandName}`;
+}
+
 function findCtaRule(
   rules: CtaForwardingRule[],
   pageCtaText: string | null | undefined,
@@ -871,21 +875,33 @@ export async function sendMultistepIntermediateStepNotification(input: {
   else if (input.formCtaLabel.trim()) subjectParts.push(`Form CTA: ${input.formCtaLabel.trim()}`);
   const subject = subjectParts.join(" · ");
 
-  const routing = buildLeadAlertRecipients(leadEmail, resolvedNotify);
-  if (!routing || routing.to.length === 0) {
+  const requesterEmail =
+    leadEmail && leadEmail.includes("@") ? leadEmail.trim() : null;
+  const internalRouting = buildNotifyRecipients(resolvedNotify);
+  if (!requesterEmail && (!internalRouting || internalRouting.to.length === 0)) {
     return { sent: false, skippedReason: "no_routing" };
   }
-
-  const payload: Parameters<typeof resend.emails.send>[0] = {
-    from: resolveFromAddress(),
-    to: routing.to,
-    subject,
-    html,
-    text,
-  };
-  if (routing.cc.length > 0) payload.cc = routing.cc;
-  if (routing.bcc.length > 0) payload.bcc = routing.bcc;
-  await resend.emails.send(payload);
+  if (requesterEmail) {
+    await resend.emails.send({
+      from: resolveFromAddress(),
+      to: [requesterEmail],
+      subject: buildRequesterLeadSubject(brandName),
+      html,
+      text,
+    });
+  }
+  if (internalRouting && internalRouting.to.length > 0) {
+    const payload: Parameters<typeof resend.emails.send>[0] = {
+      from: resolveFromAddress(),
+      to: internalRouting.to,
+      subject,
+      html,
+      text,
+    };
+    if (internalRouting.cc.length > 0) payload.cc = internalRouting.cc;
+    if (internalRouting.bcc.length > 0) payload.bcc = internalRouting.bcc;
+    await resend.emails.send(payload);
+  }
   return { sent: true };
 }
 
@@ -1123,11 +1139,10 @@ export async function sendLeadNotifications(
         ctaNotificationContext,
       });
 
-      const leadAlertRouting = buildLeadAlertRecipients(
-        leadEmail,
-        resolvedNotifyEmails,
-      );
-      if (!leadAlertRouting || leadAlertRouting.to.length === 0) {
+      const requesterEmail =
+        leadEmail && leadEmail.includes("@") ? leadEmail.trim() : null;
+      const internalRouting = buildNotifyRecipients(resolvedNotifyEmails);
+      if (!requesterEmail && (!internalRouting || internalRouting.to.length === 0)) {
         console.warn("[notifications] Lead email skipped: no recipients found", {
           leadId: lead.id,
           pageSlug: ruleSourcePage.slug,
@@ -1142,21 +1157,32 @@ export async function sendLeadNotifications(
 
       console.log("[notifications] Sending lead alert email", {
         leadId: lead.id,
-        toCount: leadAlertRouting.to.length,
-        ccCount: leadAlertRouting.cc.length,
-        bccCount: leadAlertRouting.bcc.length,
+        toCount: requesterEmail ? 1 : (internalRouting?.to.length ?? 0),
+        ccCount: internalRouting?.cc.length ?? 0,
+        bccCount: internalRouting?.bcc.length ?? 0,
         pageSlug: ruleSourcePage.slug,
       });
-      const leadPayload: Parameters<typeof resend.emails.send>[0] = {
-        from: resolveFromAddress(),
-        to: leadAlertRouting.to,
-        subject,
-        html,
-        text,
-      };
-      if (leadAlertRouting.cc.length > 0) leadPayload.cc = leadAlertRouting.cc;
-      if (leadAlertRouting.bcc.length > 0) leadPayload.bcc = leadAlertRouting.bcc;
-      await resend.emails.send(leadPayload);
+      if (requesterEmail) {
+        await resend.emails.send({
+          from: resolveFromAddress(),
+          to: [requesterEmail],
+          subject: buildRequesterLeadSubject(brandName),
+          html,
+          text,
+        });
+      }
+      if (internalRouting && internalRouting.to.length > 0) {
+        const leadPayload: Parameters<typeof resend.emails.send>[0] = {
+          from: resolveFromAddress(),
+          to: internalRouting.to,
+          subject,
+          html,
+          text,
+        };
+        if (internalRouting.cc.length > 0) leadPayload.cc = internalRouting.cc;
+        if (internalRouting.bcc.length > 0) leadPayload.bcc = internalRouting.bcc;
+        await resend.emails.send(leadPayload);
+      }
       return true;
     } catch (e) {
       console.error("[notifications] Failed to send email", e);
