@@ -176,6 +176,16 @@ export async function POST(req: NextRequest) {
       // ignore logging failures
     }
     if (!captchaResult.ok) {
+      if (
+        captchaResult.reason === "low_score" ||
+        captchaResult.reason === "action_mismatch"
+      ) {
+        return NextResponse.json({
+          ok: true,
+          sent: false,
+          skippedReason: `recaptcha_${captchaResult.reason}`,
+        });
+      }
       return NextResponse.json({ error: "Failed CAPTCHA verification" }, { status: 400 });
     }
 
