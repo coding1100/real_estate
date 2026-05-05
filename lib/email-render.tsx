@@ -43,6 +43,7 @@ export async function renderNewLeadEmailHtml(props: {
   logoUrl?: string | null;
   fieldRows: LeadFieldRow[];
   ctaNotificationContext?: LeadEmailCtaContext | null;
+  audience?: "internal" | "requester";
 }): Promise<{ html: string; text: string }> {
   const absoluteLogoUrl = resolveAbsoluteEmailAssetUrl(props.logoUrl);
   const el = (
@@ -54,6 +55,7 @@ export async function renderNewLeadEmailHtml(props: {
       logoUrl={absoluteLogoUrl}
       fieldRows={props.fieldRows}
       ctaNotificationContext={props.ctaNotificationContext ?? null}
+      audience={props.audience ?? "internal"}
     />
   );
   const [html, text] = await Promise.all([

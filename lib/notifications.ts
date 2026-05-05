@@ -856,7 +856,7 @@ export async function sendMultistepIntermediateStepNotification(input: {
     phase: "multistep_step",
   };
 
-  const { html, text } = await renderNewLeadEmailHtml({
+  const internalEmail = await renderNewLeadEmailHtml({
     leadType: input.leadType,
     domainHostname: input.domain.hostname,
     pageSlug: input.stepPage.slug,
@@ -864,6 +864,17 @@ export async function sendMultistepIntermediateStepNotification(input: {
     logoUrl: input.domain.logoUrl ?? null,
     fieldRows,
     ctaNotificationContext: ctaContext,
+    audience: "internal",
+  });
+  const requesterEmailContent = await renderNewLeadEmailHtml({
+    leadType: input.leadType,
+    domainHostname: input.domain.hostname,
+    pageSlug: input.stepPage.slug,
+    brandName,
+    logoUrl: input.domain.logoUrl ?? null,
+    fieldRows,
+    ctaNotificationContext: ctaContext,
+    audience: "requester",
   });
 
   const subjectParts = [
@@ -886,8 +897,8 @@ export async function sendMultistepIntermediateStepNotification(input: {
       from: resolveFromAddress(),
       to: [requesterEmail],
       subject: buildRequesterLeadSubject(brandName),
-      html,
-      text,
+      html: requesterEmailContent.html,
+      text: requesterEmailContent.text,
     });
   }
   if (internalRouting && internalRouting.to.length > 0) {
@@ -895,8 +906,8 @@ export async function sendMultistepIntermediateStepNotification(input: {
       from: resolveFromAddress(),
       to: internalRouting.to,
       subject,
-      html,
-      text,
+      html: internalEmail.html,
+      text: internalEmail.text,
     };
     if (internalRouting.cc.length > 0) payload.cc = internalRouting.cc;
     if (internalRouting.bcc.length > 0) payload.bcc = internalRouting.bcc;
@@ -1129,7 +1140,7 @@ export async function sendLeadNotifications(
             }
           : null;
 
-      const { html, text } = await renderNewLeadEmailHtml({
+      const internalEmail = await renderNewLeadEmailHtml({
         leadType: lead.type,
         domainHostname: domain.hostname,
         pageSlug: ruleSourcePage.slug,
@@ -1137,6 +1148,17 @@ export async function sendLeadNotifications(
         logoUrl: domain.logoUrl ?? null,
         fieldRows,
         ctaNotificationContext,
+        audience: "internal",
+      });
+      const requesterEmailContent = await renderNewLeadEmailHtml({
+        leadType: lead.type,
+        domainHostname: domain.hostname,
+        pageSlug: ruleSourcePage.slug,
+        brandName,
+        logoUrl: domain.logoUrl ?? null,
+        fieldRows,
+        ctaNotificationContext,
+        audience: "requester",
       });
 
       const requesterEmail =
@@ -1167,8 +1189,8 @@ export async function sendLeadNotifications(
           from: resolveFromAddress(),
           to: [requesterEmail],
           subject: buildRequesterLeadSubject(brandName),
-          html,
-          text,
+          html: requesterEmailContent.html,
+          text: requesterEmailContent.text,
         });
       }
       if (internalRouting && internalRouting.to.length > 0) {
@@ -1176,8 +1198,8 @@ export async function sendLeadNotifications(
           from: resolveFromAddress(),
           to: internalRouting.to,
           subject,
-          html,
-          text,
+          html: internalEmail.html,
+          text: internalEmail.text,
         };
         if (internalRouting.cc.length > 0) leadPayload.cc = internalRouting.cc;
         if (internalRouting.bcc.length > 0) leadPayload.bcc = internalRouting.bcc;
