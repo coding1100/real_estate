@@ -642,7 +642,7 @@ export function HomeValueMultistepFlow({
     );
   }
   if (fubPersonId) {
-    extraHiddenFieldsForSubmit._fubPersonId = fubPersonId;
+    extraHiddenFieldsForSubmit.fubPersonId = fubPersonId;
   }
   const trimmedAddress = propertyFindingContext.address.trim();
   if (trimmedAddress) {
@@ -695,7 +695,7 @@ export function HomeValueMultistepFlow({
         website: "",
         };
         if (fubPersonId) {
-          body._fubPersonId = fubPersonId;
+          body.fubPersonId = fubPersonId;
         }
         if (Object.keys(accumulatedData).length > 0) {
           body._multistepData = JSON.stringify(accumulatedData);

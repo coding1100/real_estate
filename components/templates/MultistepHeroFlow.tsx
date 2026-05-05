@@ -317,9 +317,9 @@ export function MultistepHeroFlow({
         _stepSlug: step.slug ?? mainPage.slug,
         website: "",
         };
-        if (fubPersonId) {
-          body._fubPersonId = fubPersonId;
-        }
+      if (fubPersonId) {
+        body.fubPersonId = fubPersonId;
+      }
         if (Object.keys(accumulatedData).length > 0) {
           body._multistepData = JSON.stringify(accumulatedData);
         }
@@ -409,7 +409,7 @@ export function MultistepHeroFlow({
     extraHiddenFieldsForSubmit._multistepData = JSON.stringify(accumulatedData);
   }
   if (fubPersonId) {
-    extraHiddenFieldsForSubmit._fubPersonId = fubPersonId;
+    extraHiddenFieldsForSubmit.fubPersonId = fubPersonId;
   }
   if (utmHiddenFields) {
     if (utmHiddenFields.utm_source) {
