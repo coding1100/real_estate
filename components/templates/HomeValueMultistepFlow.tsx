@@ -15,6 +15,7 @@ import { HeroBackgroundImage } from "@/components/templates/HeroBackgroundImage"
 import { DetailedPerspectiveProfileColumn } from "@/components/templates/DetailedPerspectiveProfileColumn";
 import { useToast } from "@/components/ui/use-toast";
 import { postMultistepStepNotify } from "@/lib/postMultistepStepNotify";
+import { trackDataLayerEvent } from "@/lib/tracking";
 
 interface LayoutItem {
   i: string;
@@ -474,6 +475,7 @@ export function HomeValueMultistepFlow({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isFinalSubmitted, setIsFinalSubmitted] = useState(false);
   const [fubPersonId, setFubPersonId] = useState<string | null>(null);
+  const trackedStepViewKeys = useRef<Set<string>>(new Set());
   const { execute } = useRecaptcha();
   const { toast } = useToast();
   const [propertyFindingContext, setPropertyFindingContext] = useState<{
@@ -492,6 +494,45 @@ export function HomeValueMultistepFlow({
     }, 380);
     return () => clearInterval(timer);
   }, [isSubmittingFinal, isStepSubmitting]);
+
+  useEffect(() => {
+    const visibleStepSlug =
+      useHomeValueEntryLayout && currentStep === 0
+        ? String(mainPage.slug ?? "")
+        : String(
+            effectiveSteps[
+              useHomeValueEntryLayout ? currentStep - 1 : currentStep
+            ]?.slug ?? mainPage.slug ?? "",
+          );
+    const key = `${visibleStepSlug}:${currentStep}`;
+    if (trackedStepViewKeys.current.has(key)) return;
+    trackedStepViewKeys.current.add(key);
+    trackDataLayerEvent("lead_step_view", {
+      entry_slug: String(mainPage.slug ?? ""),
+      step_slug: visibleStepSlug,
+      step_index: currentStep + 1,
+      is_last_step: isOverallLastStep,
+      flow_type: "multistep",
+      page_type: String(mainPage.type ?? ""),
+      domain_host: String(mainPage.domain?.hostname ?? ""),
+      cta_title: String(
+        (useHomeValueEntryLayout && currentStep === 0
+          ? mainPage.ctaText
+          : effectiveSteps[
+              useHomeValueEntryLayout ? currentStep - 1 : currentStep
+            ]?.ctaText) ?? "",
+      ),
+    });
+  }, [
+    currentStep,
+    effectiveSteps,
+    isOverallLastStep,
+    mainPage.ctaText,
+    mainPage.domain?.hostname,
+    mainPage.slug,
+    mainPage.type,
+    useHomeValueEntryLayout,
+  ]);
 
   const handleNextStep = async (
     values: Record<string, unknown>,
@@ -555,6 +596,16 @@ export function HomeValueMultistepFlow({
         ...prev,
         ["step" + currentStep]: mergedValues,
       }));
+      trackDataLayerEvent("lead_step_continue", {
+        entry_slug: String(mainPage.slug ?? ""),
+        step_slug: String(stepForNotify.slug ?? mainPage.slug ?? ""),
+        step_index: currentStep + 1,
+        is_last_step: isOverallLastStep,
+        flow_type: "multistep",
+        page_type: String(mainPage.type ?? ""),
+        domain_host: String(mainPage.domain?.hostname ?? ""),
+        cta_title: String(stepForNotify.ctaText ?? ""),
+      });
       setCurrentStep((i) => i + 1);
       } finally {
         setIsStepSubmitting(false);
@@ -665,6 +716,16 @@ export function HomeValueMultistepFlow({
       } else {
         setIsFinalSubmitted(true);
         setSubmitError(null);
+        trackDataLayerEvent("generate_lead", {
+          entry_slug: String(mainPage.slug ?? ""),
+          step_slug: String(step?.slug ?? mainPage.slug ?? ""),
+          step_index: currentStep + 1,
+          is_last_step: true,
+          flow_type: "multistep",
+          page_type: String(mainPage.type ?? ""),
+          domain_host: String(mainPage.domain?.hostname ?? ""),
+          cta_title: String(step?.ctaText ?? mainPage.ctaText ?? ""),
+        });
         const plainSuccess =
           (mainPage.successMessage &&
             mainPage.successMessage.replace(/<[^>]+>/g, "").trim()) ||
