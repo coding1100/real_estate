@@ -18,6 +18,7 @@ import { HeroBackgroundImage } from "@/components/templates/HeroBackgroundImage"
 import { DetailedPerspectiveProfileColumn } from "@/components/templates/DetailedPerspectiveProfileColumn";
 import { postMultistepStepNotify } from "@/lib/postMultistepStepNotify";
 import { trackDataLayerEvent } from "@/lib/tracking";
+import { resolveCtaRuleForSubmission } from "@/lib/ctaForwardingValidation";
 
 interface LayoutItem {
   i: string;
@@ -382,6 +383,13 @@ export function MultistepHeroFlow({
           description: plainSuccess,
           variant: "default",
         });
+        const redirectRule = resolveCtaRuleForSubmission(
+          stepCtaForwardingRules,
+          step?.ctaText ?? mainPage.ctaText ?? "",
+        ).rule;
+        if (redirectRule?.forwardEnabled !== false && redirectRule?.forwardUrl) {
+          window.location.assign(redirectRule.forwardUrl);
+        }
       }
     } catch (e) {
       const msg =
