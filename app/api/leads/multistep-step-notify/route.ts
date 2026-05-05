@@ -115,6 +115,7 @@ export async function POST(req: NextRequest) {
       type,
       recaptchaToken,
       captchaSessionToken,
+      fubPersonId,
       website,
       ...formData
     } = body ?? {};
@@ -280,12 +281,15 @@ export async function POST(req: NextRequest) {
       mergedFormData: merged,
       formCtaLabel: formCtaLabel || stepPageRow.ctaText,
     });
-    const existingFubPersonIdRaw = merged._fubPersonId;
+    const existingFubPersonIdRaw =
+      typeof fubPersonId === "string" && fubPersonId.trim().length > 0
+        ? fubPersonId
+        : merged._fubPersonId;
     const existingFubPersonId =
       typeof existingFubPersonIdRaw === "string" && existingFubPersonIdRaw.trim()
         ? existingFubPersonIdRaw.trim()
         : null;
-    const fubPersonId = await dispatchFormDataToFollowUpBoss({
+    const dispatchedFubPersonId = await dispatchFormDataToFollowUpBoss({
       domainHostname: entry.domain.hostname,
       domainNotifyEmail: entry.domain.notifyEmail,
       pageSlug: stepPageRow.slug,
@@ -324,7 +328,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       sent: result.sent,
       skippedReason: result.skippedReason,
-      fubPersonId,
+      fubPersonId: dispatchedFubPersonId,
       captchaSessionToken: nextCaptchaSessionToken,
     });
   } catch (e) {

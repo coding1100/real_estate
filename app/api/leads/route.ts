@@ -159,6 +159,7 @@ export async function POST(req: NextRequest) {
       type,
       recaptchaToken,
       captchaSessionToken,
+      fubPersonId,
       website, // honeypot from DynamicForm
       ...formData
     } = body ?? {};
@@ -321,9 +322,11 @@ export async function POST(req: NextRequest) {
     try {
       console.log("[leads] Dispatch start: FollowUpBoss", { leadId: lead.id });
       const existingFubPersonId =
-        typeof mergedFormData._fubPersonId === "string" &&
-        mergedFormData._fubPersonId.trim().length > 0
-          ? mergedFormData._fubPersonId.trim()
+        typeof fubPersonId === "string" && fubPersonId.trim().length > 0
+          ? fubPersonId.trim()
+          : typeof mergedFormData._fubPersonId === "string" &&
+              mergedFormData._fubPersonId.trim().length > 0
+            ? mergedFormData._fubPersonId.trim()
           : null;
       await dispatchLeadToFollowUpBoss(lead.id, {
         throwOnFailure: true,
