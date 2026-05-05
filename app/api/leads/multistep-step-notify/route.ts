@@ -4,6 +4,10 @@ import { verifyRecaptchaToken } from "@/lib/captcha";
 import { mergeMultistepLeadFormData } from "@/lib/leadPayloadMerge";
 import { sendMultistepIntermediateStepNotification } from "@/lib/notifications";
 import { dispatchFormDataToFollowUpBoss } from "@/lib/followupboss";
+import {
+  createCaptchaSessionToken,
+  verifyCaptchaSessionToken,
+} from "@/lib/captchaSession";
 
 function normalizeTopLevelContacts(merged: Record<string, unknown>): Record<string, unknown> {
   let out = { ...merged };
@@ -110,6 +114,7 @@ export async function POST(req: NextRequest) {
       slug,
       type,
       recaptchaToken,
+      captchaSessionToken,
       website,
       ...formData
     } = body ?? {};
@@ -126,20 +131,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
-    const captchaResult = await verifyRecaptchaToken(recaptchaToken ?? null, {
-      minScore: 0.3,
-      expectedAction: "lead_step_notify",
-    }).catch((e) => {
-      console.error("[recaptcha] multistep-step-notify verification error", e);
-      return {
-        ok: false,
-        score: 0,
-        skipped: false,
-        action: null as string | null,
-        reason: "verification_error" as const,
-        raw: null as unknown,
-      };
+    const captchaSessionCheck = verifyCaptchaSessionToken(captchaSessionToken, {
+      domain: String(domain),
+      slug: String(slug),
+      action: "lead_step_notify",
     });
+    const captchaResult = captchaSessionCheck.ok
+      ? {
+          ok: true,
+          score: 1,
+          skipped: true,
+          action: "lead_step_notify" as string | null,
+          reason: "session_valid" as const,
+          raw: null as unknown,
+        }
+      : await verifyRecaptchaToken(recaptchaToken ?? null, {
+          minScore: 0.3,
+          expectedAction: "lead_step_notify",
+        }).catch((e) => {
+          console.error("[recaptcha] multistep-step-notify verification error", e);
+          return {
+            ok: false,
+            score: 0,
+            skipped: false,
+            action: null as string | null,
+            reason: "verification_error" as const,
+            raw: null as unknown,
+          };
+        });
     try {
       const errorCodes =
         captchaResult && "raw" in captchaResult && captchaResult.raw && "error-codes" in (captchaResult.raw as Record<string, unknown>)
@@ -150,22 +169,13 @@ export async function POST(req: NextRequest) {
         score: captchaResult.score,
         action: captchaResult.action ?? null,
         reason: captchaResult.reason,
+        sessionReason: captchaSessionCheck.ok ? "session_valid" : captchaSessionCheck.reason,
         errorCodes,
       });
     } catch {
       // ignore logging failures
     }
     if (!captchaResult.ok) {
-      if (
-        captchaResult.reason === "low_score" ||
-        captchaResult.reason === "action_mismatch"
-      ) {
-        return NextResponse.json({
-          ok: true,
-          sent: false,
-          skippedReason: `recaptcha_${captchaResult.reason}`,
-        });
-      }
       return NextResponse.json({ error: "Failed CAPTCHA verification" }, { status: 400 });
     }
 
@@ -287,6 +297,11 @@ export async function POST(req: NextRequest) {
       existingPersonId: existingFubPersonId,
       throwOnFailure: true,
     });
+    const nextCaptchaSessionToken = createCaptchaSessionToken({
+      domain: String(domain),
+      slug: String(slug),
+      action: "lead_step_notify",
+    });
 
     if (!result.sent && result.skippedReason === "missing_contact_for_notify") {
       return NextResponse.json(
@@ -300,6 +315,7 @@ export async function POST(req: NextRequest) {
       sent: result.sent,
       skippedReason: result.skippedReason,
       fubPersonId,
+      captchaSessionToken: nextCaptchaSessionToken,
     });
   } catch (e) {
     console.error("[multistep-step-notify]", e);
