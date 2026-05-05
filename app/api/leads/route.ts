@@ -4,6 +4,7 @@ import { verifyRecaptchaToken } from "@/lib/captcha";
 import { sendLeadNotifications } from "@/lib/notifications";
 import { mergeMultistepLeadFormData } from "@/lib/leadPayloadMerge";
 import { dispatchLeadToFollowUpBoss } from "@/lib/followupboss";
+import { verifyCaptchaSessionToken } from "@/lib/captchaSession";
 import type { Prisma } from "@prisma/client";
 
 function collectStringValues(input: unknown, seen = new Set<unknown>()): string[] {
@@ -157,6 +158,7 @@ export async function POST(req: NextRequest) {
       slug,
       type,
       recaptchaToken,
+      captchaSessionToken,
       website, // honeypot from DynamicForm
       ...formData
     } = body ?? {};
@@ -185,16 +187,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
-    const captchaPromise = verifyRecaptchaToken(recaptchaToken ?? null).catch((e) => {
-      console.error("[recaptcha] verification error", e);
-      // Treat verification errors as hard failures, but avoid 500s.
-      return { ok: false, score: 0, skipped: false } as {
-        ok: boolean;
-        score?: number;
-        skipped?: boolean;
-        raw?: Record<string, unknown>;
-      };
-    });
+    const hasMultistepPayload =
+      typeof (formData as { _multistepData?: unknown })._multistepData === "string" ||
+      typeof (formData as { _multistepData?: unknown })._multistepData === "object";
+    const captchaSessionCheck = hasMultistepPayload
+      ? verifyCaptchaSessionToken(captchaSessionToken, {
+          domain: String(domain),
+          slug: String(slug),
+          action: "lead_step_notify",
+        })
+      : { ok: false as const, reason: "not_multistep" };
+    const captchaPromise = captchaSessionCheck.ok
+      ? Promise.resolve({
+          ok: true,
+          score: 1,
+          skipped: true,
+          reason: "session_valid" as const,
+        })
+      : verifyRecaptchaToken(recaptchaToken ?? null, { minScore: 0.3 }).catch((e) => {
+          console.error("[recaptcha] verification error", e);
+          // Treat verification errors as hard failures, but avoid 500s.
+          return { ok: false, score: 0, skipped: false } as {
+            ok: boolean;
+            score?: number;
+            skipped?: boolean;
+            raw?: Record<string, unknown>;
+            reason?: string;
+          };
+        });
 
     // Query page+domain in one round-trip while CAPTCHA verification is in flight.
     const pageWithDomainPromise = prisma.landingPage.findFirst({
@@ -227,6 +247,7 @@ export async function POST(req: NextRequest) {
         ok: captchaResult.ok,
         score: "score" in captchaResult ? captchaResult.score : undefined,
         skipped: captchaResult.skipped,
+        sessionReason: captchaSessionCheck.ok ? "session_valid" : captchaSessionCheck.reason,
         errorCodes,
       });
     } catch {

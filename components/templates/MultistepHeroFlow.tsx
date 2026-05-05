@@ -323,6 +323,9 @@ export function MultistepHeroFlow({
         if (Object.keys(accumulatedData).length > 0) {
           body._multistepData = JSON.stringify(accumulatedData);
         }
+        if (captchaSessionToken) {
+          body.captchaSessionToken = captchaSessionToken;
+        }
         if (token) {
           body.recaptchaToken = token;
         }
