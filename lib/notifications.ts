@@ -618,6 +618,20 @@ function buildRequesterDocumentRecipients(
   };
 }
 
+/** Lead alert routing:
+ * - If requester email exists, send to requester and include notify recipients in cc/bcc.
+ * - Otherwise, fall back to notify routing only.
+ */
+function buildLeadAlertRecipients(
+  leadEmail: string | null | undefined,
+  notify: Array<{ email: string; kind?: "cc" | "bcc" }>,
+): { to: string[]; cc: string[]; bcc: string[] } | null {
+  if (leadEmail && leadEmail.includes("@")) {
+    return buildRequesterDocumentRecipients(leadEmail, notify);
+  }
+  return buildNotifyRecipients(notify);
+}
+
 function findCtaRule(
   rules: CtaForwardingRule[],
   pageCtaText: string | null | undefined,
@@ -845,7 +859,7 @@ export async function sendMultistepIntermediateStepNotification(input: {
   else if (input.formCtaLabel.trim()) subjectParts.push(`Form CTA: ${input.formCtaLabel.trim()}`);
   const subject = subjectParts.join(" · ");
 
-  const routing = buildNotifyRecipients(resolvedNotify);
+  const routing = buildLeadAlertRecipients(leadEmail, resolvedNotify);
   if (!routing || routing.to.length === 0) {
     return { sent: false, skippedReason: "no_routing" };
   }
@@ -1097,7 +1111,10 @@ export async function sendLeadNotifications(
         ctaNotificationContext,
       });
 
-      const leadAlertRouting = buildNotifyRecipients(resolvedNotifyEmails);
+      const leadAlertRouting = buildLeadAlertRecipients(
+        leadEmail,
+        resolvedNotifyEmails,
+      );
       if (!leadAlertRouting || leadAlertRouting.to.length === 0) {
         console.warn("[notifications] Lead email skipped: no recipients found", {
           leadId: lead.id,

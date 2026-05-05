@@ -11,6 +11,7 @@ import { wrapLegalSignsHtml } from "@/lib/richTextSigns";
 import { FormField } from "./FormField";
 import { useRecaptcha } from "./Captcha";
 import { useToast } from "@/components/ui/use-toast";
+import { trackDataLayerEvent } from "@/lib/tracking";
 
 type FormStyle = "default" | "questionnaire" | "detailed-perspective";
 
@@ -139,6 +140,21 @@ export function DynamicForm({
               successMessage.replace(/<[^>]+>/g, "").trim()) ||
             "Thank you! We'll be in touch shortly.",
           variant: "default",
+        });
+        trackDataLayerEvent("generate_lead", {
+          entry_slug: String(extraHiddenFields?.slug ?? ""),
+          step_slug: String(
+            extraHiddenFields?._stepSlug ?? extraHiddenFields?.slug ?? "",
+          ),
+          step_index: 0,
+          is_last_step: true,
+          flow_type:
+            typeof extraHiddenFields?._multistepData === "string"
+              ? "multistep"
+              : "single",
+          page_type: String(extraHiddenFields?.type ?? ""),
+          domain_host: String(extraHiddenFields?.domain ?? ""),
+          cta_title: ctaText ?? "",
         });
         const redirectRule = resolveCtaRuleForSubmission(
           ctaForwardingRules,
