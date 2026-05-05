@@ -289,7 +289,7 @@ export async function POST(req: NextRequest) {
       typeof existingFubPersonIdRaw === "string" && existingFubPersonIdRaw.trim()
         ? existingFubPersonIdRaw.trim()
         : null;
-    const fubPersonId = await dispatchFormDataToFollowUpBoss({
+    const dispatchedFubPersonId = await dispatchFormDataToFollowUpBoss({
       domainHostname: entry.domain.hostname,
       domainNotifyEmail: entry.domain.notifyEmail,
       pageSlug: stepPageRow.slug,
@@ -328,7 +328,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       sent: result.sent,
       skippedReason: result.skippedReason,
-      fubPersonId,
+      fubPersonId: dispatchedFubPersonId,
       captchaSessionToken: nextCaptchaSessionToken,
     });
   } catch (e) {
