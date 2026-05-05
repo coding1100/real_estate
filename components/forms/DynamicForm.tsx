@@ -46,6 +46,21 @@ export function DynamicForm({
   skipValidationForNextStep,
   ctaForwardingRules,
 }: DynamicFormProps) {
+  const parseSubmissionErrorMessage = async (res: Response): Promise<string> => {
+    try {
+      const data = (await res.json()) as { error?: unknown };
+      if (typeof data?.error === "string" && data.error.trim()) {
+        return data.error.trim();
+      }
+    } catch {
+      // Ignore JSON parsing errors and use generic fallback.
+    }
+    return "Something went wrong. Please try again.";
+  };
+
+  const isCaptchaFailure = (status: number, message: string): boolean =>
+    status === 400 && /captcha/i.test(message);
+
   const {
     register,
     handleSubmit,
@@ -116,20 +131,35 @@ export function DynamicForm({
     }
     startTransition(async () => {
       try {
-        const token = await execute("lead_submit");
-        const payload = {
+        const buildPayload = (token: string | null) => ({
           ...values,
           ...extraHiddenFields,
           _ctaText: ctaText,
           recaptchaToken: token,
-        };
-        const res = await fetch(submitUrl, {
+        });
+        const firstToken = await execute("lead_submit");
+        let res = await fetch(submitUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(buildPayload(firstToken)),
         });
+        let failureMessage = "";
         if (!res.ok) {
-          throw new Error("Failed to submit form");
+          failureMessage = await parseSubmissionErrorMessage(res);
+          if (isCaptchaFailure(res.status, failureMessage)) {
+            const retryToken = await execute("lead_submit");
+            res = await fetch(submitUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(buildPayload(retryToken)),
+            });
+            if (!res.ok) {
+              failureMessage = await parseSubmissionErrorMessage(res);
+            }
+          }
+        }
+        if (!res.ok) {
+          throw new Error(failureMessage || "Something went wrong. Please try again.");
         }
         setSubmitted(true);
         reset();
@@ -165,7 +195,10 @@ export function DynamicForm({
         }
       } catch (e) {
         console.error(e);
-        const msg = "Something went wrong. Please try again.";
+        const msg =
+          e instanceof Error && e.message.trim()
+            ? e.message.trim()
+            : "Something went wrong. Please try again.";
         setError(msg);
         toast({
           title: "Submission failed",
