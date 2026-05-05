@@ -16,6 +16,7 @@ import { DetailedPerspectiveProfileColumn } from "@/components/templates/Detaile
 import { useToast } from "@/components/ui/use-toast";
 import { postMultistepStepNotify } from "@/lib/postMultistepStepNotify";
 import { trackDataLayerEvent } from "@/lib/tracking";
+import { resolveCtaRuleForSubmission } from "@/lib/ctaForwardingValidation";
 
 interface LayoutItem {
   i: string;
@@ -774,6 +775,13 @@ export function HomeValueMultistepFlow({
           description: plainSuccess,
           variant: "default",
         });
+        const redirectRule = resolveCtaRuleForSubmission(
+          stepCtaForwardingRules,
+          step?.ctaText ?? mainPage.ctaText ?? "",
+        ).rule;
+        if (redirectRule?.forwardEnabled !== false && redirectRule?.forwardUrl) {
+          window.location.assign(redirectRule.forwardUrl);
+        }
       }
     } catch (e) {
       const msg =
