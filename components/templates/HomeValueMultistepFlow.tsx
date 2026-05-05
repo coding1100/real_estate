@@ -412,6 +412,20 @@ export function HomeValueMultistepFlow({
   utmHiddenFields,
   ctaForwardingRules,
 }: HomeValueMultistepFlowProps) {
+  const parseSubmissionErrorMessage = async (res: Response): Promise<string> => {
+    try {
+      const data = (await res.json()) as { error?: unknown };
+      if (typeof data?.error === "string" && data.error.trim()) {
+        return data.error.trim();
+      }
+    } catch {
+      // Ignore non-JSON responses and use fallback.
+    }
+    return "Unable to submit your request. Please try again.";
+  };
+  const isCaptchaFailure = (status: number, message: string): boolean =>
+    status === 400 && /captcha/i.test(message);
+
   const readPageCtaRules = (page: LandingPageContent): CtaForwardingRule[] => {
     const hero = Array.isArray(page.sections)
       ? page.sections.find((section: { kind?: string }) => section?.kind === "hero")
@@ -666,47 +680,64 @@ export function HomeValueMultistepFlow({
     setSubmitError(null);
     try {
       const resolvedCtaText = step?.ctaText ?? mainPage.ctaText ?? "";
-      const token = await execute("lead_submit");
-
-      const body: Record<string, unknown> = {
+      const buildBody = (token: string | null): Record<string, unknown> => {
+        const body: Record<string, unknown> = {
         domain: mainPage.domain.hostname,
         slug: mainPage.slug,
         type: mainPage.type,
         _ctaText: resolvedCtaText,
         _stepSlug: step?.slug ?? mainPage.slug,
         website: "",
+        };
+        if (fubPersonId) {
+          body._fubPersonId = fubPersonId;
+        }
+        if (Object.keys(accumulatedData).length > 0) {
+          body._multistepData = JSON.stringify(accumulatedData);
+        }
+        if (trimmedAddress) {
+          body.searchedAddress = trimmedAddress;
+        }
+        if (propertyFindingContext.result?.address) {
+          body.resolvedAddress = propertyFindingContext.result.address;
+        }
+        if (typeof propertyFindingContext.result?.estimate === "number") {
+          body.estimate = String(propertyFindingContext.result.estimate);
+        }
+        if (typeof propertyFindingContext.result?.lat === "number") {
+          body.latitude = String(propertyFindingContext.result.lat);
+        }
+        if (typeof propertyFindingContext.result?.lng === "number") {
+          body.longitude = String(propertyFindingContext.result.lng);
+        }
+        if (token) {
+          body.recaptchaToken = token;
+        }
+        return body;
       };
-      if (fubPersonId) {
-        body._fubPersonId = fubPersonId;
-      }
-      if (Object.keys(accumulatedData).length > 0) {
-        body._multistepData = JSON.stringify(accumulatedData);
-      }
-      if (trimmedAddress) {
-        body.searchedAddress = trimmedAddress;
-      }
-      if (propertyFindingContext.result?.address) {
-        body.resolvedAddress = propertyFindingContext.result.address;
-      }
-      if (typeof propertyFindingContext.result?.estimate === "number") {
-        body.estimate = String(propertyFindingContext.result.estimate);
-      }
-      if (typeof propertyFindingContext.result?.lat === "number") {
-        body.latitude = String(propertyFindingContext.result.lat);
-      }
-      if (typeof propertyFindingContext.result?.lng === "number") {
-        body.longitude = String(propertyFindingContext.result.lng);
-      }
-      if (token) {
-        body.recaptchaToken = token;
-      }
-      const res = await fetch("/api/leads", {
+      const firstToken = await execute("lead_submit");
+      let res = await fetch("/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(buildBody(firstToken)),
       });
+      let failureMessage = "";
       if (!res.ok) {
-        const msg = "Unable to submit your request. Please try again.";
+        failureMessage = await parseSubmissionErrorMessage(res);
+        if (isCaptchaFailure(res.status, failureMessage)) {
+          const retryToken = await execute("lead_submit");
+          res = await fetch("/api/leads", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(buildBody(retryToken)),
+          });
+          if (!res.ok) {
+            failureMessage = await parseSubmissionErrorMessage(res);
+          }
+        }
+      }
+      if (!res.ok) {
+        const msg = failureMessage || "Unable to submit your request. Please try again.";
         setSubmitError(msg);
         toast({
           title: "Submission failed",
@@ -736,8 +767,11 @@ export function HomeValueMultistepFlow({
           variant: "default",
         });
       }
-    } catch {
-      const msg = "Unable to submit your request. Please try again.";
+    } catch (e) {
+      const msg =
+        e instanceof Error && e.message.trim()
+          ? e.message.trim()
+          : "Unable to submit your request. Please try again.";
       setSubmitError(msg);
       toast({
         title: "Submission failed",

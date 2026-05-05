@@ -330,21 +330,26 @@ export async function POST(req: NextRequest) {
     }
 
     if (!fubDelivered || !notificationsDelivered) {
+      console.warn("[leads] Lead saved with partial integration delivery", {
+        leadId: lead.id,
+        followUpBoss: fubDelivered,
+        notificationsDocs: notificationsDelivered,
+      });
       return NextResponse.json(
         {
-          ok: false,
-          error: "Lead saved but one or more integrations failed",
+          ok: true,
+          warning: "Lead saved but one or more integrations failed",
           leadId: lead.id,
           integrations: {
             followUpBoss: fubDelivered,
             notificationsDocs: notificationsDelivered,
           },
         },
-        { status: 502 },
+        { status: 200 },
       );
     }
 
-    return NextResponse.json({ ok: true }, { status: 200 });
+    return NextResponse.json({ ok: true, leadId: lead.id }, { status: 200 });
   } catch (error) {
     console.error("Error in POST /api/leads", error);
     return NextResponse.json(
