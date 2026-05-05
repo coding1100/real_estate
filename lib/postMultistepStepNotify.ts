@@ -16,11 +16,10 @@ export async function postMultistepStepNotify(input: {
   fubPersonId?: string | null;
   captchaSessionToken?: string | null;
 }> {
-  let token: string | null | undefined = null;
-  if (!input.captchaSessionToken) {
-    token = await input.getRecaptchaToken();
-  }
-  if (!input.captchaSessionToken && (!token || !token.trim())) {
+  // Always request a fresh token. The backend can prefer a valid session token,
+  // but this ensures fallback verification still works after session expiry.
+  const token = await input.getRecaptchaToken();
+  if ((!token || !token.trim()) && !input.captchaSessionToken) {
     return {
       ok: false,
       error:
