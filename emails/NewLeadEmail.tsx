@@ -21,6 +21,7 @@ export type NewLeadEmailProps = {
   fieldRows: LeadFieldRow[];
   /** When set, shows which multistep step / CTA rule produced this email. */
   ctaNotificationContext?: LeadEmailCtaContext | null;
+  audience?: "internal" | "requester";
 };
 
 export default function NewLeadEmail({
@@ -31,9 +32,13 @@ export default function NewLeadEmail({
   logoUrl,
   fieldRows,
   ctaNotificationContext,
+  audience = "internal",
 }: NewLeadEmailProps) {
   void logoUrl;
-  const previewText = `New ${leadType} lead — ${domainHostname} / ${pageSlug}`;
+  const previewText =
+    audience === "requester"
+      ? `We received your ${leadType} request`
+      : `New ${leadType} lead — ${domainHostname} / ${pageSlug}`;
   const normalizedBrand = (brandName ?? "").trim().toLowerCase();
   const normalizedDomain = (domainHostname ?? "").trim().toLowerCase();
   const subtitleDomain =
@@ -45,10 +50,10 @@ export default function NewLeadEmail({
   return (
     <EmailChrome
       previewText={previewText}
-      title={`New ${leadType} lead`}
+      title={audience === "requester" ? "Request received" : `New ${leadType} lead`}
       subtitle={
         <>
-          Website:{" "}
+          {audience === "requester" ? "Website: " : "Website: "}
           <Link
             href={websiteUrl}
             style={{
@@ -62,7 +67,7 @@ export default function NewLeadEmail({
       }
       brandName={brandName}
     >
-      {ctaNotificationContext ? (
+      {audience === "internal" && ctaNotificationContext ? (
         <Section
           style={{
             backgroundColor: "#1e3a5f",
@@ -124,7 +129,9 @@ export default function NewLeadEmail({
           Submission details
         </Text>
         <Text style={{ margin: "6px 0 0", fontSize: "14px", color: emailTheme.ink }}>
-          <strong style={{ color: emailTheme.muted }}>Page</strong>{" "}
+          <strong style={{ color: emailTheme.muted }}>
+            {audience === "requester" ? "Request page" : "Page"}
+          </strong>{" "}
           <span style={{ fontFamily: "ui-monospace, monospace" }}>{pageSlug}</span>
         </Text>
       </Section>
@@ -137,8 +144,9 @@ export default function NewLeadEmail({
           color: emailTheme.ink,
         }}
       >
-        Here is everything the visitor submitted. Reply directly to this email thread if your
-        client supports it, or reach out using the contact details below.
+        {audience === "requester"
+          ? "Thanks for reaching out. We received your request and our team will contact you shortly. A copy of your submitted details is below."
+          : "Here is everything the visitor submitted. Reply directly to this email thread if your client supports it, or reach out using the contact details below."}
       </Text>
 
       <Hr style={{ borderColor: emailTheme.line, margin: "0 0 16px" }} />
