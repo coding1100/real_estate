@@ -798,7 +798,7 @@ export async function sendMultistepIntermediateStepNotification(input: {
     typeof input.domain.notifyEmail === "string" &&
     input.domain.notifyEmail.includes("@")
   ) {
-    resolvedNotify = [{ email: input.domain.notifyEmail.trim(), kind: "cc" }];
+    resolvedNotify = [{ email: input.domain.notifyEmail.trim(), kind: "bcc" }];
   }
 
   if (resolvedNotify.length === 0) {
@@ -1027,7 +1027,7 @@ export async function sendLeadNotifications(
     typeof domain.notifyEmail === "string" &&
     domain.notifyEmail.includes("@")
   ) {
-    resolvedNotifyEmails = [{ email: domain.notifyEmail.trim(), kind: "cc" }];
+    resolvedNotifyEmails = [{ email: domain.notifyEmail.trim(), kind: "bcc" }];
     console.log("[notifications] Applied domain notify fallback recipient", {
       leadId: lead.id,
       entryPageSlug: page.slug,
