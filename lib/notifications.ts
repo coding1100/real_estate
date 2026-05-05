@@ -576,21 +576,13 @@ function buildNotifyRecipients(
   const ccOnly = dedupe(rawCc.filter((e) => !bccNorm.has(norm(e))));
   const bccOnly = dedupe(rawBcc);
 
-  if (ccOnly.length > 0) {
-    const primary = ccOnly[0];
-    const pn = norm(primary);
+  if (ccOnly.length > 0 || bccOnly.length > 0) {
+    // Keep configured CC/BCC placement intact. Use a neutral mailbox in "to"
+    // to satisfy provider requirements without reclassifying recipients.
     return {
-      to: [primary],
-      cc: ccOnly.slice(1).filter((e) => norm(e) !== pn),
-      bcc: bccOnly.filter((e) => norm(e) !== pn),
-    };
-  }
-
-  if (bccOnly.length > 0) {
-    return {
-      to: [bccOnly[0]],
-      cc: [],
-      bcc: bccOnly.slice(1),
+      to: [resolveFromAddress()],
+      cc: ccOnly,
+      bcc: bccOnly,
     };
   }
 
