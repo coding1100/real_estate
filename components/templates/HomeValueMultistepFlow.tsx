@@ -700,6 +700,9 @@ export function HomeValueMultistepFlow({
         if (Object.keys(accumulatedData).length > 0) {
           body._multistepData = JSON.stringify(accumulatedData);
         }
+        if (captchaSessionToken) {
+          body.captchaSessionToken = captchaSessionToken;
+        }
         if (trimmedAddress) {
           body.searchedAddress = trimmedAddress;
         }
