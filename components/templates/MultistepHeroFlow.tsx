@@ -117,6 +117,7 @@ export function MultistepHeroFlow({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isFinalSubmitted, setIsFinalSubmitted] = useState(false);
   const [fubPersonId, setFubPersonId] = useState<string | null>(null);
+  const [captchaSessionToken, setCaptchaSessionToken] = useState<string | null>(null);
   const trackedStepViewKeys = useRef<Set<string>>(new Set());
   const { execute } = useRecaptcha();
   const { toast } = useToast();
@@ -264,6 +265,7 @@ export function MultistepHeroFlow({
           currentValues: mergedValues,
           utmHiddenFields,
           fubPersonId,
+          captchaSessionToken,
         });
         if (!result.ok) {
           toast({
@@ -275,6 +277,9 @@ export function MultistepHeroFlow({
         }
         if (result.fubPersonId) {
           setFubPersonId(result.fubPersonId);
+        }
+        if (result.captchaSessionToken) {
+          setCaptchaSessionToken(result.captchaSessionToken);
         }
       }
       setAccumulatedData((prev) => ({
