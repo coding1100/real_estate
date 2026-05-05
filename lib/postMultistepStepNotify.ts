@@ -9,9 +9,18 @@ export async function postMultistepStepNotify(input: {
   currentValues: Record<string, unknown>;
   utmHiddenFields?: Record<string, string | undefined>;
   fubPersonId?: string | null;
-}): Promise<{ ok: boolean; error?: string; fubPersonId?: string | null }> {
-  const token = await input.getRecaptchaToken();
-  if (!token || !token.trim()) {
+  captchaSessionToken?: string | null;
+}): Promise<{
+  ok: boolean;
+  error?: string;
+  fubPersonId?: string | null;
+  captchaSessionToken?: string | null;
+}> {
+  let token: string | null | undefined = null;
+  if (!input.captchaSessionToken) {
+    token = await input.getRecaptchaToken();
+  }
+  if (!input.captchaSessionToken && (!token || !token.trim())) {
     return {
       ok: false,
       error:
@@ -31,7 +40,10 @@ export async function postMultistepStepNotify(input: {
     _ctaText: input.stepPage.ctaText ?? input.mainPage.ctaText ?? "",
     ...(prevJson ? { _multistepData: prevJson } : {}),
     ...(input.fubPersonId ? { _fubPersonId: input.fubPersonId } : {}),
-    recaptchaToken: token,
+    ...(token && token.trim() ? { recaptchaToken: token } : {}),
+    ...(input.captchaSessionToken
+      ? { captchaSessionToken: input.captchaSessionToken }
+      : {}),
     website: "",
   };
   const utm = input.utmHiddenFields;
@@ -54,7 +66,11 @@ export async function postMultistepStepNotify(input: {
     };
   }
   const data = (await res.json().catch(() => null)) as
-    | { fubPersonId?: string | null }
+    | { fubPersonId?: string | null; captchaSessionToken?: string | null }
     | null;
-  return { ok: true, fubPersonId: data?.fubPersonId ?? null };
+  return {
+    ok: true,
+    fubPersonId: data?.fubPersonId ?? null,
+    captchaSessionToken: data?.captchaSessionToken ?? null,
+  };
 }
