@@ -259,28 +259,26 @@ export async function POST(req: NextRequest) {
       stepHero?.props?.multistepNotifyEachStep ??
         (stepPageRow as { multistepNotifyEachStep?: boolean }).multistepNotifyEachStep,
     );
-    if (!notifyEach) {
-      return NextResponse.json({ ok: true, skipped: true, reason: "disabled_on_page" });
-    }
-
-    const result = await sendMultistepIntermediateStepNotification({
-      entryPageSlug: entry.slug,
-      leadType: String(type),
-      domain: {
-        hostname: entry.domain.hostname,
-        displayName: entry.domain.displayName,
-        logoUrl: entry.domain.logoUrl,
-        notifyEmail: entry.domain.notifyEmail,
-      },
-      stepPage: {
-        slug: stepPageRow.slug,
-        ctaText: stepPageRow.ctaText,
-        sections: stepPageRow.sections,
-        multistepNotifyEachStep: notifyEach,
-      },
-      mergedFormData: merged,
-      formCtaLabel: formCtaLabel || stepPageRow.ctaText,
-    });
+    const result = notifyEach
+      ? await sendMultistepIntermediateStepNotification({
+          entryPageSlug: entry.slug,
+          leadType: String(type),
+          domain: {
+            hostname: entry.domain.hostname,
+            displayName: entry.domain.displayName,
+            logoUrl: entry.domain.logoUrl,
+            notifyEmail: entry.domain.notifyEmail,
+          },
+          stepPage: {
+            slug: stepPageRow.slug,
+            ctaText: stepPageRow.ctaText,
+            sections: stepPageRow.sections,
+            multistepNotifyEachStep: notifyEach,
+          },
+          mergedFormData: merged,
+          formCtaLabel: formCtaLabel || stepPageRow.ctaText,
+        })
+      : { sent: false, skippedReason: "disabled_on_page" as const };
     const existingFubPersonIdRaw =
       typeof fubPersonId === "string" && fubPersonId.trim().length > 0
         ? fubPersonId
@@ -289,28 +287,39 @@ export async function POST(req: NextRequest) {
       typeof existingFubPersonIdRaw === "string" && existingFubPersonIdRaw.trim()
         ? existingFubPersonIdRaw.trim()
         : null;
-    const dispatchedFubPersonId = await dispatchFormDataToFollowUpBoss({
-      domainHostname: entry.domain.hostname,
-      domainNotifyEmail: entry.domain.notifyEmail,
-      pageSlug: stepPageRow.slug,
-      pageType: String(type),
-      pageCtaText: stepPageRow.ctaText,
-      formData: merged,
-      utmSource:
-        typeof (formData as { utm_source?: unknown }).utm_source === "string"
-          ? (formData as { utm_source?: string }).utm_source ?? null
-          : null,
-      utmMedium:
-        typeof (formData as { utm_medium?: unknown }).utm_medium === "string"
-          ? (formData as { utm_medium?: string }).utm_medium ?? null
-          : null,
-      utmCampaign:
-        typeof (formData as { utm_campaign?: unknown }).utm_campaign === "string"
-          ? (formData as { utm_campaign?: string }).utm_campaign ?? null
-          : null,
-      existingPersonId: existingFubPersonId,
-      throwOnFailure: true,
-    });
+    let dispatchedFubPersonId: string | null = null;
+    let followUpBossErrorCode: string | null = null;
+    try {
+      dispatchedFubPersonId = await dispatchFormDataToFollowUpBoss({
+        domainHostname: entry.domain.hostname,
+        domainNotifyEmail: entry.domain.notifyEmail,
+        pageSlug: stepPageRow.slug,
+        pageType: String(type),
+        pageCtaText: stepPageRow.ctaText,
+        formData: merged,
+        utmSource:
+          typeof (formData as { utm_source?: unknown }).utm_source === "string"
+            ? (formData as { utm_source?: string }).utm_source ?? null
+            : null,
+        utmMedium:
+          typeof (formData as { utm_medium?: unknown }).utm_medium === "string"
+            ? (formData as { utm_medium?: string }).utm_medium ?? null
+            : null,
+        utmCampaign:
+          typeof (formData as { utm_campaign?: unknown }).utm_campaign === "string"
+            ? (formData as { utm_campaign?: string }).utm_campaign ?? null
+            : null,
+        existingPersonId: existingFubPersonId,
+        throwOnFailure: true,
+      });
+    } catch (fubError) {
+      console.error("[multistep-step-notify] FUB dispatch failed", {
+        domain: entry.domain.hostname,
+        slug: stepPageRow.slug,
+        error: fubError,
+      });
+      followUpBossErrorCode = "FOLLOWUPBOSS_DISPATCH_FAILED";
+    }
     const nextCaptchaSessionToken = createCaptchaSessionToken({
       domain: String(domain),
       slug: String(slug),
@@ -329,6 +338,7 @@ export async function POST(req: NextRequest) {
       sent: result.sent,
       skippedReason: result.skippedReason,
       fubPersonId: dispatchedFubPersonId,
+      followUpBossErrorCode,
       captchaSessionToken: nextCaptchaSessionToken,
     });
   } catch (e) {
