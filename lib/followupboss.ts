@@ -93,6 +93,7 @@ type FubDispatchAttemptResult = {
 };
 
 let missingConfigWarned = false;
+let optionalConfigWarned = false;
 
 function parseBoolean(value: string | undefined, defaultValue: boolean): boolean {
   if (value == null) return defaultValue;
@@ -132,6 +133,42 @@ function getConfig(): FollowUpBossConfig {
     ),
     includeRawJson: parseBoolean(process.env.FUB_INCLUDE_RAW_JSON, false),
   };
+}
+
+function hasDeliverableContactData(person: FollowUpBossPerson | null): boolean {
+  if (!person) return false;
+  return Boolean(
+    (person.firstName && person.firstName.trim()) ||
+      (person.lastName && person.lastName.trim()) ||
+      person.emails?.[0]?.value?.trim() ||
+      person.phones?.[0]?.value?.trim(),
+  );
+}
+
+function ensureFollowUpBossConfig(
+  config: FollowUpBossConfig,
+  throwOnFailure: boolean,
+): boolean {
+  if (!config.enabled) return false;
+  if (!config.apiKey) {
+    const message =
+      "[followupboss] Integration is enabled but missing FUB_API_KEY. Skipping dispatch.";
+    if (!missingConfigWarned) {
+      console.warn(message);
+      missingConfigWarned = true;
+    }
+    if (throwOnFailure) {
+      throw new Error(message);
+    }
+    return false;
+  }
+  if ((!config.system || !config.systemKey) && !optionalConfigWarned) {
+    console.warn(
+      "[followupboss] FUB_SYSTEM or FUB_SYSTEM_KEY is not configured. Dispatch will continue, but system-identification headers are recommended.",
+    );
+    optionalConfigWarned = true;
+  }
+  return true;
 }
 
 function normalizeSourceDomain(hostname: string): string {
@@ -869,6 +906,12 @@ async function sendPayloadToFollowUpBoss(input: {
     }
   };
   const endpoint = `${config.baseUrl}${FUB_EVENTS_PATH}`;
+  console.log(`[followupboss] Dispatch start (${logLabel})`, {
+    endpoint,
+    hasSystemHeader: Boolean(config.system),
+    hasSystemKeyHeader: Boolean(config.systemKey),
+    maxAttempts: config.maxAttempts,
+  });
   const headers: Record<string, string> = {
     Authorization: toAuthorizationHeader(config.apiKey),
     "Content-Type": "application/json",
@@ -990,17 +1033,14 @@ export async function dispatchFormDataToFollowUpBoss(input: {
   throwOnFailure?: boolean;
 }): Promise<string | null> {
   const config = getConfig();
-  if (!config.enabled) return null;
-  if (!config.apiKey) {
-    if (!missingConfigWarned) {
-      console.warn(
-        "[followupboss] Integration is enabled but missing FUB_API_KEY. Skipping dispatch.",
-      );
-      missingConfigWarned = true;
-    }
+  if (!ensureFollowUpBossConfig(config, input.throwOnFailure === true)) return null;
+  const extractedPerson = extractPerson(input.formData);
+  if (!hasDeliverableContactData(extractedPerson)) {
+    console.warn(
+      `[followupboss] Skipping submission ${input.pageSlug}: missing deliverable contact data (name/email/phone).`,
+    );
     return null;
   }
-  const extractedPerson = extractPerson(input.formData);
   const person: FollowUpBossPerson =
     extractedPerson ??
     ({
@@ -1059,16 +1099,7 @@ export async function dispatchLeadToFollowUpBoss(
   options?: { throwOnFailure?: boolean; existingPersonId?: string | null },
 ): Promise<string | null> {
   const config = getConfig();
-  if (!config.enabled) return null;
-  if (!config.apiKey) {
-    if (!missingConfigWarned) {
-      console.warn(
-        "[followupboss] Integration is enabled but missing FUB_API_KEY. Skipping dispatch.",
-      );
-      missingConfigWarned = true;
-    }
-    return null;
-  }
+  if (!ensureFollowUpBossConfig(config, options?.throwOnFailure === true)) return null;
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
     include: {
@@ -1093,6 +1124,12 @@ export async function dispatchLeadToFollowUpBoss(
   });
   const payload = buildPayload(lead, config, fieldLabels, notificationRecipients);
   if (!payload) return null;
+  if (!hasDeliverableContactData(extractPerson(lead.formData))) {
+    console.warn(
+      `[followupboss] Skipping lead ${lead.id}: missing deliverable contact data (name/email/phone).`,
+    );
+    return null;
+  }
   if (options?.existingPersonId) {
     payload.person = { ...payload.person, id: options.existingPersonId };
   }
