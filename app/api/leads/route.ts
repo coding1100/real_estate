@@ -318,6 +318,8 @@ export async function POST(req: NextRequest) {
     // This avoids serverless runtimes dropping background work after response is sent.
     let fubDelivered = false;
     let notificationsDelivered = false;
+    let followUpBossErrorCode: string | null = null;
+    let notificationsErrorCode: string | null = null;
 
     try {
       console.log("[leads] Dispatch start: FollowUpBoss", { leadId: lead.id });
@@ -339,6 +341,7 @@ export async function POST(req: NextRequest) {
         leadId: lead.id,
         error: fubError,
       });
+      followUpBossErrorCode = "FOLLOWUPBOSS_DISPATCH_FAILED";
     }
 
     try {
@@ -351,6 +354,7 @@ export async function POST(req: NextRequest) {
         leadId: lead.id,
         error: notificationError,
       });
+      notificationsErrorCode = "NOTIFICATIONS_DISPATCH_FAILED";
     }
 
     if (!fubDelivered || !notificationsDelivered) {
@@ -367,6 +371,10 @@ export async function POST(req: NextRequest) {
           integrations: {
             followUpBoss: fubDelivered,
             notificationsDocs: notificationsDelivered,
+          },
+          integrationErrors: {
+            followUpBoss: followUpBossErrorCode,
+            notificationsDocs: notificationsErrorCode,
           },
         },
         { status: 200 },
