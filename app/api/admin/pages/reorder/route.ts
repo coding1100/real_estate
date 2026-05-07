@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth";
+import { Prisma } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
   const session = await getServerAuthSession();
@@ -85,9 +86,36 @@ export async function POST(req: NextRequest) {
     );
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (err) {
-    console.error("[pages/reorder]", err);
+    const prismaError =
+      err instanceof Prisma.PrismaClientKnownRequestError ||
+      err instanceof Prisma.PrismaClientUnknownRequestError ||
+      err instanceof Prisma.PrismaClientRustPanicError ||
+      err instanceof Prisma.PrismaClientInitializationError ||
+      err instanceof Prisma.PrismaClientValidationError
+        ? err
+        : null;
+    const message =
+      err instanceof Error ? err.message : "Unknown reorder error";
+    const code =
+      prismaError && "code" in prismaError
+        ? (prismaError as { code?: string }).code ?? null
+        : null;
+    const meta =
+      prismaError && "meta" in prismaError
+        ? (prismaError as { meta?: unknown }).meta ?? null
+        : null;
+    console.error("[pages/reorder]", {
+      message,
+      code,
+      meta,
+      domainId,
+      pageCount: normalizedIds.length,
+    });
     return NextResponse.json(
-      { error: "Failed to save page order." },
+      {
+        error: "Failed to save page order.",
+        details: code ? `prisma_${code}` : "reorder_write_failed",
+      },
       { status: 500 },
     );
   }
