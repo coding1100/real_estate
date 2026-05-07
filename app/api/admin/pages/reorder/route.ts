@@ -54,27 +54,22 @@ export async function POST(req: NextRequest) {
   }
 
   const pagesInDomain = await prisma.landingPage.findMany({
-    where: { domainId },
-    select: { id: true },
+    where: { domainId, id: { in: normalizedIds } },
+    select: { id: true, adminListOrder: true },
   });
-  const expectedIds = new Set(pagesInDomain.map((p) => p.id));
-  if (normalizedIds.length !== expectedIds.size) {
+  if (pagesInDomain.length !== normalizedIds.length) {
     return NextResponse.json(
-      {
-        error:
-          "pageIds must list every page for this domain exactly once, in the desired order.",
-      },
+      { error: "One or more page ids do not belong to this domain." },
       { status: 400 },
     );
   }
-  for (const id of normalizedIds) {
-    if (!expectedIds.has(id)) {
-      return NextResponse.json(
-        { error: "One or more page ids do not belong to this domain." },
-        { status: 400 },
-      );
-    }
-  }
+  // Reorder only the provided subset. This keeps drag-and-drop resilient when
+  // the client view omits pages (e.g. filtered/archived views).
+  const minExistingOrder = pagesInDomain.reduce(
+    (min, page) => Math.min(min, page.adminListOrder ?? 0),
+    Number.POSITIVE_INFINITY,
+  );
+  const baseOrder = Number.isFinite(minExistingOrder) ? minExistingOrder : 0;
 
   try {
     // Raw UPDATE so drag-and-drop persists even if Prisma Client was generated
@@ -83,7 +78,7 @@ export async function POST(req: NextRequest) {
       normalizedIds.map((id, index) =>
         prisma.$executeRaw`
           UPDATE "LandingPage"
-          SET "adminListOrder" = ${index}, "updatedAt" = NOW()
+          SET "adminListOrder" = ${baseOrder + index}, "updatedAt" = NOW()
           WHERE "id" = ${id}
         `,
       ),
