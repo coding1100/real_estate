@@ -73,17 +73,25 @@ export async function POST(req: NextRequest) {
   const baseOrder = Number.isFinite(minExistingOrder) ? minExistingOrder : 0;
 
   try {
-    // Raw UPDATE so drag-and-drop persists even if Prisma Client was generated
-    // before `adminListOrder` existed (same resilience as admin list SQL reads).
-    await prisma.$transaction(
-      normalizedIds.map((id, index) =>
-        prisma.$executeRaw`
-          UPDATE "LandingPage"
-          SET "adminListOrder" = ${baseOrder + index}, "updatedAt" = NOW()
-          WHERE "id" = ${id}
-        `,
-      ),
+    // Single bulk UPDATE avoids interactive transaction timeouts on larger
+    // reorder lists in serverless production runtimes.
+    const valuesSql = Prisma.join(
+      normalizedIds.map((id, index) => Prisma.sql`(${id}, ${baseOrder + index})`),
     );
+    await prisma.$executeRaw`
+      WITH input("id", "ord") AS (
+        VALUES ${valuesSql}
+      ),
+      typed AS (
+        SELECT "id"::text AS "id", "ord"::int AS "ord"
+        FROM input
+      )
+      UPDATE "LandingPage" lp
+      SET "adminListOrder" = typed."ord", "updatedAt" = NOW()
+      FROM typed
+      WHERE lp."id" = typed."id"
+        AND lp."domainId" = ${domainId}
+    `;
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (err) {
     const prismaError =
