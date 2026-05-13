@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { MoreVertical, Eye, Pencil, Copy, Link as LinkIcon } from "lucide-react";
 import { DeletePageButton } from "@/components/admin/DeletePageButton";
 import { useAdminToast } from "@/components/admin/useAdminToast";
+import { buildCustomerSiteUrl } from "@/lib/customerSiteUrl";
 
 interface PageRowActionsProps {
   pageId: string;
@@ -79,7 +80,7 @@ export function PageRowActions({
   })();
   const livePath = canonicalPath ?? `/${encodeURIComponent(slug)}`;
   const liveHref = domainHostname
-    ? `https://${domainHostname}${livePath}`
+    ? buildCustomerSiteUrl(domainHostname, livePath)
     : livePath;
   const viewHref =
     archivedView || !isPublished ? draftPreviewHref : liveHref;
@@ -322,7 +323,9 @@ export function PageRowActions({
                       setOpen(false);
                       const origin =
                         typeof window !== "undefined" ? window.location.origin : "";
-                      const url = `${origin}/${slug}`.replace(/\/+/g, "/");
+                      const url = domainHostname
+                        ? buildCustomerSiteUrl(domainHostname, livePath)
+                        : `${origin}${livePath}`.replace(/([^:]\/)\/+/g, "$1");
 
                       if (
                         typeof navigator !== "undefined" &&
