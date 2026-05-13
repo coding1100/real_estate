@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { useAdminToast } from "@/components/admin/useAdminToast";
 import type { CtaForwardingRule } from "@/lib/types/ctaForwarding";
+import { buildCustomerSiteUrl } from "@/lib/customerSiteUrl";
 
 interface PageEditorProps {
   initialPage: LandingPageContent & {
@@ -643,7 +644,10 @@ export function PageEditor({
               onClick={() => {
                 if (status !== "published") return;
                 window.open(
-                  `https://${page.domain.hostname}/${encodeURIComponent(page.slug)}`,
+                  buildCustomerSiteUrl(
+                    page.domain.hostname,
+                    `/${encodeURIComponent(page.slug)}`,
+                  ),
                   "_blank",
                   "noopener,noreferrer",
                 );
@@ -1984,7 +1988,10 @@ export function PageEditor({
               <SeoEditor
                 title={page.headline}
                 description={page.subheadline ?? ""}
-                url={`https://${page.domain.hostname}/${page.slug}`}
+                url={buildCustomerSiteUrl(
+                  page.domain.hostname,
+                  `/${encodeURIComponent(page.slug)}`,
+                )}
                 values={{
                   seoTitle: page.seo.title,
                   seoDescription: page.seo.description,
