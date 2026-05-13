@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { buildCustomerSiteUrl } from "@/lib/customerSiteUrl";
 
 export default async function AdminDashboardPage() {
   const resolveDisplayPath = (slug: string, canonicalUrl: string | null): string => {
@@ -219,7 +220,7 @@ export default async function AdminDashboardPage() {
                       </svg>
                     </Link>
                     <a
-                      href={`https://${row.hostname}${row.path}`}
+                      href={buildCustomerSiteUrl(row.hostname, row.path)}
                       target="_blank"
                       rel="noreferrer"
                       aria-label="View live page"
